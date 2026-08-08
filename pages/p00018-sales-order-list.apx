@@ -1,0 +1,1160 @@
+page 18 (
+    name: Sales Order List
+    alias: SALES-ORDER-LIST
+    title: Sales Order List
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            function generateInvoice(orderNo){
+            
+                if(confirm('Generate Invoice?')){
+            
+                    apex.server.process(
+                        'GENERATE_INVOICE',
+                        {
+                            x01: orderNo
+                        },
+                        {
+                            success:function(pData){
+            
+                                apex.message.showPageSuccess(pData);
+            
+                                apex.region('sales_order_list').refresh();
+            
+                            }
+                        }
+                    );
+            
+                }
+            }
+            
+            // function createGenerateInvoice(orderNo){
+            
+            //     apex.navigation.redirect(
+            //         'f?p=' + $v('pFlowId') +
+            //         ':21:' +
+            //         $v('pInstance') +
+            //         '::NO::P21_ORDER_NO:' +
+            //         orderNo
+            //     );
+            
+            // }
+            
+            function createGenerateInvoice(orderNo){
+            
+                apex.navigation.redirect(
+                    'f?p=' + $v('pFlowId') +
+                    ':21:' +
+                    $v('pInstance') +
+                    '::NO::P21_ORDER_NO:' +
+                    orderNo
+                );
+            
+            }
+            ```
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region new (
+        name: New
+        type: staticContent
+        layout {
+            sequence: 30
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+    )
+
+    region register_1 (
+        name: SALES ORDER  LIST
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT
+                    T.*,
+                
+                    -----------------------------------------
+                    -- Invoice Status
+                    -----------------------------------------
+                    CASE
+                        WHEN T.TOTAL_INVOICE_QTY = 0 THEN
+                            '<span class="t-Badge t-Badge--warning">Pending</span>'
+                
+                        WHEN T.TOTAL_INVOICE_QTY < T.TOTAL_ORDER_QTY THEN
+                            '<span class="t-Badge t-Badge--info">Partial Invoice</span>'
+                
+                        ELSE
+                            '<span class="t-Badge t-Badge--success">Fully Invoiced</span>'
+                    END AS INVOICE_STATUS,
+                
+                    -----------------------------------------
+                    -- Delivery Status
+                    -----------------------------------------
+                    CASE
+                        WHEN T.TOTAL_DELIVERY_QTY = 0 THEN
+                            '<span class="t-Badge t-Badge--primary">Waiting Delivery</span>'
+                
+                        WHEN T.TOTAL_DELIVERY_QTY < T.TOTAL_INVOICE_QTY THEN
+                            '<span class="t-Badge t-Badge--warning">Partial Delivery</span>'
+                
+                        ELSE
+                            '<span class="t-Badge t-Badge--success">Delivered</span>'
+                    END AS DELIVERY_STATUS,
+                
+                    -----------------------------------------
+                    -- Action
+                    -----------------------------------------
+                    CASE
+                
+                        WHEN T.TOTAL_INVOICE_QTY < T.TOTAL_ORDER_QTY THEN
+                
+                        '<a href="f?p=&APP_ID.:21:&SESSION.::NO::'||
+                        'P21_ORDER_NO,P21_INVOICE_DATE,P21_CUSTOMER_NO,P21_MOBILE_NO,P21_TOTAL_AMOUNT,P21_CUSTOMER_NAME,P21_ADDRESS:'||
+                        T.ORDER_NO||','||
+                        TO_CHAR(SYSDATE,'DD-MON-YYYY')||','||
+                        T.CUSTOMER_NO||','||
+                        T.MOBILE_NO||','||
+                        T.TOTAL_AMOUNT||','||
+                        T.CUSTOMER_NAME||','||
+                        T.ADDRESS||
+                        '" class="t-Button t-Button--success t-Button--small">
+                        Create Invoice
+                        </a>'
+                
+                        ELSE
+                
+                        '<a href="f?p=&APP_ID.:21:&SESSION.::NO::P21_ORDER_NO:'||
+                        T.ORDER_NO||
+                        '" class="t-Button t-Button--primary t-Button--small">
+                        View Invoice
+                        </a>'
+                
+                    END ACTIONS
+                
+                FROM
+                (
+                    SELECT
+                
+                        M.ORDER_NO,
+                        M.ORDER_CODE,
+                        M.ORDER_DATE,
+                
+                        C.CUSTOMER_NO,
+                        C.CUSTOMER_NAME,
+                        C.MOBILE_NO,
+                        C.ADDRESS,
+                
+                        ---------------------------------
+                        -- Order Qty
+                        ---------------------------------
+                        NVL
+                        (
+                            (
+                                SELECT SUM(D.ORDER_QTY)
+                                FROM TRN_SALES_ORDER_DTL D
+                                WHERE D.ORDER_NO=M.ORDER_NO
+                            ),
+                            0
+                        ) TOTAL_ORDER_QTY,
+                
+                        ---------------------------------
+                        -- Invoice Qty
+                        ---------------------------------
+                        NVL
+                        (
+                            (
+                                SELECT SUM(I.SALES_QTY)
+                                FROM TRN_SALES_INVOICE_DTL I
+                                JOIN TRN_SALES_INVOICE_MST IM
+                                  ON IM.INVOICE_NO=I.INVOICE_NO
+                                WHERE IM.ORDER_NO=M.ORDER_NO
+                            ),
+                            0
+                        ) TOTAL_INVOICE_QTY,
+                
+                        ---------------------------------
+                        -- Invoice Balance
+                        ---------------------------------
+                        NVL
+                        (
+                            (
+                                SELECT SUM(D.ORDER_QTY)
+                                FROM TRN_SALES_ORDER_DTL D
+                                WHERE D.ORDER_NO=M.ORDER_NO
+                            ),
+                            0
+                        )
+                        -
+                        NVL
+                        (
+                            (
+                                SELECT SUM(I.SALES_QTY)
+                                FROM TRN_SALES_INVOICE_DTL I
+                                JOIN TRN_SALES_INVOICE_MST IM
+                                  ON IM.INVOICE_NO=I.INVOICE_NO
+                                WHERE IM.ORDER_NO=M.ORDER_NO
+                            ),
+                            0
+                        ) INVOICE_BALANCE_QTY,
+                
+                        ---------------------------------
+                        -- Delivery Qty
+                        ---------------------------------
+                        NVL
+                        (
+                            (
+                                SELECT SUM(DD.DELIVERY_QTY)
+                                FROM TRN_DELIVERY_DTL DD
+                                JOIN TRN_DELIVERY_MST DM
+                                  ON DM.DELIVERY_NO=DD.DELIVERY_NO
+                                JOIN TRN_SALES_INVOICE_MST IM
+                                  ON IM.INVOICE_NO=DM.INVOICE_NO
+                                WHERE IM.ORDER_NO=M.ORDER_NO
+                                AND DM.APPROVAL_STATUS='A'
+                            ),
+                            0
+                        ) TOTAL_DELIVERY_QTY,
+                
+                        ---------------------------------
+                        -- Delivery Balance
+                        ---------------------------------
+                        NVL
+                        (
+                            (
+                                SELECT SUM(D.ORDER_QTY)
+                                FROM TRN_SALES_ORDER_DTL D
+                                WHERE D.ORDER_NO=M.ORDER_NO
+                            ),
+                            0
+                        )
+                        -
+                        NVL
+                        (
+                            (
+                                SELECT SUM(DD.DELIVERY_QTY)
+                                FROM TRN_DELIVERY_DTL DD
+                                JOIN TRN_DELIVERY_MST DM
+                                  ON DM.DELIVERY_NO=DD.DELIVERY_NO
+                                JOIN TRN_SALES_INVOICE_MST IM
+                                  ON IM.INVOICE_NO=DM.INVOICE_NO
+                                WHERE IM.ORDER_NO=M.ORDER_NO
+                                AND DM.APPROVAL_STATUS='A'
+                            ),
+                            0
+                        ) DELIVERY_BALANCE_QTY,
+                
+                        ---------------------------------
+                        -- Amount
+                        ---------------------------------
+                        NVL
+                        (
+                            (
+                                SELECT SUM(D.TOTAL_AMOUNT)
+                                FROM TRN_SALES_ORDER_DTL D
+                                WHERE D.ORDER_NO=M.ORDER_NO
+                            ),
+                            0
+                        ) TOTAL_AMOUNT,
+                
+                        ---------------------------------
+                        -- Invoice Count
+                        ---------------------------------
+                        (
+                            SELECT COUNT(*)
+                            FROM TRN_SALES_INVOICE_MST I
+                            WHERE I.ORDER_NO=M.ORDER_NO
+                        ) TOTAL_INVOICE,
+                
+                        M.CREATED_BY,
+                        M.CREATED_DATE
+                
+                    FROM TRN_SALES_ORDER_MST M
+                
+                    JOIN MST_CUSTOMER C
+                      ON C.CUSTOMER_NO=M.CUSTOMER_NO
+                
+                    
+                
+                ) T
+                WHERE
+                (
+                    :P18_STATUS IS NULL
+                    OR :P18_STATUS = 'ALL'
+                
+                    ---------------------------------------------------
+                    -- Pending Invoice
+                    ---------------------------------------------------
+                    OR (
+                        :P18_STATUS = 'P'
+                        AND T.TOTAL_INVOICE_QTY = 0
+                    )
+                
+                    ---------------------------------------------------
+                    -- Partial Invoice
+                    ---------------------------------------------------
+                    OR (
+                        :P18_STATUS = 'PI'
+                        AND T.TOTAL_INVOICE_QTY > 0
+                        AND T.TOTAL_INVOICE_QTY < T.TOTAL_ORDER_QTY
+                    )
+                
+                    ---------------------------------------------------
+                    -- Fully Invoiced
+                    ---------------------------------------------------
+                    OR (
+                        :P18_STATUS = 'I'
+                        AND T.TOTAL_INVOICE_QTY = T.TOTAL_ORDER_QTY
+                    )
+                
+                    ---------------------------------------------------
+                    -- Waiting Delivery
+                    ---------------------------------------------------
+                    -- OR (
+                    --     :P18_STATUS = 'WD'
+                    --     AND T.TOTAL_INVOICE_QTY > 0
+                    --     AND T.TOTAL_DELIVERY_QTY = 0
+                    -- )
+                
+                    ---------------------------------------------------
+                    -- Partial Delivery
+                    ---------------------------------------------------
+                    OR (
+                        :P18_STATUS = 'PD'
+                        AND T.TOTAL_DELIVERY_QTY > 0
+                        AND T.TOTAL_DELIVERY_QTY < T.TOTAL_INVOICE_QTY
+                    )
+                
+                    ---------------------------------------------------
+                    -- Delivered
+                    ---------------------------------------------------
+                    OR (
+                        :P18_STATUS = 'D'
+                        AND T.TOTAL_INVOICE_QTY > 0
+                        AND T.TOTAL_DELIVERY_QTY = T.TOTAL_INVOICE_QTY
+                    )
+                )
+                ORDER BY T.ORDER_NO DESC;
+                ```
+            pageItemsToSubmit: P18_STATUS
+        }
+        layout {
+            sequence: 20
+            parentRegion: @new
+            slot: regionBody
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--removeHeader js-removeLandmark
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        advanced {
+            htmlDomId: sales_order_list
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 8748509658844297113
+        }
+
+        column ACTIONS (
+            type: plainText
+            heading {
+                heading: Invoice
+            }
+            layout {
+                sequence: 130
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: J
+            }
+            security {
+                escapeSpecialChars: false
+            }
+        )
+
+        column ADDRESS (
+            type: plainText
+            heading {
+                heading: Address
+            }
+            layout {
+                sequence: 180
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: O
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: G
+            }
+        )
+
+        column CREATED_DATE (
+            type: plainText
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: H
+            }
+        )
+
+        column CUSTOMER_NAME (
+            type: plainText
+            heading {
+                heading: Customer Name
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: D
+            }
+        )
+
+        column CUSTOMER_NO (
+            type: plainText
+            heading {
+                heading: Customer No
+                alignment: end
+            }
+            layout {
+                sequence: 270
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: X
+            }
+        )
+
+        column DELIVERY_BALANCE_QTY (
+            type: plainText
+            heading {
+                heading: Delivery Balance Qty
+                alignment: end
+            }
+            layout {
+                sequence: 230
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: T
+            }
+        )
+
+        column DELIVERY_STATUS (
+            type: plainText
+            heading {
+                heading: Delivery Status
+            }
+            layout {
+                sequence: 260
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: W
+            }
+            security {
+                escapeSpecialChars: false
+            }
+        )
+
+        column INVOICE_BALANCE_QTY (
+            type: plainText
+            heading {
+                heading: Invoice Balance Qty
+                alignment: end
+            }
+            layout {
+                sequence: 210
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: R
+            }
+        )
+
+        column INVOICE_STATUS (
+            type: plainText
+            heading {
+                heading: Invoice Status
+            }
+            layout {
+                sequence: 250
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: V
+            }
+            security {
+                escapeSpecialChars: false
+            }
+        )
+
+        column MOBILE_NO (
+            type: plainText
+            heading {
+                heading: Mobile No
+            }
+            layout {
+                sequence: 140
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: K
+            }
+        )
+
+        column ORDER_CODE (
+            type: link
+            heading {
+                heading: Order Code
+            }
+            layout {
+                sequence: 20
+            }
+            link {
+                target: {
+                    page: 17
+                    items: {
+                        P17_ORDER_NO: #ORDER_NO#
+                    }
+                }
+                linkText: #ORDER_CODE#
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: B
+            }
+        )
+
+        column ORDER_DATE (
+            type: plainText
+            heading {
+                heading: Order Date
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: C
+            }
+        )
+
+        column ORDER_NO (
+            type: plainText
+            heading {
+                heading: Order No
+                alignment: end
+            }
+            layout {
+                sequence: 10
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: A
+            }
+        )
+
+        column TOTAL_AMOUNT (
+            type: plainText
+            heading {
+                heading: Total Amount
+                alignment: end
+            }
+            layout {
+                sequence: 50
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: E
+            }
+        )
+
+        column TOTAL_DELIVERY_QTY (
+            type: plainText
+            heading {
+                heading: Total Delivery Qty
+                alignment: end
+            }
+            layout {
+                sequence: 220
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: S
+            }
+        )
+
+        column TOTAL_INVOICE (
+            type: plainText
+            heading {
+                heading: Total Invoice
+                alignment: end
+            }
+            layout {
+                sequence: 240
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: U
+            }
+        )
+
+        column TOTAL_INVOICE_QTY (
+            type: plainText
+            heading {
+                heading: Total Invoice Qty
+                alignment: end
+            }
+            layout {
+                sequence: 200
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: Q
+            }
+        )
+
+        column TOTAL_ORDER_QTY (
+            type: plainText
+            heading {
+                heading: Total Order Qty
+                alignment: end
+            }
+            layout {
+                sequence: 190
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: P
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn ACTIONS (
+                sequence: 4
+            )
+
+            displayColumn CREATED_BY (
+                sequence: 14
+            )
+
+            displayColumn CREATED_DATE (
+                sequence: 15
+            )
+
+            displayColumn CUSTOMER_NAME (
+                sequence: 3
+            )
+
+            displayColumn DELIVERY_BALANCE_QTY (
+                sequence: 13
+            )
+
+            displayColumn DELIVERY_STATUS (
+                sequence: 6
+            )
+
+            displayColumn INVOICE_BALANCE_QTY (
+                sequence: 11
+            )
+
+            displayColumn INVOICE_STATUS (
+                sequence: 5
+            )
+
+            displayColumn ORDER_CODE (
+                sequence: 1
+            )
+
+            displayColumn ORDER_DATE (
+                sequence: 2
+            )
+
+            displayColumn TOTAL_AMOUNT (
+                sequence: 7
+            )
+
+            displayColumn TOTAL_DELIVERY_QTY (
+                sequence: 12
+            )
+
+            displayColumn TOTAL_INVOICE (
+                sequence: 8
+            )
+
+            displayColumn TOTAL_INVOICE_QTY (
+                sequence: 10
+            )
+
+            displayColumn TOTAL_ORDER_QTY (
+                sequence: 9
+            )
+
+        )
+
+    )
+
+    pageItem P18_STATUS (
+        type: radioGroup
+        label {
+            alignment: left
+        }
+        settings {
+            noOfCols: 7
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:ALL;ALL,Pending;P,Partial  Invoiced;PI,Full Invoiced;I,Partial  Delivery;PD,Delivered;D
+            displayExtraValues: false
+            displayNullValue: false
+        }
+        layout {
+            sequence: 10
+            region: @new
+            slot: regionBody
+            alignment: left
+            column: 3
+            columnSpan: 7
+            labelColumnSpan: 0
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+        }
+        default {
+            type: static
+            staticValue: ALL
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 50
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
+    button new (
+        buttonName: SALES_ORDER_ENTRY
+        label: Sales Order Entry
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-cart-arrow-down
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 17
+            }
+        }
+        advanced {
+            htmlDomId: pb-reset
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 40
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    dynamicAction new_2 (
+        name: New
+        execution {
+            sequence: 30
+        }
+        when {
+            selectionType: items
+            items: P18_STATUS
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @register_1
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process generate-invoice (
+        name: GENERATE_INVOICE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    v_invoice_no      NUMBER;
+                    v_invoice_code    VARCHAR2(30);
+                
+                    v_exists          NUMBER;
+                
+                BEGIN
+                
+                    --------------------------------------------------
+                    -- Already Invoiced Check
+                    --------------------------------------------------
+                
+                    SELECT COUNT(*)
+                      INTO v_exists
+                      FROM TRN_SALES_INVOICE_MST
+                     WHERE ORDER_NO = APEX_APPLICATION.G_X01;
+                
+                    IF v_exists > 0 THEN
+                
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Invoice already generated for this order.'
+                        );
+                
+                    END IF;
+                
+                    --------------------------------------------------
+                    -- Generate Invoice No
+                    --------------------------------------------------
+                
+                    SELECT SEQ_INVOICE_NO.NEXTVAL
+                      INTO v_invoice_no
+                      FROM DUAL;
+                
+                    v_invoice_code :=
+                        'INV-' || LPAD(v_invoice_no,6,'0');
+                
+                    --------------------------------------------------
+                    -- Invoice Master
+                    --------------------------------------------------
+                
+                    INSERT INTO TRN_SALES_INVOICE_MST
+                    (
+                        INVOICE_NO,
+                        INVOICE_CODE,
+                        INVOICE_DATE,
+                        ORDER_NO,
+                        CUSTOMER_NO,
+                        TOTAL_AMOUNT,
+                        DELIVERY_STATUS,
+                        CREATED_BY,
+                        CREATED_DATE
+                    )
+                    SELECT
+                        v_invoice_no,
+                        v_invoice_code,
+                        SYSDATE,
+                        M.ORDER_NO,
+                        M.CUSTOMER_NO,
+                        (
+                            SELECT NVL(SUM(TOTAL_AMOUNT),0)
+                              FROM TRN_SALES_ORDER_DTL
+                             WHERE ORDER_NO = M.ORDER_NO
+                        ),
+                        'P',
+                        :APP_USER,
+                        SYSDATE
+                    FROM TRN_SALES_ORDER_MST M
+                    WHERE M.ORDER_NO = APEX_APPLICATION.G_X01;
+                
+                    --------------------------------------------------
+                    -- Invoice Detail
+                    --------------------------------------------------
+                
+                    INSERT INTO TRN_SALES_INVOICE_DTL
+                    (
+                        INVOICE_DTL_NO,
+                        INVOICE_NO,
+                        ORDER_DTL_NO,
+                        PRODUCT_NO,
+                        ORDER_QTY,
+                        SALES_QTY,
+                        SALES_RATE,
+                        TOTAL_AMOUNT
+                    )
+                    SELECT
+                        SEQ_INVOICE_DTL_NO.NEXTVAL,
+                        v_invoice_no,
+                        ORDER_DTL_NO,
+                        PRODUCT_NO,
+                        ORDER_QTY,
+                        ORDER_QTY,
+                        SALES_RATE,
+                        TOTAL_AMOUNT
+                    FROM TRN_SALES_ORDER_DTL
+                    WHERE ORDER_NO = APEX_APPLICATION.G_X01;
+                
+                    --------------------------------------------------
+                    -- Update Order Detail
+                    --------------------------------------------------
+                
+                    UPDATE TRN_SALES_ORDER_DTL
+                       SET INVOICED_QTY =
+                               NVL(INVOICED_QTY,0)
+                               + ORDER_QTY,
+                
+                           BALANCE_QTY =
+                               ORDER_QTY -
+                               (
+                                   NVL(INVOICED_QTY,0)
+                                   + ORDER_QTY
+                               ),
+                
+                           UPDATED_BY = :APP_USER,
+                           UPDATED_DATE = SYSDATE
+                
+                     WHERE ORDER_NO = APEX_APPLICATION.G_X01;
+                
+                    --------------------------------------------------
+                    -- Update Order Master
+                    --------------------------------------------------
+                
+                    UPDATE TRN_SALES_ORDER_MST
+                       SET ORDER_STATUS = 'I',
+                           UPDATED_BY   = :APP_USER,
+                           UPDATED_DATE = SYSDATE
+                     WHERE ORDER_NO = APEX_APPLICATION.G_X01;
+                
+                    COMMIT;
+                
+                    HTP.P(
+                        'Invoice generated successfully. Invoice No: '
+                        || v_invoice_code
+                    );
+                
+                EXCEPTION
+                    WHEN OTHERS THEN
+                
+                        ROLLBACK;
+                
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            SQLERRM
+                        );
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: ajaxCallback
+        }
+        advanced {
+            executionMappingIdentifier: 8748510857168297125
+        }
+    )
+
+)
+

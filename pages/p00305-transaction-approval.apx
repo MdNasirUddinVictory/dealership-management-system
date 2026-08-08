@@ -1,0 +1,1524 @@
+page 305 (
+    name: Transaction Approval
+    alias: TRANSACTION-APPROVAL
+    title: Transaction Approval
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            function f_openModal(transactionNo,transactionType,approvalStatus){
+              apex.item("P305_TRANSACTION_NO").setValue(transactionNo); 
+              apex.item("P305_TRANSACTION_TYPE").setValue(transactionType);  
+              apex.item("P305_APPROVAL_STATUS").setValue(transactionType);  
+            
+                openModal('trnsaction_approve');
+            
+                apex.region('transaction-detail').refresh();
+            
+            }
+            
+            function approveTransaction(pTransactionNo) {
+            
+                apex.message.confirm(
+                    "Are you sure you want to approve this transaction?",
+                    function (okPressed) {
+            
+                        if (!okPressed) {
+                            return;
+                        }
+            
+                        apex.server.process(
+                            "APPROVE_TRANSACTION", 
+                            {
+                                x01: pTransactionNo,
+                                x02: $v("P305_TRANSACTION_TYPE")
+                            },
+                            {
+                                dataType: "json",
+            
+                                loadingIndicator: "body",
+            
+                                success: function (pData) {
+            
+                                    if (pData.status === "SUCCESS") {
+            
+                                        apex.message.showPageSuccess(
+                                            pData.message
+                                        );
+            
+                                        apex.region("transaction-register").refresh();
+                                        apex.region("transaction-detail").refresh();
+            
+                                    } else {
+            
+                                        apex.message.showErrors([
+                                            {
+                                                type: "error",
+                                                location: ["page"],
+                                                message: pData.message,
+                                                unsafe: false
+                                            }
+                                        ]);
+            
+                                    }
+            
+                                },
+            
+                                // error: function (jqXHR, textStatus, errorThrown) {
+            
+                                //     apex.message.showErrors([
+                                //         {
+                                //             type: "error",
+                                //             location: ["page"],
+                                //             message:
+                                //                 "Unexpected error occurred.<br>" +
+                                //                 errorThrown,
+                                //             unsafe: true
+                                //         }
+                                //     ]);
+            
+                                // }
+            
+                            }
+                        );
+            
+                    }
+                );
+            
+            }
+            
+            function rejectPurchase(ptransactionNo){
+            
+                if(!confirm('Are you sure you want to reject this purchase?')){
+                    return;
+                }
+            
+                apex.server.process(
+                    "REJECT_PURCHASE",
+                    {
+                        x01: ptransactionNo
+                    },
+                    {
+                        dataType: "text",
+                        success: function(pData){
+            
+                            if(pData === "SUCCESS"){
+            
+                                apex.message.showPageSuccess(
+                                    "Purchase rejected successfully."
+                                );
+            
+                                 apex.region('purchase-detail').refresh();
+                                apex.region('purchase-register').refresh();
+            
+                            }else{
+            
+                                apex.message.alert(pData);
+            
+                            }
+                        },
+                        error: function(){
+            
+                            apex.message.alert(
+                                "Unable to process request."
+                            );
+            
+                        }
+                    }
+                );
+            
+            }
+            ```
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region approval-process (
+        name: Approval Process
+        type: staticContent
+        layout {
+            sequence: 40
+            slot: body
+        }
+        appearance {
+            template: @/inline-drawer
+            templateOptions: [
+                #DEFAULT#
+                js-dialog-class-t-Drawer--pullOutEnd
+                js-dialog-class-t-Drawer--md
+            ]
+        }
+        advanced {
+            htmlDomId: trnsaction_approve
+        }
+    )
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region purchase-details (
+        name: TRANSACTION DETAILS
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT * FROM (SELECT *
+                FROM VW_TRANSACTION_DTL
+                WHERE TRANSACTION_NO = :P305_TRANSACTION_NO
+                ORDER BY TRANSACTION_DTL_NO);
+                ```
+            pageItemsToSubmit: P305_TRANSACTION_NO
+        }
+        layout {
+            sequence: 30
+            parentRegion: @approval-process
+            slot: regionBody
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        advanced {
+            htmlDomId: transaction-detail
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
+        }
+        advanced {
+            savedReportMappingIdentifier: 23215949882632557993
+        }
+
+        savedReport primary (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @TRANSACTION_DTL_NO
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @TRANSACTION_NO
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @REF_TYPE
+                layout {
+                    width: 75
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @REF_NO
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @DOC_NO
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @DOC_CODE
+                layout {
+                    width: 87
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @DOC_DATE
+                layout {
+                    width: 78
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_NO
+                layout {
+                    sequence: 10
+                }
+            )
+
+            displayColumn (
+                column: @INVOICE_AMOUNT
+                layout {
+                    width: 113
+                    sequence: 11
+                }
+            )
+
+            displayColumn (
+                column: @PREVIOUS_AMOUNT
+                layout {
+                    width: 122
+                    sequence: 12
+                }
+            )
+
+            displayColumn (
+                column: @DUE_AMOUNT
+                layout {
+                    width: 94
+                    sequence: 13
+                }
+            )
+
+            displayColumn (
+                column: @ALLOCATE_AMOUNT
+                layout {
+                    width: 113
+                    sequence: 14
+                }
+            )
+
+            displayColumn (
+                column: @REMARKS
+                layout {
+                    sequence: 17
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_BY
+                layout {
+                    width: 80
+                    sequence: 15
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_DATE
+                layout {
+                    width: 97
+                    sequence: 16
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_CODE
+                layout {
+                    width: 80
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_NAME
+                layout {
+                    width: 111
+                    sequence: 2
+                }
+            )
+
+        )
+
+        column ALLOCATE_AMOUNT (
+            type: numberField
+            heading {
+                heading: Allocate Amount
+                alignment: end
+            }
+            layout {
+                sequence: 150
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: ALLOCATE_AMOUNT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column CREATED_BY (
+            type: textField
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 170
+            }
+            validation {
+                maxLength: 100
+            }
+            source {
+                databaseColumn: CREATED_BY
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CREATED_DATE (
+            type: datePicker
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 180
+            }
+            source {
+                databaseColumn: CREATED_DATE
+                dataType: date
+            }
+        )
+
+        column DOC_CODE (
+            type: link
+            heading {
+                heading: Doc Code
+            }
+            layout {
+                sequence: 90
+            }
+            link {
+                target: {
+                    page: 21
+                    items: {
+                        P21_INVOICE_NO: &DOC_NO.
+                    }
+                }
+                linkText: &DOC_CODE.
+            }
+            source {
+                databaseColumn: DOC_CODE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column DOC_DATE (
+            type: datePicker
+            heading {
+                heading: Doc Date
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                databaseColumn: DOC_DATE
+                dataType: date
+            }
+        )
+
+        column DOC_NO (
+            type: hidden
+            heading {
+                heading: Doc No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                databaseColumn: DOC_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column DUE_AMOUNT (
+            type: numberField
+            heading {
+                heading: Due Amount
+                alignment: end
+            }
+            layout {
+                sequence: 140
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: DUE_AMOUNT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column INVOICE_AMOUNT (
+            type: numberField
+            heading {
+                heading: Invoice Amount
+                alignment: end
+            }
+            layout {
+                sequence: 120
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: INVOICE_AMOUNT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column PREVIOUS_AMOUNT (
+            type: numberField
+            heading {
+                heading: Previous Amount
+                alignment: end
+            }
+            layout {
+                sequence: 130
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: PREVIOUS_AMOUNT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column PRODUCT_CODE (
+            type: textField
+            heading {
+                heading: Product Code
+            }
+            layout {
+                sequence: 60
+            }
+            validation {
+                valueRequired: true
+                maxLength: 50
+            }
+            source {
+                databaseColumn: PRODUCT_CODE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column PRODUCT_NAME (
+            type: textarea
+            heading {
+                heading: Product Name
+            }
+            layout {
+                sequence: 70
+            }
+            validation {
+                valueRequired: true
+                maxLength: 300
+            }
+            source {
+                databaseColumn: PRODUCT_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+        )
+
+        column PRODUCT_NO (
+            type: hidden
+            heading {
+                heading: Product No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                databaseColumn: PRODUCT_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column REF_NO (
+            type: hidden
+            heading {
+                heading: Ref No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                databaseColumn: REF_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column REF_TYPE (
+            type: textField
+            heading {
+                heading: Ref Type
+            }
+            layout {
+                sequence: 80
+            }
+            validation {
+                maxLength: 20
+            }
+            source {
+                databaseColumn: REF_TYPE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column REMARKS (
+            type: textarea
+            heading {
+                heading: Remarks
+            }
+            layout {
+                sequence: 160
+            }
+            validation {
+                maxLength: 300
+            }
+            source {
+                databaseColumn: REMARKS
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+        )
+
+        column TRANSACTION_DTL_NO (
+            type: hidden
+            heading {
+                heading: Transaction Dtl No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                databaseColumn: TRANSACTION_DTL_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column TRANSACTION_NO (
+            type: hidden
+            heading {
+                heading: Transaction No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                databaseColumn: TRANSACTION_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    region register (
+        name: TRANSACTION-REGISTER
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT * FROM (SELECT
+                       T.TRANSACTION_NO,
+                       T.TRANSACTION_CODE,
+                       T.TRANSACTION_DATE,
+                       TRANSACTION_TYPE,
+                
+                       CASE
+                            WHEN T.TRANSACTION_TYPE='R' THEN 'Receive'
+                            WHEN T.TRANSACTION_TYPE='P' THEN 'Payment'
+                       END TRAN_TYPE,
+                
+                       T.PARTY_NO,
+                
+                       CASE
+                            WHEN T.TRANSACTION_TYPE='R'
+                                 THEN C.CUSTOMER_NAME
+                            WHEN T.TRANSACTION_TYPE='P'
+                                 THEN S.SUPPLIER_NAME
+                       END PARTY_NAME,
+                
+                        CASE
+                            WHEN T.PAY_MODE='C' THEN 'Cash'
+                            WHEN T.PAY_MODE='B' THEN 'Bank'
+                       END PAYMENT_MODE,
+                
+                       T.TOTAL_AMOUNT,
+                
+                       T.APPROVAL_STATUS,
+                
+                       CASE
+                            WHEN T.APPROVAL_STATUS='P' THEN 'Pending'
+                            WHEN T.APPROVAL_STATUS='A' THEN 'Approved'
+                       END STATUS_NAME,
+                
+                       T.VOUCHER_NO,
+                
+                       V.VOUCHER_CODE,
+                
+                       T.CREATED_BY,
+                       T.CREATED_DATE,
+                
+                       T.APPROVED_BY,
+                       T.APPROVED_DATE,
+                       NULL DETAILS
+                
+                FROM TRN_TRANSACTION_MST T
+                
+                LEFT JOIN MST_CUSTOMER C
+                       ON C.CUSTOMER_NO=T.PARTY_NO
+                      AND T.TRANSACTION_TYPE='R'
+                
+                LEFT JOIN MST_SUPPLIER S
+                       ON S.SUPPLIER_NO=T.PARTY_NO
+                      AND T.TRANSACTION_TYPE='P'
+                
+                LEFT JOIN ACC_VOUCHER_MST V
+                       ON V.VOUCHER_NO=T.VOUCHER_NO
+                
+                ORDER BY T.TRANSACTION_NO DESC);
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--removeHeader js-removeLandmark
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        advanced {
+            htmlDomId: purchase-register
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 14807876047295454217
+        }
+
+        column APPROVAL_STATUS (
+            type: hidden
+            heading {
+                heading: Approval Status
+            }
+            layout {
+                sequence: 190
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: I
+            }
+        )
+
+        column APPROVED_BY (
+            type: plainText
+            heading {
+                heading: Approved By
+            }
+            layout {
+                sequence: 160
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: O
+            }
+        )
+
+        column APPROVED_DATE (
+            type: plainText
+            heading {
+                heading: Approved Date
+            }
+            layout {
+                sequence: 170
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: P
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 140
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: M
+            }
+        )
+
+        column CREATED_DATE (
+            type: plainText
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 150
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: N
+            }
+        )
+
+        column DETAILS (
+            type: link
+            heading {
+                heading: Details
+            }
+            layout {
+                sequence: 220
+            }
+            link {
+                target: {
+                    type: url
+                    url: javascript:f_openModal('#TRANSACTION_NO#','#TRANSACTION_TYPE#','#APPROVAL_STATUS#')
+                }
+                linkText: <span class="t-Button-label">Details</span>
+                linkAttributes: class="t-Button t-Button--hot t-Button--small t-Button--primary t-Button--stretch"
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: R
+            }
+        )
+
+        column PARTY_NAME (
+            type: plainText
+            heading {
+                heading: Party Name
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: F
+            }
+        )
+
+        column PARTY_NO (
+            type: hidden
+            heading {
+                heading: Party No
+            }
+            layout {
+                sequence: 210
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: E
+            }
+        )
+
+        column PAYMENT_MODE (
+            type: plainText
+            heading {
+                heading: Payment Mode
+            }
+            layout {
+                sequence: 180
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: Q
+            }
+        )
+
+        column STATUS_NAME (
+            type: plainText
+            heading {
+                heading: Status Name
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: J
+            }
+        )
+
+        column TOTAL_AMOUNT (
+            type: plainText
+            heading {
+                heading: Total Amount
+                alignment: end
+            }
+            layout {
+                sequence: 100
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: H
+            }
+        )
+
+        column TRANSACTION_CODE (
+            type: link
+            heading {
+                heading: Transaction Code
+            }
+            layout {
+                sequence: 40
+            }
+            link {
+                target: {
+                    page: 304
+                    items: {
+                        P304_TRANSACTION_NO: #TRANSACTION_NO#
+                    }
+                }
+                linkText: #TRANSACTION_CODE#
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: B
+            }
+        )
+
+        column TRANSACTION_DATE (
+            type: plainText
+            heading {
+                heading: Transaction Date
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: C
+            }
+        )
+
+        column TRANSACTION_NO (
+            type: hidden
+            heading {
+                heading: Transaction No
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                primaryKey: true
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: A
+            }
+        )
+
+        column TRANSACTION_TYPE (
+            type: plainText
+            heading {
+                heading: Transaction Type
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: D
+            }
+        )
+
+        column TRAN_TYPE (
+            type: plainText
+            heading {
+                heading: Tran Type
+            }
+            layout {
+                sequence: 230
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: S
+            }
+        )
+
+        column VOUCHER_CODE (
+            type: plainText
+            heading {
+                heading: Voucher Code
+            }
+            layout {
+                sequence: 130
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: L
+            }
+        )
+
+        column VOUCHER_NO (
+            type: hidden
+            heading {
+                heading: Voucher No
+            }
+            layout {
+                sequence: 200
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: K
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn APPROVED_BY (
+                sequence: 11
+            )
+
+            displayColumn APPROVED_DATE (
+                sequence: 12
+            )
+
+            displayColumn CREATED_BY (
+                sequence: 9
+            )
+
+            displayColumn CREATED_DATE (
+                sequence: 10
+            )
+
+            displayColumn DETAILS (
+                sequence: 13
+            )
+
+            displayColumn PARTY_NAME (
+                sequence: 4
+            )
+
+            displayColumn PAYMENT_MODE (
+                sequence: 7
+            )
+
+            displayColumn STATUS_NAME (
+                sequence: 6
+            )
+
+            displayColumn TOTAL_AMOUNT (
+                sequence: 5
+            )
+
+            displayColumn TRANSACTION_CODE (
+                sequence: 1
+            )
+
+            displayColumn TRANSACTION_DATE (
+                sequence: 2
+            )
+
+            displayColumn TRANSACTION_TYPE (
+                sequence: 3
+            )
+
+            displayColumn VOUCHER_CODE (
+                sequence: 8
+            )
+
+        )
+
+    )
+
+    pageItem P305_APPROVAL_STATUS (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 60
+            region: @approval-process
+            slot: regionBody
+        }
+    )
+
+    pageItem P305_TRANSACTION_NO (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 40
+            region: @approval-process
+            slot: regionBody
+        }
+    )
+
+    pageItem P305_TRANSACTION_TYPE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 50
+            region: @approval-process
+            slot: regionBody
+        }
+    )
+
+    button approve (
+        buttonName: APPROVE
+        label: Approve
+        layout {
+            sequence: 10
+            region: @approval-process
+            slot: top
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--success
+                t-Button--iconLeft
+            ]
+        }
+        behavior {
+            action: triggerAction
+        }
+
+        triggerAction native-dialog-close (
+            action: closeDialog
+            execution {
+                sequence: 20
+            }
+        )
+
+        triggerAction native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode: approveTransaction($v('P305_TRANSACTION_NO'))
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-reset
+            customAttributes: disabled
+        }
+    )
+
+    button reject (
+        buttonName: REJECT
+        label: Reject
+        layout {
+            sequence: 20
+            region: @approval-process
+            slot: top
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--danger
+                t-Button--iconLeft
+            ]
+        }
+        behavior {
+            action: triggerAction
+        }
+
+        triggerAction native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode: rejectPurchase($v('P305_TRANSACTION_NO'))
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    process approve-purchase (
+        name: APPROVE_TRANSACTION
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    V_TRANSACTION_NO   NUMBER      := APEX_APPLICATION.G_X01;
+                    V_TRANSACTION_TYPE VARCHAR2(1) := APEX_APPLICATION.G_X02;
+                
+                BEGIN
+                
+                    PKG_FINANCE.POST_TRANSACTION
+                    (
+                        P_TRANSACTION_NO   => V_TRANSACTION_NO,
+                        P_TRANSACTION_TYPE => V_TRANSACTION_TYPE
+                    );
+                
+                    APEX_JSON.OPEN_OBJECT;
+                    APEX_JSON.WRITE('status','SUCCESS');
+                    APEX_JSON.WRITE('message','Transaction approved successfully.');
+                    APEX_JSON.CLOSE_OBJECT;
+                
+                EXCEPTION
+                    WHEN OTHERS THEN
+                
+                        APEX_JSON.OPEN_OBJECT;
+                        APEX_JSON.WRITE('status','ERROR');
+                        APEX_JSON.WRITE('message',SQLERRM);
+                        APEX_JSON.CLOSE_OBJECT;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: ajaxCallback
+        }
+        error {
+            errorMessage: #SQLERRM_TEXT#
+        }
+        advanced {
+            executionMappingIdentifier: 14788224143006350212
+        }
+    )
+
+    process reject-purchase (
+        name: REJECT_PURCHASE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                    UPDATE TRN_PURCHASE_MST
+                       SET APPROVAL_STATUS = 'R',
+                           APPROVED_BY     = :APP_USER,
+                           APPROVED_DATE   = SYSDATE
+                     WHERE PURCHASE_NO = APEX_APPLICATION.G_X01;
+                
+                    COMMIT;
+                
+                    HTP.P('SUCCESS');
+                
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        HTP.P(SQLERRM);
+                END;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: ajaxCallback
+        }
+        advanced {
+            executionMappingIdentifier: 14788224563551350213
+        }
+    )
+
+)
+

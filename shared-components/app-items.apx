@@ -1,0 +1,8 @@
+appItem G_USER_NO (
+    scope: global
+    security {
+        sessionStateProtection: unrestricted
+        escapeSpecialChars: false
+    }
+)
+

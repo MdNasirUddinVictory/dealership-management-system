@@ -1,0 +1,2549 @@
+page 102 (
+    name: Customer Return
+    alias: CUSTOMER-RETURN
+    title: Customer Return
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            function populate() {
+            
+                if (!$v('P102_INVOICE_NO')) {
+                    apex.message.alert('Please Select Invoice !');
+                    return;
+                }
+            
+                var model = apex.region("customer-return")
+                    .widget()
+                    .interactiveGrid("getViews", "grid")
+                    .model;
+            
+                // Grid already contains data
+                if (model.getTotalRecords() > 0) {
+                    apex.message.alert('Return details already exist.');
+                    return;
+                }
+            
+                apex.server.process(
+                    'RETURN_POPULATE',
+                    {
+                        x01: $v('P102_INVOICE_NO')
+                    },
+                    {
+                        success: function (pData) {
+            
+                            var json = JSON.parse(pData);
+            
+                            if (!json || json.length === 0) {
+                                apex.message.alert(
+                                    'No balance quantity available for customer return.'
+                                );
+                                return;
+                            }
+            
+                            for (var key in json) {
+            
+                                if (json.hasOwnProperty(key)) {
+            
+                                    var rec = model.insertNewRecord();
+            
+                                    if (json[key].INVOICE_DTL_NO) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "INVOICE_DTL_NO",
+                                            json[key].INVOICE_DTL_NO.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].ORDER_DTL_NO) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "ORDER_DTL_NO",
+                                            json[key].ORDER_DTL_NO.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].PRODUCT_NO) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "PRODUCT_NO",
+                                            json[key].PRODUCT_NO.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].PRODUCT_CODE) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "PRODUCT_CODE",
+                                            json[key].PRODUCT_CODE
+                                        );
+                                    }
+            
+                                    if (json[key].PRODUCT_NAME) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "PRODUCT_NAME",
+                                            json[key].PRODUCT_NAME
+                                        );
+                                    }
+            
+                                    // -------- NEW COLUMN --------
+            
+                                    if (json[key].DESCRIPTION) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "DESCRIPTION",
+                                            json[key].DESCRIPTION
+                                        );
+                                    }
+            
+                                    if (json[key].BRAND_NO) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "BRAND_NO",
+                                            json[key].BRAND_NO.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].UOM_NO) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "UOM_NO",
+                                            json[key].UOM_NO.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].PACK_QTY !== undefined) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "PACK_QTY",
+                                            json[key].PACK_QTY.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].BASE_QTY !== undefined) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "BASE_QTY",
+                                            json[key].BASE_QTY.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].BASE_RATE !== undefined) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "BASE_RATE",
+                                            json[key].BASE_RATE.toString()
+                                        );
+                                    }
+            
+                                    // ----------------------------
+            
+                                    if (json[key].INVOICE_QTY !== undefined) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "INVOICE_QTY",
+                                            json[key].INVOICE_QTY.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].PREVIOUS_RETURN_QTY !== undefined) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "PREVIOUS_RETURN_QTY",
+                                            json[key].PREVIOUS_RETURN_QTY.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].BALANCE_QTY !== undefined) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "BALANCE_QTY",
+                                            json[key].BALANCE_QTY.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].SALES_RATE !== undefined) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "SALES_RATE",
+                                            json[key].SALES_RATE.toString()
+                                        );
+                                    }
+            
+                                    // Default Value
+                                    model.setRecordValue(rec, "RETURN_QTY", "0");
+                                    model.setRecordValue(rec, "TOTAL_AMOUNT", "0");
+                                }
+                            }
+            
+                            apex.message.showPageSuccess(
+                                json.length + " item(s) loaded successfully."
+                            );
+                        },
+            
+                        error: function () {
+                            apex.message.alert("Error while loading return data.");
+                        },
+            
+                        dataType: "text"
+                    }
+                );
+            }
+            ```
+    }
+    css {
+        inline:
+            ```css
+            .return-customer-card{
+                background:#ffffff;
+                border-radius:12px;
+                overflow:hidden;
+                box-shadow:0 2px 10px rgba(0,0,0,.08);
+                border:1px solid #e5e7eb;
+                margin-bottom:15px;
+            }
+            
+            .return-customer-card .card-header{
+                background:linear-gradient(135deg,#1e40af,#2563eb);
+                color:#fff;
+                padding:14px 20px;
+                font-size:18px;
+                font-weight:600;
+            }
+            
+            .return-customer-card .card-body{
+                padding:18px;
+            }
+            
+            .return-customer-card .info-row{
+                display:flex;
+                gap:15px;
+                margin-bottom:15px;
+                flex-wrap:wrap;
+            }
+            
+            .return-customer-card .info-box{
+                flex:1;
+                min-width:180px;
+                background:#f8fafc;
+                border:1px solid #e2e8f0;
+                border-radius:8px;
+                padding:12px;
+            }
+            
+            .return-customer-card .info-box.large{
+                flex:2;
+            }
+            
+            .return-customer-card .info-box.full{
+                width:100%;
+            }
+            
+            .return-customer-card label{
+                display:block;
+                color:#64748b;
+                font-size:11px;
+                text-transform:uppercase;
+                letter-spacing:.5px;
+                margin-bottom:5px;
+                font-weight:600;
+            }
+            
+            .return-customer-card span{
+                color:#0f172a;
+                font-size:15px;
+                font-weight:600;
+            }
+            
+            .return-customer-card .amount{
+                color:#16a34a;
+                font-size:18px;
+                font-weight:700;
+            }
+            ```
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region customer-return-detail (
+        name: CUSTOMER RETURN DETAIL
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT *
+                FROM
+                (
+                    SELECT
+                
+                           D.RETURN_DTL_NO,
+                
+                           D.INVOICE_DTL_NO,
+                
+                           D.ORDER_DTL_NO,
+                
+                           D.PRODUCT_NO,
+                
+                           P.PRODUCT_CODE,
+                
+                           P.PRODUCT_NAME,
+                
+                           P.DESCRIPTION,
+                
+                           P.BRAND_NO,
+                
+                           D.UOM_NO,
+                
+                           U.UOM_NAME,
+                
+                           D.PACK_QTY,
+                
+                           D.BASE_QTY,
+                
+                           D.BASE_RATE,
+                
+                           D.INVOICE_QTY,
+                
+                           D.PREVIOUS_RETURN_QTY,
+                
+                           D.BALANCE_QTY,
+                
+                           D.RETURN_QTY,
+                
+                           D.SALES_RATE,
+                
+                           D.TOTAL_AMOUNT,
+                
+                           D.REMARKS,
+                
+                           CASE
+                               WHEN M.APPROVAL_STATUS = 'A'
+                               THEN 'X'
+                               ELSE 'U'
+                           END ROW_STATUS
+                
+                    FROM TRN_CUSTOMER_RETURN_DTL D
+                
+                         JOIN TRN_CUSTOMER_RETURN_MST M
+                           ON M.RETURN_NO = D.RETURN_NO
+                
+                         JOIN MST_PRODUCT P
+                           ON P.PRODUCT_NO = D.PRODUCT_NO
+                
+                         LEFT JOIN MST_UOM U
+                           ON U.UOM_NO = D.UOM_NO
+                
+                    WHERE D.RETURN_NO = :P102_RETURN_NO
+                    
+                ORDER BY RETURN_DTL_NO
+                );
+                ```
+            pageItemsToSubmit: [
+                P102_RETURN_NO
+                P102_INVOICE_NO
+            ]
+        }
+        layout {
+            sequence: 30
+            parentRegion: @new
+            slot: regionBody
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        advanced {
+            htmlDomId: customer-return
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+            allowedRowOperationsColumn: ROW_STATUS
+            addRowIfEmpty: false
+        }
+        componentAppearance {
+            selectFirstRow: false
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+            ]
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
+        }
+        componentAdvanced {
+            initJavaScriptFunction:
+                ```javascript-browser
+                function(config) {
+                    var $ = apex.jQuery;
+                    var toolbarData = $.apex.interactiveGrid.copyDefaultToolbar();
+                
+                    // actions2 remove করো
+                    toolbarData.toolbarRemove("actions2");
+                    toolbarData.toolbarRemove("actions3");
+                
+                    // actions1 group খুঁজে button add করো
+                    var toolbarGroup = toolbarData.toolbarFind("actions1");
+                
+                    // Add button লুকাও
+                    // toolbarGroup.controls = toolbarGroup.controls.filter(function(ctrl) {
+                    //     return ctrl.id !== "add";  // Add Row button hide
+                    // });
+                
+                    // Populate button যোগ করো
+                    toolbarGroup.controls.push({
+                        type: "BUTTON",
+                        id: "btn_populate",
+                        label: "Populate",
+                        hot: true,
+                        iconCss: "a-Icon icon-ig-download",
+                        iconBeforeLabel: true,
+                        action: "populate-action"
+                    });
+                
+                    config.toolbarData = toolbarData;
+                
+                    var originalInitActions = config.initActions;
+                    config.initActions = function(actions) {
+                        if (originalInitActions) {
+                            originalInitActions.call(this, actions);
+                        }
+                        actions.add({
+                            name: "populate-action",
+                            label: "Populate",
+                            action: function() {
+                                populate();
+                            }
+                        });
+                    };
+                
+                    return config;
+                }
+                ```
+        }
+        advanced {
+            savedReportMappingIdentifier: 9054123934288761040
+        }
+
+        savedReport primary (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @DESCRIPTION
+                layout {
+                    width: 137
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @BRAND_NO
+                layout {
+                    show: false
+                    width: 107
+                    sequence: 16
+                }
+            )
+
+            displayColumn (
+                column: @UOM_NO
+                layout {
+                    show: false
+                    width: 83
+                    sequence: 17
+                }
+            )
+
+            displayColumn (
+                column: @UOM_NAME
+                layout {
+                    show: false
+                    width: 101
+                    sequence: 18
+                }
+            )
+
+            displayColumn (
+                column: @PACK_QTY
+                layout {
+                    width: 69.66665649414062
+                    sequence: 21
+                }
+            )
+
+            displayColumn (
+                column: @BASE_QTY
+                layout {
+                    width: 76
+                    sequence: 19
+                }
+            )
+
+            displayColumn (
+                column: @BASE_RATE
+                layout {
+                    width: 77
+                    sequence: 20
+                }
+            )
+
+            displayColumn (
+                column: @RETURN_DTL_NO
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_NO
+                layout {
+                    show: false
+                    width: 109.69900000000001
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @RETURN_QTY
+                layout {
+                    width: 82.99
+                    sequence: 12
+                }
+            )
+
+            displayColumn (
+                column: @SALES_RATE
+                layout {
+                    width: 81.122
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @TOTAL_AMOUNT
+                layout {
+                    width: 100.6223639831543
+                    sequence: 13
+                }
+            )
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @INVOICE_QTY
+                layout {
+                    width: 83.122
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @PREVIOUS_RETURN_QTY
+                layout {
+                    width: 131.102
+                    sequence: 10
+                }
+            )
+
+            displayColumn (
+                column: @BALANCE_QTY
+                layout {
+                    width: 85.84927346420288
+                    sequence: 11
+                }
+            )
+
+            displayColumn (
+                column: @REMARKS
+                layout {
+                    width: 85
+                    sequence: 22
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_CODE
+                layout {
+                    width: 95.00011717052459
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_NAME
+                layout {
+                    width: 122
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @INVOICE_DTL_NO
+                layout {
+                    show: false
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @ORDER_DTL_NO
+                layout {
+                    show: false
+                    sequence: 14
+                }
+            )
+
+            displayColumn (
+                column: @ROW_STATUS
+                layout {
+                    show: false
+                    sequence: 15
+                }
+            )
+
+        )
+
+        column APEX$ROW_ACTION (
+            type: actionsMenu
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 10
+            }
+        )
+
+        column BALANCE_QTY (
+            type: numberField
+            heading {
+                heading: Balance Qty
+                alignment: end
+            }
+            layout {
+                sequence: 110
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: BALANCE_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: BALANCE_QTY
+                customAttributes: readonly
+            }
+        )
+
+        column BASE_QTY (
+            type: numberField
+            heading {
+                heading: Base Qty
+                alignment: end
+            }
+            layout {
+                sequence: 250
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: BASE_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: BASE_QTY
+                customAttributes: readonly
+            }
+        )
+
+        column BASE_RATE (
+            type: numberField
+            heading {
+                heading: Base Rate
+                alignment: end
+            }
+            layout {
+                sequence: 260
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: BASE_RATE
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: BASE_RATE
+                customAttributes: readonly
+            }
+        )
+
+        column BRAND_NO (
+            type: numberField
+            heading {
+                heading: Brand No
+                alignment: end
+            }
+            layout {
+                sequence: 210
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: BRAND_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column DESCRIPTION (
+            type: textarea
+            heading {
+                heading: Description
+            }
+            layout {
+                sequence: 200
+            }
+            validation {
+                maxLength: 500
+            }
+            source {
+                databaseColumn: DESCRIPTION
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column INVOICE_DTL_NO (
+            type: numberField
+            heading {
+                heading: Invoice Dtl No
+                alignment: end
+            }
+            layout {
+                sequence: 170
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: INVOICE_DTL_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column INVOICE_QTY (
+            type: numberField
+            heading {
+                heading: Invoice Qty
+                alignment: end
+            }
+            layout {
+                sequence: 90
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: INVOICE_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column ORDER_DTL_NO (
+            type: numberField
+            heading {
+                heading: Order Dtl No
+                alignment: end
+            }
+            layout {
+                sequence: 180
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: ORDER_DTL_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column PACK_QTY (
+            type: numberField
+            heading {
+                heading: Pack Qty
+                alignment: end
+            }
+            layout {
+                sequence: 240
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: PACK_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: PACK_QTY
+                customAttributes: readonly
+            }
+        )
+
+        column PREVIOUS_RETURN_QTY (
+            type: numberField
+            heading {
+                heading: Previous Return Qty
+                alignment: end
+            }
+            layout {
+                sequence: 100
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: PREVIOUS_RETURN_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column PRODUCT_CODE (
+            type: textField
+            heading {
+                heading: Product Code
+            }
+            layout {
+                sequence: 60
+            }
+            validation {
+                valueRequired: true
+                maxLength: 50
+            }
+            source {
+                databaseColumn: PRODUCT_CODE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column PRODUCT_NAME (
+            type: textField
+            heading {
+                heading: Product Name
+            }
+            layout {
+                sequence: 70
+            }
+            validation {
+                valueRequired: true
+                maxLength: 300
+            }
+            source {
+                databaseColumn: PRODUCT_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column PRODUCT_NO (
+            type: hidden
+            heading {
+                heading: Product Name
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                databaseColumn: PRODUCT_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column REMARKS (
+            type: textField
+            heading {
+                heading: Remarks
+            }
+            layout {
+                sequence: 160
+            }
+            validation {
+                maxLength: 500
+            }
+            source {
+                databaseColumn: REMARKS
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+        )
+
+        column RETURN_DTL_NO (
+            type: hidden
+            heading {
+                heading: Return Dtl No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                databaseColumn: RETURN_DTL_NO
+                dataType: number
+                primaryKey: true
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column RETURN_QTY (
+            type: numberField
+            heading {
+                heading: Return Qty
+                alignment: end
+            }
+            settings {
+                minValue: 1
+            }
+            layout {
+                sequence: 140
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: RETURN_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: RETURN_QTY
+            }
+        )
+
+        column ROW_STATUS (
+            type: textField
+            heading {
+                heading: Row Status
+            }
+            layout {
+                sequence: 190
+            }
+            validation {
+                maxLength: 1
+            }
+            source {
+                databaseColumn: ROW_STATUS
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column SALES_RATE (
+            type: numberField
+            heading {
+                heading: Sales Rate
+                alignment: end
+            }
+            layout {
+                sequence: 80
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: SALES_RATE
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: SALES_RATE
+                customAttributes: readonly
+            }
+        )
+
+        column TOTAL_AMOUNT (
+            type: numberField
+            heading {
+                heading: Total Amount
+                alignment: end
+            }
+            layout {
+                sequence: 150
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: TOTAL_AMOUNT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: TOTAL_AMOUNT
+                customAttributes: readonly
+            }
+        )
+
+        column UOM_NAME (
+            type: textField
+            heading {
+                heading: Uom Name
+            }
+            layout {
+                sequence: 230
+            }
+            validation {
+                maxLength: 50
+            }
+            source {
+                databaseColumn: UOM_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column UOM_NO (
+            type: numberField
+            heading {
+                heading: Uom No
+                alignment: end
+            }
+            layout {
+                sequence: 220
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: UOM_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    region new (
+        name: MAIN_CONTAINER
+        type: staticContent
+        layout {
+            sequence: 30
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+    )
+
+    region register_1 (
+        name: CUSTOMER RETURN MST
+        type: form
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select RETURN_NO,
+                       RETURN_CODE,
+                       RETURN_DATE,
+                       INVOICE_NO,
+                       CUSTOMER_NO,
+                       RETURN_REASON,
+                       APPROVAL_STATUS,
+                       APPROVED_BY,
+                       APPROVED_DATE,
+                       CREATED_BY,
+                       CREATED_DATE,
+                       UPDATED_BY,
+                       UPDATED_DATE,
+                       VOUCHER_NO
+                  from TRN_CUSTOMER_RETURN_MST
+                ```
+        }
+        layout {
+            sequence: 20
+            parentRegion: @new
+            slot: regionBody
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--removeHeader js-removeLandmark
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        advanced {
+            htmlDomId: invoice_list
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+    )
+
+    pageItem P102_APPROVAL_STATUS (
+        type: displayOnly
+        label {
+            label: Approved Status
+            alignment: left
+        }
+        layout {
+            sequence: 130
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @register_1
+            column: APPROVAL_STATUS
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: expression
+            plsqlExpression: :P102_RETURN_NO IS NOT NULL AND :P102_APPROVAL_STATUS  ='A'
+        }
+    )
+
+    pageItem P102_APPROVED_BY (
+        type: displayOnly
+        label {
+            label: Approve By
+            alignment: left
+        }
+        layout {
+            sequence: 140
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+            ]
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            formRegion: @register_1
+            column: APPROVED_BY
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: expression
+            plsqlExpression: :P102_RETURN_NO IS NOT NULL AND :P102_APPROVAL_STATUS  ='A'
+        }
+    )
+
+    pageItem P102_APPROVED_DATE (
+        type: displayOnly
+        label {
+            label: "Approved Date "
+            alignment: left
+        }
+        layout {
+            sequence: 150
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+            ]
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            formRegion: @register_1
+            column: APPROVED_DATE
+            dataType: date
+        }
+        serverSideCondition {
+            type: expression
+            plsqlExpression: :P102_RETURN_NO IS NOT NULL AND :P102_APPROVAL_STATUS  ='A'
+        }
+    )
+
+    pageItem P102_CREATED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 160
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: CREATED_BY
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: item!=value
+            item: P102_APPROVAL_STATUS
+            value: P
+        }
+    )
+
+    pageItem P102_CREATED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 170
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: CREATED_DATE
+            dataType: date
+        }
+        serverSideCondition {
+            type: item!=value
+            item: P102_APPROVAL_STATUS
+            value: P
+        }
+    )
+
+    pageItem P102_CUSTOMER_NAME (
+        type: textField
+        label {
+            label: Customer Name
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            used: always
+        }
+    )
+
+    pageItem P102_CUSTOMER_NO (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 110
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: CUSTOMER_NO
+            dataType: number
+        }
+    )
+
+    pageItem P102_DELIVERY_DATE (
+        type: textField
+        label {
+            label: Delivery Date
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            used: always
+        }
+    )
+
+    pageItem P102_INVOICE_AMOUNT (
+        type: textField
+        label {
+            label: Invoice Amount
+            alignment: left
+        }
+        layout {
+            sequence: 90
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            used: always
+        }
+    )
+
+    pageItem P102_INVOICE_DATE (
+        type: textField
+        label {
+            label: Invoice Date
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @register_1
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            used: always
+        }
+    )
+
+    pageItem P102_INVOICE_NO (
+        type: popupLov
+        label {
+            label: Invoice No
+            alignment: left
+        }
+        settings {
+            fetchOnSearch: true
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT INVOICE_CODE
+                       || ' - '
+                       || TO_CHAR(INVOICE_DATE,'DD-MON-YYYY')
+                       DISPLAY_VALUE,
+                       INVOICE_NO RETURN_VALUE
+                FROM TRN_SALES_INVOICE_MST
+                WHERE DELIVERY_STATUS = 'D'
+                ORDER BY INVOICE_NO DESC
+                ```
+            displayExtraValues: false
+            nullDisplayValue: --Select--
+        }
+        layout {
+            sequence: 30
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @register_1
+            column: INVOICE_NO
+            dataType: number
+        }
+    )
+
+    pageItem P102_MOBILE_NO (
+        type: textField
+        label {
+            label: Mobile Number
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            used: always
+        }
+    )
+
+    pageItem P102_RETURN_CODE (
+        type: displayOnly
+        label {
+            label: Return Code
+            alignment: left
+        }
+        layout {
+            sequence: 120
+            region: @register_1
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @register_1
+            column: RETURN_CODE
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P102_RETURN_NO
+        }
+    )
+
+    pageItem P102_RETURN_DATE (
+        type: datePicker
+        label {
+            label: Return Date
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @register_1
+            column: RETURN_DATE
+            dataType: date
+        }
+        default {
+            type: expression
+            plsqlExpression: SYSDATE
+        }
+    )
+
+    pageItem P102_RETURN_NO (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 10
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: RETURN_NO
+            dataType: number
+            primaryKey: true
+        }
+    )
+
+    pageItem P102_RETURN_REASON (
+        type: textField
+        label {
+            label: Return Reason
+            alignment: left
+        }
+        layout {
+            sequence: 100
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 500
+        }
+        source {
+            formRegion: @register_1
+            column: RETURN_REASON
+            dataType: varchar2
+        }
+    )
+
+    pageItem P102_UPDATED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 180
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: UPDATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P102_UPDATED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 190
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: UPDATED_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P102_VOUCHER_NO (
+        type: numberField
+        label {
+            label: Voucher No
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @register_1
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        source {
+            formRegion: @register_1
+            column: VOUCHER_NO
+            dataType: number
+        }
+    )
+
+    button approved (
+        buttonName: APPROVED
+        label: Approved
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--primary
+                t-Button--iconLeft
+            ]
+            icon: fa-truck
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-reset
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    dynamicAction new (
+        name: New
+        execution {
+            sequence: 10
+        }
+        when {
+            selectionType: items
+            items: P102_INVOICE_NO
+        }
+
+        action native-set-value (
+            action: executeServerSideCode
+            settings {
+                plsqlCode:
+                    ```plsql
+                    SELECT I.CUSTOMER_NO ,
+                           C.CUSTOMER_NAME,
+                           C.MOBILE_NO,
+                           I.INVOICE_DATE,
+                           I.CREATED_DATE,
+                           I.TOTAL_AMOUNT into :P102_CUSTOMER_NO,:P102_CUSTOMER_NAME,:P102_MOBILE_NO,:P102_DELIVERY_DATE,:P102_INVOICE_DATE,:P102_INVOICE_AMOUNT
+                    FROM TRN_SALES_INVOICE_MST I
+                    JOIN MST_CUSTOMER C
+                      ON C.CUSTOMER_NO = I.CUSTOMER_NO
+                    WHERE I.INVOICE_NO = :P102_INVOICE_NO;
+                    ```
+                itemsToSubmit: P102_INVOICE_NO
+                itemsToReturn: [
+                    P102_CUSTOMER_NAME
+                    P102_MOBILE_NO
+                    P102_INVOICE_DATE
+                    P102_INVOICE_AMOUNT
+                    P102_CUSTOMER_NO
+                    P102_DELIVERY_DATE
+                ]
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction new_1 (
+        name: Return quantity exceeds balance quantity
+        execution {
+            sequence: 40
+        }
+        when {
+            selectionType: columns
+            interactiveGrid: @customer-return-detail
+            columns: RETURN_QTY
+        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                    apex.message.clearErrors();
+                    
+                    var returnQty  = parseFloat($v("RETURN_QTY")) || 0;
+                    var balanceQty = parseFloat($v("BALANCE_QTY")) || 0;
+                    var salesRate  = parseFloat($v("SALES_RATE")) || 0;
+                    var packQty    = parseFloat($v("PACK_QTY")) || 1;
+                    
+                    if (packQty <= 0) {
+                        packQty = 1;
+                    }
+                    
+                    if (returnQty > balanceQty) {
+                    
+                        apex.message.alert("Return quantity exceeds balance quantity.");
+                    
+                        $s("RETURN_QTY", "");
+                        $s("BASE_QTY", "");
+                        $s("BASE_RATE", "");
+                        $s("TOTAL_AMOUNT", "");
+                    
+                        return;
+                    }
+                    
+                    /* Calculate */
+                    
+                    var baseQty  = returnQty * packQty;
+                    var baseRate = salesRate / packQty;
+                    var totalAmt = returnQty * salesRate;
+                    
+                    $s("BASE_QTY", baseQty.toFixed(3));
+                    $s("BASE_RATE", baseRate.toFixed(6));
+                    $s("TOTAL_AMOUNT", totalAmt.toFixed(2));
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction new_2 (
+        name: New
+        execution {
+            sequence: 30
+        }
+        when {
+            selectionType: items
+            items: P102_STATUS
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @register_1
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process customer-return-detail-save-interactive-grid-data (
+        name: CUSTOMER RETURN DETAIL - Save Interactive Grid Data
+        type: executeCode
+        editableRegion: @customer-return-detail
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    v_count NUMBER;
+                BEGIN
+                
+                    -------------------------------------------------
+                    -- Header Validation
+                    -------------------------------------------------
+                    IF :P102_RETURN_NO IS NULL THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Please save Return Master first.'
+                        );
+                    END IF;
+                
+                    -------------------------------------------------
+                    -- Product Validation
+                    -------------------------------------------------
+                    IF :PRODUCT_NO IS NULL THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Product is required.'
+                        );
+                    END IF;
+                
+                    -------------------------------------------------
+                    -- Return Qty Validation
+                    -------------------------------------------------
+                    IF NVL(:RETURN_QTY,0) <= 0 THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Return quantity must be greater than zero.'
+                        );
+                    END IF;
+                
+                    -------------------------------------------------
+                    -- Balance Validation
+                    -------------------------------------------------
+                    IF NVL(:RETURN_QTY,0) > NVL(:BALANCE_QTY,0) THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Return quantity exceeds balance quantity.'
+                        );
+                    END IF;
+                
+                    -------------------------------------------------
+                    -- Duplicate Product Validation
+                    -------------------------------------------------
+                    IF :APEX$ROW_STATUS = 'C' THEN
+                
+                        SELECT COUNT(*)
+                          INTO v_count
+                          FROM TRN_CUSTOMER_RETURN_DTL
+                         WHERE RETURN_NO  = :P102_RETURN_NO
+                           AND PRODUCT_NO = :PRODUCT_NO;
+                
+                        IF v_count > 0 THEN
+                            RAISE_APPLICATION_ERROR(
+                                -20001,
+                                'Product already exists.'
+                            );
+                        END IF;
+                
+                    END IF;
+                
+                    -------------------------------------------------
+                    -- Approved Return Validation
+                    -------------------------------------------------
+                    IF :APEX$ROW_STATUS IN ('U','D') THEN
+                
+                        SELECT COUNT(*)
+                          INTO v_count
+                          FROM TRN_CUSTOMER_RETURN_MST
+                         WHERE RETURN_NO = :P102_RETURN_NO
+                           AND APPROVAL_STATUS = 'A';
+                
+                        IF v_count > 0 THEN
+                            RAISE_APPLICATION_ERROR(
+                                -20001,
+                                'Approved return cannot be modified.'
+                            );
+                        END IF;
+                
+                    END IF;
+                
+                    -------------------------------------------------
+                    -- INSERT
+                    -------------------------------------------------
+                    IF :APEX$ROW_STATUS = 'C' THEN
+                
+                        INSERT INTO TRN_CUSTOMER_RETURN_DTL
+                        (
+                            RETURN_DTL_NO,
+                            RETURN_NO,
+                            PRODUCT_NO,
+                            INVOICE_DTL_NO,
+                            ORDER_DTL_NO,
+                            UOM_NO,
+                            PACK_QTY,
+                            BASE_QTY,
+                            BASE_RATE,
+                            INVOICE_QTY,
+                            PREVIOUS_RETURN_QTY,
+                            BALANCE_QTY,
+                            RETURN_QTY,
+                            SALES_RATE,
+                            TOTAL_AMOUNT,
+                            REMARKS,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES
+                        (
+                            SEQ_RETURN_DTL_NO.NEXTVAL,
+                            :P102_RETURN_NO,
+                            :PRODUCT_NO,
+                            :INVOICE_DTL_NO,
+                            :ORDER_DTL_NO,
+                            :UOM_NO,
+                            :PACK_QTY,
+                            :BASE_QTY,
+                            :BASE_RATE,
+                            :INVOICE_QTY,
+                            :PREVIOUS_RETURN_QTY,
+                            :BALANCE_QTY,
+                            :RETURN_QTY,
+                            :SALES_RATE,
+                            NVL(:RETURN_QTY,0) * NVL(:SALES_RATE,0),
+                            :REMARKS,
+                            :APP_USER,
+                            SYSDATE
+                        )
+                        RETURNING RETURN_DTL_NO
+                        INTO :RETURN_DTL_NO;
+                
+                    -------------------------------------------------
+                    -- UPDATE
+                    -------------------------------------------------
+                    ELSIF :APEX$ROW_STATUS = 'U' THEN
+                
+                        UPDATE TRN_CUSTOMER_RETURN_DTL
+                           SET RETURN_QTY   = :RETURN_QTY,
+                               SALES_RATE   = :SALES_RATE,
+                               TOTAL_AMOUNT = NVL(:RETURN_QTY,0) * NVL(:SALES_RATE,0),
+                               REMARKS      = :REMARKS,
+                               UPDATED_BY   = :APP_USER,
+                               UPDATED_DATE = SYSDATE
+                         WHERE RETURN_DTL_NO = :RETURN_DTL_NO;
+                
+                    -------------------------------------------------
+                    -- DELETE
+                    -------------------------------------------------
+                    ELSIF :APEX$ROW_STATUS = 'D' THEN
+                
+                        DELETE
+                          FROM TRN_CUSTOMER_RETURN_DTL
+                         WHERE RETURN_DTL_NO = :RETURN_DTL_NO;
+                
+                    END IF;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 20
+        }
+        error {
+            errorMessage: #SQLERRM_TEXT#
+        }
+        advanced {
+            executionMappingIdentifier: 9054124808534761049
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+    process delete-return (
+        name: DELETE RETURN
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    v_status VARCHAR2(1);
+                BEGIN
+                
+                    SELECT APPROVAL_STATUS
+                      INTO v_status
+                      FROM TRN_CUSTOMER_RETURN_MST
+                     WHERE RETURN_NO = :P102_RETURN_NO;
+                
+                    IF v_status <> 'P' THEN
+                
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Approved return cannot be deleted.'
+                        );
+                
+                    END IF;
+                
+                    DELETE FROM TRN_CUSTOMER_RETURN_DTL
+                     WHERE RETURN_NO = :P102_RETURN_NO;
+                
+                    DELETE FROM TRN_CUSTOMER_RETURN_MST
+                     WHERE RETURN_NO = :P102_RETURN_NO;
+                
+                    apex_application.g_print_success_message :=
+                        'Customer return deleted successfully.';
+                
+                        :P102_RETURN_NO := NULL;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 30
+        }
+        advanced {
+            executionMappingIdentifier: 11193746980423922946
+        }
+        serverSideCondition {
+            whenButtonPressed: @delete
+        }
+    )
+
+    process initialize-form-customer-return (
+        name: Initialize form Customer Return
+        type: formInitialization
+        formRegion: @register_1
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+        advanced {
+            executionMappingIdentifier: 9054121472305761015
+        }
+    )
+
+    process process-form-customer-return-mst (
+        name: Process form CUSTOMER RETURN MST
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    v_status VARCHAR2(1);
+                
+                BEGIN
+                
+                    --------------------------------------------------
+                    -- Invoice Validation
+                    --------------------------------------------------
+                    IF :P102_INVOICE_NO IS NULL THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Please select an invoice.'
+                        );
+                    END IF;
+                
+                    --------------------------------------------------
+                    -- Return Date Validation
+                    --------------------------------------------------
+                    IF :P102_RETURN_DATE IS NULL THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Please enter return date.'
+                        );
+                    END IF;
+                
+                    --------------------------------------------------
+                    -- Update Validation
+                    --------------------------------------------------
+                    IF :P102_RETURN_NO IS NOT NULL THEN
+                
+                        SELECT APPROVAL_STATUS
+                          INTO v_status
+                          FROM TRN_CUSTOMER_RETURN_MST
+                         WHERE RETURN_NO = :P102_RETURN_NO;
+                
+                        IF v_status <> 'P' THEN
+                
+                            RAISE_APPLICATION_ERROR(
+                                -20001,
+                                'Only pending return can be modified.'
+                            );
+                
+                        END IF;
+                
+                    END IF;
+                
+                    --------------------------------------------------
+                    -- Insert
+                    --------------------------------------------------
+                    IF :P102_RETURN_NO IS NULL THEN
+                
+                        :P102_RETURN_NO := SEQ_RETURN_NO.NEXTVAL;
+                
+                        INSERT INTO TRN_CUSTOMER_RETURN_MST
+                        (
+                            RETURN_NO,
+                            RETURN_CODE,
+                            RETURN_DATE,
+                            INVOICE_NO,
+                            CUSTOMER_NO,
+                            RETURN_REASON,
+                            APPROVAL_STATUS,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES
+                        (
+                            :P102_RETURN_NO,
+                            'RET-' || LPAD(:P102_RETURN_NO,6,'0'),
+                            :P102_RETURN_DATE,
+                            :P102_INVOICE_NO,
+                            :P102_CUSTOMER_NO,
+                            :P102_RETURN_REASON,
+                            'P',
+                            :APP_USER,
+                            SYSDATE
+                        );
+                
+                        apex_application.g_print_success_message :=
+                            'Customer Return saved successfully.';
+                
+                    --------------------------------------------------
+                    -- Update
+                    --------------------------------------------------
+                    ELSE
+                
+                        UPDATE TRN_CUSTOMER_RETURN_MST
+                           SET RETURN_DATE   = :P102_RETURN_DATE,
+                               INVOICE_NO    = :P102_INVOICE_NO,
+                               CUSTOMER_NO   = :P102_CUSTOMER_NO,
+                               RETURN_REASON = :P102_RETURN_REASON,
+                               UPDATED_BY    = :APP_USER,
+                               UPDATED_DATE  = SYSDATE
+                         WHERE RETURN_NO = :P102_RETURN_NO;
+                
+                        apex_application.g_print_success_message :=
+                            'Customer Return updated successfully.';
+                
+                    END IF;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+        advanced {
+            executionMappingIdentifier: 9054123658283761037
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+    process return-populate (
+        name: RETURN_POPULATE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    V_DATA CLOB;
+                BEGIN
+                
+                    SELECT JSON_ARRAYAGG
+                           (
+                               JSON_OBJECT(
+                
+                                   'INVOICE_DTL_NO' VALUE D.INVOICE_DTL_NO,
+                
+                                   'ORDER_DTL_NO' VALUE D.ORDER_DTL_NO,
+                
+                                   'PRODUCT_NO' VALUE D.PRODUCT_NO,
+                
+                                   'PRODUCT_CODE' VALUE P.PRODUCT_CODE,
+                
+                                   'PRODUCT_NAME' VALUE P.PRODUCT_NAME,
+                
+                                   'DESCRIPTION' VALUE P.DESCRIPTION,
+                
+                                   'BRAND_NO' VALUE P.BRAND_NO,
+                
+                                   'UOM_NO' VALUE D.UOM_NO,
+                
+                                   'PACK_QTY' VALUE D.PACK_QTY,
+                
+                                   'BASE_QTY' VALUE D.BASE_QTY,
+                
+                                   'BASE_RATE' VALUE D.BASE_RATE,
+                
+                                   'INVOICE_QTY' VALUE D.SALES_QTY,
+                
+                                   'PREVIOUS_RETURN_QTY'
+                                       VALUE NVL
+                                       (
+                                           (
+                                               SELECT SUM(R.RETURN_QTY)
+                                                 FROM TRN_CUSTOMER_RETURN_DTL R
+                                                 JOIN TRN_CUSTOMER_RETURN_MST M
+                                                   ON M.RETURN_NO = R.RETURN_NO
+                                                WHERE R.INVOICE_DTL_NO = D.INVOICE_DTL_NO
+                                                  AND M.APPROVAL_STATUS = 'A'
+                                           ),
+                                           0
+                                       ),
+                
+                                   'BALANCE_QTY'
+                                       VALUE
+                                       D.SALES_QTY
+                                       -
+                                       NVL
+                                       (
+                                           (
+                                               SELECT SUM(R.RETURN_QTY)
+                                                 FROM TRN_CUSTOMER_RETURN_DTL R
+                                                 JOIN TRN_CUSTOMER_RETURN_MST M
+                                                   ON M.RETURN_NO = R.RETURN_NO
+                                                WHERE R.INVOICE_DTL_NO = D.INVOICE_DTL_NO
+                                                  AND M.APPROVAL_STATUS = 'A'
+                                           ),
+                                           0
+                                       ),
+                
+                                   'RETURN_QTY'
+                                       VALUE
+                                       D.SALES_QTY
+                                       -
+                                       NVL
+                                       (
+                                           (
+                                               SELECT SUM(R.RETURN_QTY)
+                                                 FROM TRN_CUSTOMER_RETURN_DTL R
+                                                 JOIN TRN_CUSTOMER_RETURN_MST M
+                                                   ON M.RETURN_NO = R.RETURN_NO
+                                                WHERE R.INVOICE_DTL_NO = D.INVOICE_DTL_NO
+                                                  AND M.APPROVAL_STATUS = 'A'
+                                           ),
+                                           0
+                                       ),
+                
+                                   'SALES_RATE' VALUE D.SALES_RATE,
+                
+                                   'TOTAL_AMOUNT'
+                                       VALUE
+                                       (
+                                           D.SALES_QTY
+                                           -
+                                           NVL
+                                           (
+                                               (
+                                                   SELECT SUM(R.RETURN_QTY)
+                                                     FROM TRN_CUSTOMER_RETURN_DTL R
+                                                     JOIN TRN_CUSTOMER_RETURN_MST M
+                                                       ON M.RETURN_NO = R.RETURN_NO
+                                                    WHERE R.INVOICE_DTL_NO = D.INVOICE_DTL_NO
+                                                      AND M.APPROVAL_STATUS = 'A'
+                                               ),
+                                               0
+                                           )
+                                       )
+                                       * D.SALES_RATE
+                
+                               )
+                               RETURNING CLOB
+                           )
+                    INTO V_DATA
+                    FROM TRN_SALES_INVOICE_DTL D
+                         JOIN MST_PRODUCT P
+                           ON P.PRODUCT_NO = D.PRODUCT_NO
+                    WHERE D.INVOICE_NO = APEX_APPLICATION.G_X01
+                      AND D.SALES_QTY >
+                          NVL
+                          (
+                              (
+                                  SELECT SUM(R.RETURN_QTY)
+                                    FROM TRN_CUSTOMER_RETURN_DTL R
+                                    JOIN TRN_CUSTOMER_RETURN_MST M
+                                      ON M.RETURN_NO = R.RETURN_NO
+                                   WHERE R.INVOICE_DTL_NO = D.INVOICE_DTL_NO
+                                     AND M.APPROVAL_STATUS = 'A'
+                              ),
+                              0
+                          );
+                
+                    HTP.PRN(NVL(V_DATA,'[]'));
+                
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        HTP.PRN('[]');
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: ajaxCallback
+        }
+        advanced {
+            executionMappingIdentifier: 11193744412514922921
+        }
+    )
+
+)
+

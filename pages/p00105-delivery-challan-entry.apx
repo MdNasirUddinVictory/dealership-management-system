@@ -1,0 +1,2772 @@
+page 105 (
+    name: Delivery Challan Entry
+    alias: DELIVERY-CHALLAN-ENTRY
+    title: Delivery Challan Entry
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            function populate() {
+            
+                if (!$v('P105_INVOICE_NO')) {
+                    apex.message.alert('Please Select Invoice!');
+                    return;
+                }
+            
+                var model = apex.region("customer-return")
+                                .widget()
+                                .interactiveGrid("getViews", "grid")
+                                .model;
+            
+                // Grid already contains data
+                if (model.getTotalRecords() > 0) {
+                    apex.message.alert(
+                        'Delivery details already exist.'
+                    );
+                    return;
+                }
+            
+                apex.server.process(
+                    'CHALLAN_POPULATE',
+                    {
+                        x01: $v('P105_INVOICE_NO')
+                    },
+                    {
+                        success: function (pData) {
+            
+                            var json = JSON.parse(pData);
+            
+                            // No data found
+                            if (!json || json.length === 0) {
+                                apex.message.alert(
+                                    'No pending delivery items found.'
+                                );
+                                return;
+                            }
+            
+                            for (var key in json) {
+            
+                                if (json.hasOwnProperty(key)) {
+            
+                                    var rec = model.insertNewRecord();
+            
+                                    if (json[key].PRODUCT_NO) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "PRODUCT_NO",
+                                            json[key].PRODUCT_NO.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].ORDER_QTY) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "ORDER_QTY",
+                                            json[key].ORDER_QTY.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].INVOICE_QTY) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "INVOICE_QTY",
+                                            json[key].INVOICE_QTY.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].PREVIOUS_DELIVERY_QTY) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "PREVIOUS_DELIVERY_QTY",
+                                            json[key].PREVIOUS_DELIVERY_QTY.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].BALANCE_QTY) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "BALANCE_QTY",
+                                            json[key].BALANCE_QTY.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].SALES_RATE) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "SALES_RATE",
+                                            json[key].SALES_RATE.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].PRODUCT_NAME) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "PRODUCT_NAME",
+                                            json[key].PRODUCT_NAME
+                                        );
+                                    }
+            
+                                    if (json[key].PRODUCT_CODE) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "PRODUCT_CODE",
+                                            json[key].PRODUCT_CODE
+                                        );
+                                    }
+            
+                                    if (json[key].INVOICE_DTL_NO) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "INVOICE_DTL_NO",
+                                            json[key].INVOICE_DTL_NO.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].ORDER_DTL_NO) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "ORDER_DTL_NO",
+                                            json[key].ORDER_DTL_NO.toString()
+                                        );
+                                    }
+            
+                                                            if (json[key].UOM_NO) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "UOM_NO",
+                                            json[key].UOM_NO.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].PACK_QTY) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "PACK_QTY",
+                                            json[key].PACK_QTY.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].BASE_QTY) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "BASE_QTY",
+                                            json[key].BASE_QTY.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].BASE_RATE) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "BASE_RATE",
+                                            json[key].BASE_RATE.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].DELIVERY_QTY) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "DELIVERY_QTY",
+                                            json[key].DELIVERY_QTY.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].TOTAL_AMOUNT) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "TOTAL_AMOUNT",
+                                            json[key].TOTAL_AMOUNT.toString()
+                                        );
+                                    }
+            
+                                    if (json[key].DESCRIPTION) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "DESCRIPTION",
+                                            json[key].DESCRIPTION
+                                        );
+                                    }
+            
+                                    if (json[key].BRAND_NO) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "BRAND_NO",
+                                            json[key].BRAND_NO.toString()
+                                        );
+                                    }
+                                }
+                            }
+            
+                            apex.message.showPageSuccess(
+                                json.length +
+                                ' item(s) loaded successfully.'
+                            );
+                        },
+            
+                        error: function () {
+                            apex.message.alert(
+                                'Error while loading delivery data.'
+                            );
+                        },
+            
+                        dataType: "text"
+                    }
+                );
+            }
+            ```
+    }
+    css {
+        inline:
+            ```css
+            .return-customer-card{
+                background:#ffffff;
+                border-radius:12px;
+                overflow:hidden;
+                box-shadow:0 2px 10px rgba(0,0,0,.08);
+                border:1px solid #e5e7eb;
+                margin-bottom:15px;
+            }
+            
+            .return-customer-card .card-header{
+                background:linear-gradient(135deg,#1e40af,#2563eb);
+                color:#fff;
+                padding:14px 20px;
+                font-size:18px;
+                font-weight:600;
+            }
+            
+            .return-customer-card .card-body{
+                padding:18px;
+            }
+            
+            .return-customer-card .info-row{
+                display:flex;
+                gap:15px;
+                margin-bottom:15px;
+                flex-wrap:wrap;
+            }
+            
+            .return-customer-card .info-box{
+                flex:1;
+                min-width:180px;
+                background:#f8fafc;
+                border:1px solid #e2e8f0;
+                border-radius:8px;
+                padding:12px;
+            }
+            
+            .return-customer-card .info-box.large{
+                flex:2;
+            }
+            
+            .return-customer-card .info-box.full{
+                width:100%;
+            }
+            
+            .return-customer-card label{
+                display:block;
+                color:#64748b;
+                font-size:11px;
+                text-transform:uppercase;
+                letter-spacing:.5px;
+                margin-bottom:5px;
+                font-weight:600;
+            }
+            
+            .return-customer-card span{
+                color:#0f172a;
+                font-size:15px;
+                font-weight:600;
+            }
+            
+            .return-customer-card .amount{
+                color:#16a34a;
+                font-size:18px;
+                font-weight:700;
+            }
+            ```
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region customer-return-detail (
+        name: DELIVERY DTL
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT * FROM (SELECT
+                       D.DELIVERY_DTL_NO,
+                
+                       D.INVOICE_DTL_NO,
+                
+                       D.ORDER_DTL_NO,
+                
+                       D.PRODUCT_NO,
+                
+                       P.PRODUCT_CODE,
+                
+                       P.PRODUCT_NAME,
+                
+                       P.DESCRIPTION,
+                
+                       P.BRAND_NO,
+                
+                       D.UOM_NO,
+                
+                       U.UOM_NAME,
+                
+                       D.PACK_QTY,
+                
+                       D.ORDER_QTY,
+                
+                       D.INVOICE_QTY,
+                
+                       D.BASE_QTY,
+                
+                       D.BASE_RATE,
+                
+                       NVL(D.PREVIOUS_DELIVERY_QTY,0)
+                           PREVIOUS_DELIVERY_QTY,
+                
+                       D.BALANCE_QTY,
+                
+                       D.DELIVERY_QTY,
+                
+                       D.SALES_RATE,
+                
+                       D.TOTAL_AMOUNT,
+                
+                       D.REMARKS
+                
+                FROM TRN_DELIVERY_DTL D
+                
+                JOIN MST_PRODUCT P
+                  ON P.PRODUCT_NO=D.PRODUCT_NO
+                
+                LEFT JOIN MST_UOM U
+                  ON U.UOM_NO=D.UOM_NO
+                
+                WHERE D.DELIVERY_NO=:P105_DELIVERY_NO
+                
+                ORDER BY D.DELIVERY_DTL_NO);
+                ```
+            pageItemsToSubmit: [
+                P105_INVOICE_NO
+                P105_DELIVERY_NO
+            ]
+        }
+        layout {
+            sequence: 30
+            parentRegion: @new
+            slot: regionBody
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        advanced {
+            htmlDomId: customer-return
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+            addRowIfEmpty: false
+        }
+        componentAppearance {
+            selectFirstRow: false
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                saveButton
+            ]
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
+        }
+        componentAdvanced {
+            initJavaScriptFunction:
+                ```javascript-browser
+                function(config) {
+                    var $ = apex.jQuery;
+                    var toolbarData = $.apex.interactiveGrid.copyDefaultToolbar();
+                
+                    // actions2 remove করো
+                    toolbarData.toolbarRemove("actions2");
+                    toolbarData.toolbarRemove("actions3");
+                
+                    // actions1 group খুঁজে button add করো
+                    var toolbarGroup = toolbarData.toolbarFind("actions1");
+                
+                    // Add button লুকাও
+                    // toolbarGroup.controls = toolbarGroup.controls.filter(function(ctrl) {
+                    //     return ctrl.id !== "add";  // Add Row button hide
+                    // });
+                
+                    // Populate button যোগ করো
+                    toolbarGroup.controls.push({
+                        type: "BUTTON",
+                        id: "btn_populate",
+                        label: "Populate",
+                        hot: true,
+                        iconCss: "a-Icon icon-ig-download",
+                        iconBeforeLabel: true,
+                        action: "populate-action"
+                    });
+                
+                    config.toolbarData = toolbarData;
+                
+                    var originalInitActions = config.initActions;
+                    config.initActions = function(actions) {
+                        if (originalInitActions) {
+                            originalInitActions.call(this, actions);
+                        }
+                        actions.add({
+                            name: "populate-action",
+                            label: "Populate",
+                            action: function() {
+                                populate();
+                            }
+                        });
+                    };
+                
+                    return config;
+                }
+                ```
+        }
+        advanced {
+            savedReportMappingIdentifier: 19381228150141679544
+        }
+
+        savedReport primary (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @PRODUCT_NAME
+                layout {
+                    width: 134
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_CODE
+                layout {
+                    width: 103
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @BALANCE_QTY
+                layout {
+                    width: 88
+                    sequence: 11
+                }
+            )
+
+            displayColumn (
+                column: @SALES_RATE
+                layout {
+                    width: 91
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @REMARKS
+                layout {
+                    width: 120
+                    sequence: 16
+                }
+            )
+
+            displayColumn (
+                column: @DELIVERY_DTL_NO
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @ORDER_QTY
+                layout {
+                    width: 85
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @INVOICE_QTY
+                layout {
+                    width: 86
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @PREVIOUS_DELIVERY_QTY
+                layout {
+                    width: 147
+                    sequence: 10
+                }
+            )
+
+            displayColumn (
+                column: @DELIVERY_QTY
+                layout {
+                    width: 97
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @INVOICE_DTL_NO
+                layout {
+                    sequence: 17
+                }
+            )
+
+            displayColumn (
+                column: @ORDER_DTL_NO
+                layout {
+                    sequence: 18
+                }
+            )
+
+            displayColumn (
+                column: @DESCRIPTION
+                layout {
+                    show: false
+                    width: 92
+                    sequence: 19
+                }
+            )
+
+            displayColumn (
+                column: @BRAND_NO
+                layout {
+                    show: false
+                    width: 75
+                    sequence: 20
+                }
+            )
+
+            displayColumn (
+                column: @UOM_NO
+                layout {
+                    show: false
+                    width: 98
+                    sequence: 21
+                }
+            )
+
+            displayColumn (
+                column: @UOM_NAME
+                layout {
+                    show: false
+                    width: 100
+                    sequence: 22
+                }
+            )
+
+            displayColumn (
+                column: @PACK_QTY
+                layout {
+                    width: 87
+                    sequence: 15
+                }
+            )
+
+            displayColumn (
+                column: @BASE_QTY
+                layout {
+                    width: 73
+                    sequence: 13
+                }
+            )
+
+            displayColumn (
+                column: @BASE_RATE
+                layout {
+                    width: 81
+                    sequence: 14
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_NO
+                layout {
+                    width: 108.108
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @TOTAL_AMOUNT
+                layout {
+                    width: 99
+                    sequence: 12
+                }
+            )
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+        )
+
+        column APEX$ROW_ACTION (
+            type: actionsMenu
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 10
+            }
+        )
+
+        column BALANCE_QTY (
+            type: numberField
+            heading {
+                heading: Balance Qty
+                alignment: end
+            }
+            layout {
+                sequence: 130
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: BALANCE_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: BALANCE_QTY
+                customAttributes: readonly
+            }
+        )
+
+        column BASE_QTY (
+            type: numberField
+            heading {
+                heading: Base Qty
+                alignment: end
+            }
+            layout {
+                sequence: 250
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: BASE_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: BASE_QTY
+                customAttributes: readonly
+            }
+        )
+
+        column BASE_RATE (
+            type: numberField
+            heading {
+                heading: Base Rate
+                alignment: end
+            }
+            layout {
+                sequence: 260
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: BASE_RATE
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: BASE_RATE
+                customAttributes: readonly
+            }
+        )
+
+        column BRAND_NO (
+            type: hidden
+            heading {
+                heading: Brand No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 290
+            }
+            source {
+                databaseColumn: BRAND_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column DELIVERY_DTL_NO (
+            type: hidden
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                databaseColumn: DELIVERY_DTL_NO
+                dataType: number
+                primaryKey: true
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column DELIVERY_QTY (
+            type: numberField
+            heading {
+                heading: Delivery Qty
+                alignment: end
+            }
+            layout {
+                sequence: 150
+                columnAlignment: end
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: DELIVERY_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: DELIVERY_QTY
+            }
+        )
+
+        column DESCRIPTION (
+            type: textField
+            heading {
+                heading: Description
+            }
+            layout {
+                sequence: 200
+            }
+            validation {
+                maxLength: 500
+            }
+            source {
+                databaseColumn: DESCRIPTION
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column INVOICE_DTL_NO (
+            type: hidden
+            heading {
+                heading: Invoice Dtl No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 270
+            }
+            source {
+                databaseColumn: INVOICE_DTL_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column INVOICE_QTY (
+            type: numberField
+            heading {
+                heading: Invoice Qty
+                alignment: end
+            }
+            layout {
+                sequence: 110
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: INVOICE_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column ORDER_DTL_NO (
+            type: hidden
+            heading {
+                heading: Order Dtl No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 280
+            }
+            source {
+                databaseColumn: ORDER_DTL_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column ORDER_QTY (
+            type: numberField
+            heading {
+                heading: Order Qty
+                alignment: end
+            }
+            layout {
+                sequence: 90
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: ORDER_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column PACK_QTY (
+            type: numberField
+            heading {
+                heading: Pack Qty
+                alignment: end
+            }
+            layout {
+                sequence: 240
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: PACK_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: PACK_QTY
+                customAttributes: readonly
+            }
+        )
+
+        column PREVIOUS_DELIVERY_QTY (
+            type: numberField
+            heading {
+                heading: Previous Delivery Qty
+                alignment: end
+            }
+            layout {
+                sequence: 120
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: PREVIOUS_DELIVERY_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column PRODUCT_CODE (
+            type: textField
+            heading {
+                heading: Product Code
+            }
+            layout {
+                sequence: 80
+            }
+            validation {
+                valueRequired: true
+                maxLength: 50
+            }
+            source {
+                databaseColumn: PRODUCT_CODE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column PRODUCT_NAME (
+            type: textField
+            heading {
+                heading: Product Name
+            }
+            layout {
+                sequence: 70
+            }
+            validation {
+                valueRequired: true
+                maxLength: 300
+            }
+            source {
+                databaseColumn: PRODUCT_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column PRODUCT_NO (
+            type: hidden
+            heading {
+                heading: Product Name
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                databaseColumn: PRODUCT_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column REMARKS (
+            type: textField
+            heading {
+                heading: Remarks
+            }
+            layout {
+                sequence: 170
+            }
+            validation {
+                maxLength: 500
+            }
+            source {
+                databaseColumn: REMARKS
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+        )
+
+        column SALES_RATE (
+            type: numberField
+            heading {
+                heading: Sales Rate
+                alignment: end
+            }
+            layout {
+                sequence: 100
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: SALES_RATE
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: SALES_RATE
+                customAttributes: readonly
+            }
+        )
+
+        column TOTAL_AMOUNT (
+            type: numberField
+            heading {
+                heading: Total Amount
+                alignment: end
+            }
+            layout {
+                sequence: 160
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: TOTAL_AMOUNT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: TOTAL_AMOUNT
+                customAttributes: readonly
+            }
+        )
+
+        column UOM_NAME (
+            type: textField
+            heading {
+                heading: Uom Name
+            }
+            layout {
+                sequence: 230
+            }
+            validation {
+                maxLength: 50
+            }
+            source {
+                databaseColumn: UOM_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column UOM_NO (
+            type: hidden
+            heading {
+                heading: Uom No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 300
+            }
+            source {
+                databaseColumn: UOM_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    region new (
+        name: MAIN_CONTAINER
+        type: staticContent
+        layout {
+            sequence: 30
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+    )
+
+    region register_1 (
+        name: DELIVERY MST
+        type: form
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT
+                       M.DELIVERY_NO,
+                       M.DELIVERY_CODE,
+                       M.DELIVERY_DATE,
+                       M.INVOICE_NO,
+                       I.INVOICE_DATE,
+                       M.CUSTOMER_NO,
+                       C.CUSTOMER_NAME,
+                       C.MOBILE_NO,
+                       M.DELIVERY_ADDRESS,
+                       M.DELIVERY_PERSON,
+                       M.VEHICLE_NO,
+                       M.CONTACT_NO,
+                
+                       M.REMARKS,
+                
+                       M.APPROVAL_STATUS,
+                       M.APPROVED_BY,
+                       M.APPROVED_DATE,
+                
+                       M.CREATED_BY,
+                       M.CREATED_DATE,
+                
+                       M.UPDATED_BY,
+                       M.UPDATED_DATE
+                
+                FROM TRN_DELIVERY_MST M
+                LEFT JOIN TRN_SALES_INVOICE_MST I
+                       ON I.INVOICE_NO = M.INVOICE_NO
+                LEFT JOIN MST_CUSTOMER C
+                       ON C.CUSTOMER_NO = M.CUSTOMER_NO
+                WHERE M.DELIVERY_NO = :P105_DELIVERY_NO
+                ```
+        }
+        layout {
+            sequence: 20
+            parentRegion: @new
+            slot: regionBody
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--removeHeader js-removeLandmark
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        advanced {
+            htmlDomId: invoice_list
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+    )
+
+    pageItem P105_APPROVAL_STATUS (
+        type: displayOnly
+        label {
+            label: Approved Status
+            alignment: left
+        }
+        layout {
+            sequence: 160
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @register_1
+            column: APPROVAL_STATUS
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: expression
+            plsqlExpression: :P105_DELIVERY_NO IS NOT NULL AND :P105_APPROVAL_STATUS = 'A'
+        }
+    )
+
+    pageItem P105_APPROVED_BY (
+        type: displayOnly
+        label {
+            label: Approved By
+            alignment: left
+        }
+        layout {
+            sequence: 170
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @register_1
+            column: APPROVED_BY
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: expression
+            plsqlExpression: :P105_DELIVERY_NO IS NOT NULL AND :P105_APPROVAL_STATUS = 'A'
+        }
+    )
+
+    pageItem P105_APPROVED_DATE (
+        type: displayOnly
+        label {
+            label: Approved Date
+            alignment: left
+        }
+        layout {
+            sequence: 180
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @register_1
+            column: APPROVED_DATE
+            dataType: date
+        }
+        serverSideCondition {
+            type: expression
+            plsqlExpression: :P105_DELIVERY_NO IS NOT NULL AND :P105_APPROVAL_STATUS = 'A'
+        }
+    )
+
+    pageItem P105_CONTACT_NO (
+        type: textField
+        label {
+            label: Contact No
+            alignment: left
+        }
+        layout {
+            sequence: 120
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            columnSpan: 3
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 11
+        }
+        source {
+            formRegion: @register_1
+            column: CONTACT_NO
+            dataType: varchar2
+        }
+    )
+
+    pageItem P105_CREATED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 190
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: CREATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P105_CREATED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 200
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: CREATED_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P105_CUSTOMER_NAME (
+        type: textField
+        label {
+            label: Customer Name
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 300
+        }
+        source {
+            formRegion: @register_1
+            column: CUSTOMER_NAME
+            dataType: varchar2
+        }
+    )
+
+    pageItem P105_CUSTOMER_NO (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 140
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: CUSTOMER_NO
+            dataType: number
+        }
+    )
+
+    pageItem P105_DELIVERY_ADDRESS (
+        type: textField
+        label {
+            label: Delivery Address
+            alignment: left
+        }
+        layout {
+            sequence: 90
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 500
+        }
+        source {
+            formRegion: @register_1
+            column: DELIVERY_ADDRESS
+            dataType: varchar2
+        }
+    )
+
+    pageItem P105_DELIVERY_CODE (
+        type: displayOnly
+        label {
+            label: Delivery Code
+            alignment: left
+        }
+        layout {
+            sequence: 150
+            region: @register_1
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @register_1
+            column: DELIVERY_CODE
+            dataType: varchar2
+        }
+    )
+
+    pageItem P105_DELIVERY_DATE (
+        type: datePicker
+        label {
+            label: Delivery Date
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @register_1
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @register_1
+            column: DELIVERY_DATE
+            dataType: date
+        }
+        default {
+            type: expression
+            plsqlExpression: SYSDATE
+        }
+    )
+
+    pageItem P105_DELIVERY_NO (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 10
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: DELIVERY_NO
+            dataType: number
+            primaryKey: true
+        }
+    )
+
+    pageItem P105_DELIVERY_PERSON (
+        type: textField
+        label {
+            label: Delivery Person
+            alignment: left
+        }
+        layout {
+            sequence: 100
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 100
+        }
+        source {
+            formRegion: @register_1
+            column: DELIVERY_PERSON
+            dataType: varchar2
+        }
+    )
+
+    pageItem P105_INVOICE_DATE (
+        type: datePicker
+        label {
+            label: Invoice Date
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        source {
+            formRegion: @register_1
+            column: INVOICE_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P105_INVOICE_NO (
+        type: popupLov
+        label {
+            label: Invoice
+            alignment: left
+        }
+        settings {
+            fetchOnSearch: true
+            popupWidth: 700
+            additionalOutputs: CUSTOMER_NO:P105_CUSTOMER_NO,MOBILE_NO:P105_MOBILE_NO,CUSTOMER_NAME:P105_CUSTOMER_NAME,INVOICE_DATE:P105_INVOICE_DATE
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-105-invoice-lov
+            displayExtraValues: false
+            nullDisplayValue: --Select--
+        }
+        cascadingLov {
+            parentItems: P105_DELIVERY_NO
+            itemsToSubmit: P105_DELIVERY_NO
+        }
+        layout {
+            sequence: 20
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @register_1
+            column: INVOICE_NO
+            dataType: number
+        }
+    )
+
+    pageItem P105_MOBILE_NO (
+        type: textField
+        label {
+            label: Mobile No
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 30
+        }
+        source {
+            formRegion: @register_1
+            column: MOBILE_NO
+            dataType: varchar2
+        }
+    )
+
+    pageItem P105_REMARKS (
+        type: textField
+        label {
+            label: Remarks
+            alignment: left
+        }
+        layout {
+            sequence: 130
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 1000
+        }
+        source {
+            formRegion: @register_1
+            column: REMARKS
+            dataType: varchar2
+        }
+    )
+
+    pageItem P105_UPDATED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 210
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: UPDATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P105_UPDATED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 220
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: UPDATED_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P105_VEHICLE_NO (
+        type: textField
+        label {
+            label: Vehicle No
+            alignment: left
+        }
+        layout {
+            sequence: 110
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 50
+        }
+        source {
+            formRegion: @register_1
+            column: VEHICLE_NO
+            dataType: varchar2
+        }
+    )
+
+    button approved (
+        buttonName: Approved
+        label: Approved
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--primary
+                t-Button--iconLeft
+            ]
+            icon: fa-truck-ladder
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: expression
+            plsqlExpression: :P105_DELIVERY_NO IS NOT NULL AND :P105_APPROVAL_STATUS != 'A'
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 105
+                clearCache: 105
+                action: clearRegions
+            }
+        }
+        advanced {
+            htmlDomId: pb-reset
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    dynamicAction new_1 (
+        name: Delivery quantity exceeds balance
+        execution {
+            sequence: 20
+        }
+        when {
+            selectionType: columns
+            interactiveGrid: @customer-return-detail
+            columns: DELIVERY_QTY
+        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                    apex.message.clearErrors();
+                    
+                    var deliveryQty = parseFloat($v("DELIVERY_QTY")) || 0;
+                    var balanceQty  = parseFloat($v("BALANCE_QTY")) || 0;
+                    var salesRate   = parseFloat($v("SALES_RATE")) || 0;
+                    var packQty     = parseFloat($v("PACK_QTY")) || 1;
+                    
+                    if (packQty <= 0) {
+                        packQty = 1;
+                    }
+                    
+                    if (deliveryQty > balanceQty) {
+                    
+                        apex.message.alert("Delivery quantity exceeds balance quantity.");
+                    
+                        $s("DELIVERY_QTY", "");
+                        $s("BASE_QTY", "");
+                        $s("BASE_RATE", "");
+                        $s("TOTAL_AMOUNT", "");
+                    
+                        return;
+                    }
+                    
+                    /* Dynamic Calculation */
+                    
+                    var baseQty    = deliveryQty * packQty;
+                    var baseRate   = salesRate / packQty;
+                    var totalAmt   = deliveryQty * salesRate;
+                    
+                    $s("BASE_QTY", baseQty.toFixed(3));
+                    $s("BASE_RATE", baseRate.toFixed(6));
+                    $s("TOTAL_AMOUNT", totalAmt.toFixed(2));
+                    ```
+            }
+            execution {
+                sequence: 20
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction new_2 (
+        name: New
+        execution {
+            sequence: 30
+            eventScope: dynamic
+        }
+        when {
+            selectionType: items
+            items: P105_INVOICE_NO
+        }
+        clientSideCondition {
+            type: itemIsNotNull
+            item: P105_INVOICE_NO
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @register_1
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process challan-approved (
+        name: CHALLAN_APPROVED
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    v_invoice_no      NUMBER;
+                    v_order_no        NUMBER;
+                    v_total_invoice   NUMBER;
+                    v_total_delivery  NUMBER;
+                    v_stock           NUMBER;
+                    v_exists          NUMBER;
+                
+                    v_delivery_no NUMBER := :P105_DELIVERY_NO;
+                
+                BEGIN
+                
+                    ----------------------------------------------------
+                    -- Only Pending Delivery Can Approve
+                    ----------------------------------------------------
+                
+                    SELECT COUNT(*)
+                      INTO v_exists
+                      FROM TRN_DELIVERY_MST
+                     WHERE DELIVERY_NO = v_delivery_no
+                       AND APPROVAL_STATUS = 'P';
+                
+                    IF v_exists = 0 THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Only pending delivery can be approved.'
+                        );
+                    END IF;
+                
+                    ----------------------------------------------------
+                    -- Already Approved
+                    ----------------------------------------------------
+                
+                    SELECT COUNT(*)
+                      INTO v_exists
+                      FROM TRN_DELIVERY_MST
+                     WHERE DELIVERY_NO = v_delivery_no
+                       AND APPROVAL_STATUS = 'A';
+                
+                    IF v_exists > 0 THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Delivery already approved.'
+                        );
+                    END IF;
+                
+                    ----------------------------------------------------
+                    -- Detail Exists
+                    ----------------------------------------------------
+                
+                    SELECT COUNT(*)
+                      INTO v_exists
+                      FROM TRN_DELIVERY_DTL
+                     WHERE DELIVERY_NO = v_delivery_no;
+                
+                    IF v_exists = 0 THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Delivery details not found.'
+                        );
+                    END IF;
+                
+                    ----------------------------------------------------
+                    -- Stock Already Posted
+                    ----------------------------------------------------
+                
+                    SELECT COUNT(*)
+                      INTO v_exists
+                      FROM TRN_STOCK_LEDGER
+                     WHERE TRAN_TYPE = 'DELIVERY'
+                       AND REF_NO = v_delivery_no;
+                
+                    IF v_exists > 0 THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Stock already posted.'
+                        );
+                    END IF;
+                
+                    ----------------------------------------------------
+                    -- Stock Validation
+                    ----------------------------------------------------
+                
+                    FOR r IN
+                    (
+                        SELECT PRODUCT_NO,
+                               BASE_QTY
+                          FROM TRN_DELIVERY_DTL
+                         WHERE DELIVERY_NO = v_delivery_no
+                    )
+                    LOOP
+                
+                        SELECT NVL(SUM(QTY_IN) - SUM(QTY_OUT),0)
+                          INTO v_stock
+                          FROM TRN_STOCK_LEDGER
+                         WHERE PRODUCT_NO = r.PRODUCT_NO;
+                
+                        IF r.BASE_QTY > v_stock THEN
+                
+                            RAISE_APPLICATION_ERROR(
+                                -20001,
+                                'Insufficient stock for product : '
+                                || r.PRODUCT_NO
+                            );
+                
+                        END IF;
+                
+                    END LOOP;
+                
+                    ----------------------------------------------------
+                    -- Approve Delivery
+                    ----------------------------------------------------
+                
+                    UPDATE TRN_DELIVERY_MST
+                       SET APPROVAL_STATUS = 'A',
+                           APPROVED_BY     = :APP_USER,
+                           APPROVED_DATE   = SYSDATE
+                     WHERE DELIVERY_NO = v_delivery_no;
+                
+                    ----------------------------------------------------
+                    -- Stock Ledger Posting
+                    ----------------------------------------------------
+                
+                    INSERT INTO TRN_STOCK_LEDGER
+                    (
+                        LEDGER_NO,
+                        TRAN_DATE,
+                        TRAN_TYPE,
+                        REF_NO,
+                        PRODUCT_NO,
+                        QTY_IN,
+                        QTY_OUT,
+                        CREATED_BY,
+                        CREATED_DATE
+                    )
+                    SELECT
+                        SEQ_LEDGER_NO.NEXTVAL,
+                        SYSDATE,
+                        'DELIVERY',
+                        DELIVERY_NO,
+                        PRODUCT_NO,
+                        0,
+                        BASE_QTY,
+                        :APP_USER,
+                        SYSDATE
+                    FROM TRN_DELIVERY_DTL
+                    WHERE DELIVERY_NO = v_delivery_no;
+                
+                    ----------------------------------------------------
+                    -- Get Invoice No
+                    ----------------------------------------------------
+                
+                    SELECT INVOICE_NO
+                      INTO v_invoice_no
+                      FROM TRN_DELIVERY_MST
+                     WHERE DELIVERY_NO = v_delivery_no;
+                
+                    ----------------------------------------------------
+                    -- Get Order No
+                    ----------------------------------------------------
+                
+                    SELECT ORDER_NO
+                      INTO v_order_no
+                      FROM TRN_SALES_INVOICE_MST
+                     WHERE INVOICE_NO = v_invoice_no;
+                
+                    ----------------------------------------------------
+                    -- Update Invoice Detail
+                    ----------------------------------------------------
+                
+                    UPDATE TRN_SALES_INVOICE_DTL I
+                       SET DELIVERED_QTY =
+                           (
+                               SELECT NVL(SUM(D.DELIVERY_QTY),0)
+                                 FROM TRN_DELIVERY_DTL D
+                                 JOIN TRN_DELIVERY_MST M
+                                   ON M.DELIVERY_NO = D.DELIVERY_NO
+                                WHERE D.INVOICE_DTL_NO = I.INVOICE_DTL_NO
+                                  AND M.APPROVAL_STATUS = 'A'
+                           )
+                     WHERE I.INVOICE_NO = v_invoice_no;
+                
+                    ----------------------------------------------------
+                    -- Update Order Detail
+                    ----------------------------------------------------
+                
+                    UPDATE TRN_SALES_ORDER_DTL O
+                       SET DELIVERED_QTY =
+                           (
+                               SELECT NVL(SUM(D.DELIVERY_QTY),0)
+                                 FROM TRN_DELIVERY_DTL D
+                                 JOIN TRN_DELIVERY_MST M
+                                   ON M.DELIVERY_NO = D.DELIVERY_NO
+                                WHERE D.ORDER_DTL_NO = O.ORDER_DTL_NO
+                                  AND M.APPROVAL_STATUS = 'A'
+                           ),
+                
+                           BALANCE_QTY =
+                               ORDER_QTY -
+                               (
+                                   SELECT NVL(SUM(D.DELIVERY_QTY),0)
+                                     FROM TRN_DELIVERY_DTL D
+                                     JOIN TRN_DELIVERY_MST M
+                                       ON M.DELIVERY_NO = D.DELIVERY_NO
+                                    WHERE D.ORDER_DTL_NO = O.ORDER_DTL_NO
+                                      AND M.APPROVAL_STATUS = 'A'
+                               )
+                
+                     WHERE O.ORDER_NO = v_order_no;
+                
+                    ----------------------------------------------------
+                    -- Total Invoice Qty
+                    ----------------------------------------------------
+                
+                    SELECT NVL(SUM(SALES_QTY),0)
+                      INTO v_total_invoice
+                      FROM TRN_SALES_INVOICE_DTL
+                     WHERE INVOICE_NO = v_invoice_no;
+                
+                    ----------------------------------------------------
+                    -- Total Delivered Qty
+                    ----------------------------------------------------
+                
+                    SELECT NVL(SUM(DELIVERED_QTY),0)
+                      INTO v_total_delivery
+                      FROM TRN_SALES_INVOICE_DTL
+                     WHERE INVOICE_NO = v_invoice_no;
+                
+                    ----------------------------------------------------
+                    -- Update Invoice Status
+                    ----------------------------------------------------
+                
+                    UPDATE TRN_SALES_INVOICE_MST
+                       SET DELIVERY_STATUS =
+                           CASE
+                               WHEN v_total_delivery = 0 THEN 'P'
+                               WHEN v_total_delivery < v_total_invoice THEN 'PD'
+                               ELSE 'D'
+                           END
+                     WHERE INVOICE_NO = v_invoice_no;
+                
+                    ----------------------------------------------------
+                    -- Update Order Status
+                    ----------------------------------------------------
+                
+                    UPDATE TRN_SALES_ORDER_MST
+                       SET ORDER_STATUS =
+                           CASE
+                               WHEN v_total_delivery = 0 THEN 'I'
+                               WHEN v_total_delivery < v_total_invoice THEN 'PD'
+                               ELSE 'D'
+                           END,
+                           DELIVERY_BY   = :APP_USER,
+                           DELIVERY_DATE = SYSDATE
+                     WHERE ORDER_NO = v_order_no;
+                
+                    ----------------------------------------------------
+                    -- Finance Voucher
+                    ----------------------------------------------------
+                
+                    PKG_FINANCE.POST_SALES
+                    (
+                        P_INVOICE_NO => v_invoice_no
+                    );
+                
+                    COMMIT;
+                
+                EXCEPTION
+                
+                    WHEN OTHERS THEN
+                        ROLLBACK;
+                        RAISE;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 40
+        }
+        error {
+            errorMessage: #SQLERRM_TEXT#
+        }
+        advanced {
+            executionMappingIdentifier: 8056012925475319
+        }
+        serverSideCondition {
+            whenButtonPressed: @approved
+        }
+    )
+
+    process challan-populate (
+        name: CHALLAN_POPULATE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    V_DATA CLOB;
+                BEGIN
+                
+                    SELECT JSON_ARRAYAGG(
+                             JSON_OBJECT(
+                
+                               'SL_NUMBER' VALUE ROWNUM,
+                
+                               'INVOICE_DTL_NO' VALUE D.INVOICE_DTL_NO,
+                               'ORDER_DTL_NO' VALUE D.ORDER_DTL_NO,
+                
+                               'PRODUCT_NO' VALUE D.PRODUCT_NO,
+                               'PRODUCT_CODE' VALUE PR.PRODUCT_CODE,
+                               'PRODUCT_NAME' VALUE PR.PRODUCT_NAME,
+                               'DESCRIPTION' VALUE PR.DESCRIPTION,
+                               'BRAND_NO' VALUE PR.BRAND_NO,
+                
+                               'UOM_NO' VALUE D.UOM_NO,
+                
+                               'PACK_QTY' VALUE D.PACK_QTY,
+                
+                               --------------------------------------------------
+                               -- Invoice Qty
+                               --------------------------------------------------
+                               'ORDER_QTY' VALUE D.ORDER_QTY,
+                
+                               'INVOICE_QTY' VALUE D.SALES_QTY,
+                
+                               'PREVIOUS_DELIVERY_QTY'
+                                    VALUE NVL(D.DELIVERED_QTY,0),
+                
+                               'BALANCE_QTY'
+                                    VALUE (D.SALES_QTY - NVL(D.DELIVERED_QTY,0)),
+                
+                               'DELIVERY_QTY'
+                                    VALUE (D.SALES_QTY - NVL(D.DELIVERED_QTY,0)),
+                
+                               --------------------------------------------------
+                               -- Base Qty
+                               --------------------------------------------------
+                               'BASE_QTY'
+                                    VALUE ((D.SALES_QTY - NVL(D.DELIVERED_QTY,0))
+                                           * NVL(D.PACK_QTY,1)),
+                
+                               'PREVIOUS_DELIVERY_BASE_QTY'
+                                    VALUE (NVL(D.DELIVERED_QTY,0)
+                                           * NVL(D.PACK_QTY,1)),
+                
+                               'BALANCE_BASE_QTY'
+                                    VALUE ((D.SALES_QTY - NVL(D.DELIVERED_QTY,0))
+                                           * NVL(D.PACK_QTY,1)),
+                
+                               --------------------------------------------------
+                               -- Rate
+                               --------------------------------------------------
+                               'SALES_RATE' VALUE D.SALES_RATE,
+                
+                               'BASE_RATE' VALUE D.BASE_RATE,
+                
+                               --------------------------------------------------
+                               -- Amount
+                               --------------------------------------------------
+                               'TOTAL_AMOUNT'
+                                    VALUE ((D.SALES_QTY - NVL(D.DELIVERED_QTY,0))
+                                           * D.SALES_RATE)
+                
+                             )
+                             RETURNING CLOB
+                           )
+                      INTO V_DATA
+                      FROM TRN_SALES_INVOICE_DTL D
+                      JOIN MST_PRODUCT PR
+                        ON PR.PRODUCT_NO = D.PRODUCT_NO
+                     WHERE D.INVOICE_NO = APEX_APPLICATION.G_X01
+                       AND NVL(D.SALES_QTY,0) > NVL(D.DELIVERED_QTY,0);
+                
+                    IF V_DATA IS NULL THEN
+                        V_DATA := '[]';
+                    END IF;
+                
+                    HTP.PRN(V_DATA);
+                
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        HTP.PRN('[]');
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: ajaxCallback
+        }
+        advanced {
+            executionMappingIdentifier: 11193744205550922919
+        }
+    )
+
+    process customer-return-detail-save-interactive-grid-data (
+        name: DELIVERY DTL - Save Interactive Grid Data
+        type: executeCode
+        editableRegion: @customer-return-detail
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                    ------------------------------------------------
+                    -- Header Validation
+                    ------------------------------------------------
+                
+                    IF :P105_INVOICE_NO IS NULL THEN
+                
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Please select invoice.'
+                        );
+                
+                    END IF;
+                
+                    ------------------------------------------------
+                    -- Qty Validation
+                    ------------------------------------------------
+                
+                    IF NVL(:DELIVERY_QTY,0) <= 0 THEN
+                
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Delivery quantity must be greater than zero.'
+                        );
+                
+                    END IF;
+                
+                    ------------------------------------------------
+                    -- Balance Validation
+                    ------------------------------------------------
+                
+                   IF :DELIVERY_QTY > :BALANCE_QTY THEN
+                
+                    RAISE_APPLICATION_ERROR(
+                        -20001,
+                        'Delivery quantity exceeds balance quantity.'
+                    );
+                
+                END IF;
+                    ------------------------------------------------
+                    -- Insert
+                    ------------------------------------------------
+                
+                    IF :APEX$ROW_STATUS = 'C' THEN
+                
+                        INSERT INTO TRN_DELIVERY_DTL
+                        (
+                            DELIVERY_DTL_NO,
+                            DELIVERY_NO,
+                            INVOICE_DTL_NO,
+                            ORDER_DTL_NO,
+                            PRODUCT_NO,
+                            UOM_NO,
+                            PACK_QTY,
+                            ORDER_QTY,
+                            INVOICE_QTY,
+                            PREVIOUS_DELIVERY_QTY,
+                            DELIVERY_QTY,
+                            BALANCE_QTY,
+                            BASE_QTY,
+                            SALES_RATE,
+                            BASE_RATE,
+                            TOTAL_AMOUNT,
+                            REMARKS,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES
+                        (
+                            SEQ_DELIVERY_DTL_NO.NEXTVAL,
+                            :P105_DELIVERY_NO,
+                            :INVOICE_DTL_NO,
+                            :ORDER_DTL_NO,
+                            :PRODUCT_NO,
+                            :UOM_NO,
+                            :PACK_QTY,
+                            :ORDER_QTY,
+                            :INVOICE_QTY,
+                            :PREVIOUS_DELIVERY_QTY,
+                            :DELIVERY_QTY,
+                            :BALANCE_QTY,
+                            :BASE_QTY,
+                            :SALES_RATE,
+                            :BASE_RATE,
+                            NVL(:DELIVERY_QTY,0) * NVL(:SALES_RATE,0),
+                            :REMARKS,
+                            :APP_USER,
+                            SYSDATE
+                        )
+                        RETURNING DELIVERY_DTL_NO
+                        INTO :DELIVERY_DTL_NO;
+                
+                    ------------------------------------------------
+                    -- Update
+                    ------------------------------------------------
+                
+                    ELSIF :APEX$ROW_STATUS = 'U' THEN
+                
+                        UPDATE TRN_DELIVERY_DTL
+                           SET UOM_NO        = :UOM_NO,
+                               PACK_QTY      = :PACK_QTY,
+                               ORDER_QTY     = :ORDER_QTY,
+                               INVOICE_QTY   = :INVOICE_QTY,
+                               DELIVERY_QTY  = :DELIVERY_QTY,
+                               BALANCE_QTY   = :BALANCE_QTY,
+                               BASE_QTY      = :BASE_QTY,
+                               SALES_RATE    = :SALES_RATE,
+                               BASE_RATE     = :BASE_RATE,
+                               TOTAL_AMOUNT  = NVL(:DELIVERY_QTY,0) * NVL(:SALES_RATE,0),
+                               REMARKS       = :REMARKS,
+                               UPDATED_BY    = :APP_USER,
+                               UPDATED_DATE  = SYSDATE
+                         WHERE DELIVERY_DTL_NO = :DELIVERY_DTL_NO;
+                
+                    ------------------------------------------------
+                    -- Delete
+                    ------------------------------------------------
+                
+                    ELSIF :APEX$ROW_STATUS = 'D' THEN
+                
+                        IF :P105_APPROVAL_STATUS = 'A' THEN
+                
+                            RAISE_APPLICATION_ERROR(
+                                -20001,
+                                'Approved delivery cannot be deleted.'
+                            );
+                
+                        END IF;
+                
+                        DELETE
+                          FROM TRN_DELIVERY_DTL
+                         WHERE DELIVERY_DTL_NO = :DELIVERY_DTL_NO;
+                
+                    END IF;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 30
+        }
+        error {
+            errorMessage: #SQLERRM_TEXT#
+        }
+        advanced {
+            executionMappingIdentifier: 10327111591808918532
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+    process delete-delivery-challan (
+        name: DELETE DELIVERY CHALLAN
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                
+                    IF :P105_APPROVAL_STATUS = 'A' THEN
+                    RAISE_APPLICATION_ERROR(
+                        -20001,
+                        'Approved delivery cannot be deleted.'
+                    );
+                END IF;
+                     
+                    IF :P105_DELIVERY_NO IS NOT NULL THEN
+                
+                        DELETE
+                          FROM TRN_DELIVERY_DTL
+                         WHERE DELIVERY_NO = :P105_DELIVERY_NO;
+                
+                        DELETE
+                          FROM TRN_DELIVERY_MST
+                         WHERE DELIVERY_NO = :P105_DELIVERY_NO;
+                
+                        :P105_DELIVERY_NO := NULL;
+                
+                        apex_application.g_print_success_message :=
+                            'Delivery deleted successfully.';
+                
+                    END IF;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 20
+        }
+        advanced {
+            executionMappingIdentifier: 10654189275544424047
+        }
+        serverSideCondition {
+            whenButtonPressed: @delete
+        }
+    )
+
+    process initialize-form-delivery-challan-entry_1 (
+        name: Initialize form Delivery Challan Entry
+        type: formInitialization
+        formRegion: @register_1
+        execution {
+            sequence: 20
+            point: beforeHeader
+        }
+        advanced {
+            executionMappingIdentifier: 10654189078149424045
+        }
+    )
+
+    process process-form-delivery-mst (
+        name: Process form DELIVERY MST
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                    BEGIN
+                
+                    IF :P105_INVOICE_NO IS NULL THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Please select invoice.'
+                        );
+                    END IF;
+                
+                END;
+                
+                
+                    IF :P105_DELIVERY_NO IS NULL THEN
+                        -- INSERT
+                                :P105_DELIVERY_NO := SEQ_DELIVERY_NO.NEXTVAL;
+                        INSERT INTO TRN_DELIVERY_MST (
+                            DELIVERY_NO,
+                            DELIVERY_CODE,
+                            DELIVERY_DATE,
+                            INVOICE_NO,
+                            CUSTOMER_NO,
+                            DELIVERY_ADDRESS,
+                            DELIVERY_PERSON,
+                            VEHICLE_NO,
+                            CONTACT_NO,
+                            REMARKS,
+                            APPROVAL_STATUS,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES (
+                            :P105_DELIVERY_NO,
+                            'DEL-'||LPAD(:P105_DELIVERY_NO,4,'0'),
+                            :P105_DELIVERY_DATE,
+                            :P105_INVOICE_NO,
+                            :P105_CUSTOMER_NO,
+                            :P105_DELIVERY_ADDRESS,
+                            :P105_DELIVERY_PERSON,
+                            :P105_VEHICLE_NO,
+                            :P105_CONTACT_NO,
+                            :P105_REMARKS,
+                            'P',
+                            :APP_USER,
+                            SYSDATE
+                        );
+                        apex_application.g_print_success_message :=
+                            'Delivery Created Successfully!';
+                    
+                    ELSE
+                        -- UPDATE
+                        UPDATE TRN_DELIVERY_MST
+                           SET
+                               DELIVERY_DATE     = :P105_DELIVERY_DATE,
+                               INVOICE_NO        = :P105_INVOICE_NO,
+                               CUSTOMER_NO       = :P105_CUSTOMER_NO,
+                               DELIVERY_ADDRESS  = :P105_DELIVERY_ADDRESS,
+                               DELIVERY_PERSON   = :P105_DELIVERY_PERSON,
+                               VEHICLE_NO        = :P105_VEHICLE_NO,
+                               CONTACT_NO        = :P105_CONTACT_NO,
+                               REMARKS           = :P105_REMARKS,
+                               UPDATED_BY        = :APP_USER,
+                               UPDATED_DATE      = SYSDATE
+                         WHERE DELIVERY_NO = :P105_DELIVERY_NO;
+                             apex_application.g_print_success_message :=
+                            'Delivery Updated Successfully!';
+                
+                    END IF;
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+        advanced {
+            executionMappingIdentifier: 10326851552040576604
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+)
+

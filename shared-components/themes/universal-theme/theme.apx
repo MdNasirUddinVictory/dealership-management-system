@@ -1,0 +1,70 @@
+theme universal-theme (
+    name: Universal Theme
+    themeNumber: 42
+    baseTheme: ut-26.1
+    style {
+        currentThemeStyle: @vita-slate-copy-1
+    }
+    javaScript {
+        fileUrls: [
+            #APEX_FILES#libraries/apex/#MIN_DIRECTORY#widget.stickyWidget#MIN#.js?v=#APEX_VERSION#
+            #THEME_FILES#js/theme42#MIN#.js?v=#APEX_VERSION#
+        ]
+    }
+    css {
+        fileUrls: #THEME_FILES#css/Core#MIN#.css?v=#APEX_VERSION#
+    }
+    componentDefaults {
+        page: @/standard
+        navigationBarList: @/navigation-bar
+        navigationMenuListPosition: side
+        navigationMenuListTop: @/top-navigation-menu
+        navigationMenuListSide: @/side-navigation-menu
+        loginPage: @/login
+        errorPage: @/login
+        printerFriendlyPage: @/standard
+        breadcrumb: @/breadcrumb
+        button: @/text
+        defaultLabel: @/optional-floating
+        optionalLabel: @/optional-floating
+        requiredLabel: @/required-floating
+        list: @/links-list
+        region: @/standard
+        classicReport: @/standard
+    }
+    regionDefaults {
+        breadcrumbs: @/title-bar
+        charts: @/standard
+        forms: @/standard
+        lists: @/standard
+        reports: @/standard
+        wizards: @/standard
+        interactiveReports: @/interactive-report
+    }
+    dialogDefaults {
+        dialogContentRegion: @/blank-with-attributes
+        dialogButtonRegion: @/buttons-container
+        dialogPage: @/modal-dialog
+    }
+    icons {
+        library: fontApex
+    }
+    advanced {
+        filePrefix: #APEX_FILES#themes/theme_42/26.1/
+        identifier: UNIVERSAL_THEME
+    }
+
+    style vita-slate-copy-1 (
+        name: Vita - Slate (copy_1)
+        themeRollerAttributes {
+            inputParameterFileUrls: #THEME_FILES#less/theme/Vita-Slate.less
+            outputCssFileUrl: #THEME_DB_FILES#8097320806955135105.css
+            jsonConfig: "{\"classes\":[],\"vars\":{\"@g_Form-Item-BG\":\"#fbfbfb\",\"@g_Form-Item-FG\":\"#202020\",\"@g_Form-BorderRadius\":\"2px\",\"@g_Button-BorderRadius\":\"2px\",\"@Head-Height\":\"48px\",\"@Nav-Exp\":\"210px\",\"@Actions-Exp\":\"200px\",\"@Side-Exp\":\"200px\",\"@g_Nav_Style\":\"dark\",\"@g_Nav-BG\":\"#3a4752\",\"@g_Nav-FG\":\"#f8f8f8\",\"@g_NavBarMenu-BG\":\"#ddbaba\",\"@g_NavBarMenu-FG\":\"#3a3939\",\"@g_NavBarMenu-Active-BG\":\"#1772c7\",\"@g_NavBarMenu-Active-FG\":\"#ffffff\",\"@g_Nav-Active-BG\":\"#4c5862\",\"@g_Nav-Active-FG\":\"#e2dfdf\",\"@g_Nav-Icon\":\"#474747\",\"@g_Nav-Icon-Active\":\"#0202f9\",\"@g_Link-Base\":\"#024486\",\"@g_Header-BG\":\"#57728b\",\"@g_Header-FG\":\"#fbf6f6\",\"@g_Container-BorderRadius\":\"8px\",\"@g_Body-BG\":\"#f2f2f2\",\"@g_Body-Text\":\"#000000\",\"@g_Region-Header-BG\":\"#d4e0e6\",\"@g_Region-Header-FG\":\"#1d1d1d\",\"@g_Disabled-BG\":\"#666262\",\"@g_Disabled-FG\":\"#ffffff\",\"@g_Accent-OG\":\"#ececec\",\"@g_Form-Label\":\"#000000\",\"@irrBg\":\"#f4f2f2\",\"@g_Body-Title-BG\":\"#e0e9f2\",\"@g_Body-Title-FG\":\"#000000\",\"@g_Region-BG\":\"#f5f5f5\",\"@g_Region-FG\":\"#262626\"},\"customCSS\":\".t-Body-contentInner{\\n    padding:3px;\\n}\",\"useCustomLess\":\"N\"}"
+        }
+        advanced {
+            endUserCanPick: true
+        }
+    )
+
+)
+

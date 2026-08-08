@@ -1,0 +1,1008 @@
+page 19 (
+    name: Sales Invoice List
+    alias: SALES-INVOICE-LIST
+    title: Sales Invoice List
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            
+            
+            function printInvoice(invoiceNo){
+            
+                window.open(
+                    'f?p=&APP_ID.:15:&SESSION.::NO::P15_INVOICE_NO:' + invoiceNo,
+                    '_blank'
+                );
+            
+            }
+            
+            // function createDelivery(invoiceNo){
+            
+            //     apex.navigation.redirect(
+            //         'f?p=&APP_ID.:23:&SESSION.::NO::P23_INVOICE_NO:' + invoiceNo
+            //     );
+            
+            // }
+            
+            // function viewDelivery(invoiceNo){
+            
+            //     apex.navigation.redirect(
+            //         'f?p=&APP_ID.:24:&SESSION.::NO::P24_INVOICE_NO:' + invoiceNo
+            //     );
+            
+            // }
+            
+            ```
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region new (
+        name: MAIN_CONTAINER
+        type: staticContent
+        layout {
+            sequence: 30
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+    )
+
+    region register_1 (
+        name: SALES INVOICE LIST
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT
+                       ROWNUM SL,
+                
+                       I.INVOICE_NO,
+                       I.INVOICE_CODE,
+                       I.INVOICE_DATE,
+                
+                       O.ORDER_CODE,
+                
+                       C.CUSTOMER_NAME,
+                       C.MOBILE_NO,
+                
+                       --------------------------------------------------
+                       -- Invoice Qty
+                       --------------------------------------------------
+                       NVL(
+                           (
+                               SELECT SUM(D.SALES_QTY)
+                                 FROM TRN_SALES_INVOICE_DTL D
+                                WHERE D.INVOICE_NO = I.INVOICE_NO
+                           ),
+                           0
+                       ) TOTAL_INVOICE_QTY,
+                
+                       --------------------------------------------------
+                       -- Delivered Qty
+                       --------------------------------------------------
+                       NVL(
+                           (
+                               SELECT SUM(D.DELIVERY_QTY)
+                                 FROM TRN_DELIVERY_DTL D
+                                 JOIN TRN_DELIVERY_MST M
+                                   ON M.DELIVERY_NO = D.DELIVERY_NO
+                                WHERE M.INVOICE_NO = I.INVOICE_NO
+                                  AND M.APPROVAL_STATUS = 'A'
+                           ),
+                           0
+                       ) TOTAL_DELIVERY_QTY,
+                
+                       --------------------------------------------------
+                       -- Delivery Balance
+                       --------------------------------------------------
+                       NVL(
+                           (
+                               SELECT SUM(D.SALES_QTY)
+                                 FROM TRN_SALES_INVOICE_DTL D
+                                WHERE D.INVOICE_NO = I.INVOICE_NO
+                           ),
+                           0
+                       )
+                       -
+                       NVL(
+                           (
+                               SELECT SUM(D.DELIVERY_QTY)
+                                 FROM TRN_DELIVERY_DTL D
+                                 JOIN TRN_DELIVERY_MST M
+                                   ON M.DELIVERY_NO = D.DELIVERY_NO
+                                WHERE M.INVOICE_NO = I.INVOICE_NO
+                                  AND M.APPROVAL_STATUS = 'A'
+                           ),
+                           0
+                       ) DELIVERY_BALANCE_QTY,
+                
+                       --------------------------------------------------
+                       -- Delivery Challan Count
+                       --------------------------------------------------
+                       (
+                           SELECT COUNT(*)
+                             FROM TRN_DELIVERY_MST D
+                            WHERE D.INVOICE_NO = I.INVOICE_NO
+                       ) DELIVERY_COUNT,
+                
+                       I.TOTAL_AMOUNT,
+                
+                       --------------------------------------------------
+                       -- Delivery Status
+                       --------------------------------------------------
+                       CASE
+                
+                           WHEN
+                               NVL(
+                                   (
+                                       SELECT SUM(D.DELIVERY_QTY)
+                                         FROM TRN_DELIVERY_DTL D
+                                         JOIN TRN_DELIVERY_MST M
+                                           ON M.DELIVERY_NO = D.DELIVERY_NO
+                                        WHERE M.INVOICE_NO = I.INVOICE_NO
+                                          AND M.APPROVAL_STATUS='A'
+                                   ),
+                                   0
+                               ) = 0
+                
+                           THEN
+                
+                               '<span class="t-Badge t-Badge--warning">
+                               Waiting Delivery
+                               </span>'
+                
+                           WHEN
+                
+                               NVL(
+                                   (
+                                       SELECT SUM(D.DELIVERY_QTY)
+                                         FROM TRN_DELIVERY_DTL D
+                                         JOIN TRN_DELIVERY_MST M
+                                           ON M.DELIVERY_NO = D.DELIVERY_NO
+                                        WHERE M.INVOICE_NO = I.INVOICE_NO
+                                          AND M.APPROVAL_STATUS='A'
+                                   ),
+                                   0
+                               )
+                
+                               <
+                
+                               NVL(
+                                   (
+                                       SELECT SUM(D.SALES_QTY)
+                                         FROM TRN_SALES_INVOICE_DTL D
+                                        WHERE D.INVOICE_NO = I.INVOICE_NO
+                                   ),
+                                   0
+                               )
+                
+                           THEN
+                
+                               '<span class="t-Badge t-Badge--primary">
+                               Partial Delivery
+                               </span>'
+                
+                           ELSE
+                
+                               '<span class="t-Badge t-Badge--success">
+                               Delivered
+                               </span>'
+                
+                       END DELIVERY_STATUS,
+                
+                       --------------------------------------------------
+                       -- Invoice Print
+                       --------------------------------------------------
+                    --    '<button class="t-Button t-Button--primary t-Button--tiny"
+                    --        onclick="printInvoice('||I.INVOICE_NO||')">
+                    --        Invoice
+                    --    </button>' 
+                    NULL
+                       PRINT_BTN,
+                
+                       --------------------------------------------------
+                       -- Create Delivery
+                       --------------------------------------------------
+                       CASE
+                
+                           WHEN
+                               NVL(
+                                   (
+                                       SELECT SUM(D.DELIVERY_QTY)
+                                         FROM TRN_DELIVERY_DTL D
+                                         JOIN TRN_DELIVERY_MST M
+                                           ON M.DELIVERY_NO=D.DELIVERY_NO
+                                        WHERE M.INVOICE_NO=I.INVOICE_NO
+                                          AND M.APPROVAL_STATUS='A'
+                                   ),
+                                   0
+                               )
+                
+                               <
+                
+                               NVL(
+                                   (
+                                       SELECT SUM(D.SALES_QTY)
+                                         FROM TRN_SALES_INVOICE_DTL D
+                                        WHERE D.INVOICE_NO=I.INVOICE_NO
+                                   ),
+                                   0
+                               )
+                
+                           THEN
+                
+                            --    '<a href="f?p=&APP_ID.:105:&SESSION.::NO::P105_INVOICE_NO:'
+                            --    ||I.INVOICE_NO||
+                            --    '" class="t-Button t-Button--success t-Button--tiny">
+                            --    Delivery
+                            --    </a>' 
+                            NULL
+                
+                       END DELIVERY_BTN,
+                
+                       --------------------------------------------------
+                       -- View Delivery
+                       --------------------------------------------------
+                       CASE
+                
+                           WHEN EXISTS
+                           (
+                               SELECT 1
+                                 FROM TRN_DELIVERY_MST D
+                                WHERE D.INVOICE_NO=I.INVOICE_NO
+                           )
+                
+                           THEN
+                
+                               '<a href="f?p=&APP_ID.:106:&SESSION.::NO::P106_INVOICE_NO:'
+                               ||I.INVOICE_NO||
+                               '" class="t-Button t-Button--info t-Button--tiny">
+                               View Delivery
+                               </a>'
+                
+                       END DELIVERY_VIEW_BTN,
+                
+                       I.CREATED_BY,
+                       I.CREATED_DATE
+                
+                FROM TRN_SALES_INVOICE_MST I
+                
+                JOIN MST_CUSTOMER C
+                  ON C.CUSTOMER_NO = I.CUSTOMER_NO
+                
+                JOIN TRN_SALES_ORDER_MST O
+                  ON O.ORDER_NO = I.ORDER_NO
+                
+                ORDER BY I.INVOICE_NO DESC;
+                ```
+            pageItemsToSubmit: P19_STATUS
+        }
+        layout {
+            sequence: 20
+            parentRegion: @new
+            slot: regionBody
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--removeHeader js-removeLandmark
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        advanced {
+            htmlDomId: invoice_list
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 17766677251226521017
+        }
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: U
+            }
+        )
+
+        column CREATED_DATE (
+            type: plainText
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 130
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: V
+            }
+        )
+
+        column CUSTOMER_NAME (
+            type: plainText
+            heading {
+                heading: Customer Name
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: D
+            }
+        )
+
+        column DELIVERY_BALANCE_QTY (
+            type: plainText
+            heading {
+                heading: Delivery Balance Qty
+                alignment: end
+            }
+            layout {
+                sequence: 210
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AF
+            }
+        )
+
+        column DELIVERY_BTN (
+            type: link
+            heading {
+                heading: Delivery Challan
+                alignment: center
+            }
+            layout {
+                sequence: 170
+                columnAlignment: center
+            }
+            link {
+                target: {
+                    page: 105
+                    items: {
+                        P105_INVOICE_NO: #INVOICE_NO#
+                    }
+                }
+                linkText: <span aria-hidden="true" class="t-Icon fa fa-truck"></span>
+                linkAttributes: " title=\"Create Delivery Challan\" class=\"t-Button t-Button--noLabel t-Button--icon t-Button--hot t-Button--small t-Button--primary t-Button--stretch\""
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: AC
+            }
+            security {
+                escapeSpecialChars: false
+            }
+        )
+
+        column DELIVERY_COUNT (
+            type: plainText
+            heading {
+                heading: Delivery Count
+                alignment: end
+            }
+            layout {
+                sequence: 220
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AG
+            }
+        )
+
+        column DELIVERY_STATUS (
+            type: plainText
+            heading {
+                heading: Delivery Status
+                alignment: center
+            }
+            layout {
+                sequence: 70
+                columnAlignment: center
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: N
+            }
+            security {
+                escapeSpecialChars: false
+            }
+        )
+
+        column DELIVERY_VIEW_BTN (
+            type: plainText
+            heading {
+                heading: "Delivery View "
+            }
+            layout {
+                sequence: 230
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: AH
+            }
+            security {
+                escapeSpecialChars: false
+            }
+        )
+
+        column INVOICE_CODE (
+            type: link
+            heading {
+                heading: Invoice Code
+            }
+            layout {
+                sequence: 20
+            }
+            link {
+                target: {
+                    page: 21
+                    items: {
+                        P21_INVOICE_NO: #INVOICE_NO#
+                    }
+                }
+                linkText: #INVOICE_CODE#
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: L
+            }
+        )
+
+        column INVOICE_DATE (
+            type: plainText
+            heading {
+                heading: Invoice Date
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: M
+            }
+        )
+
+        column INVOICE_NO (
+            type: hidden
+            heading {
+                heading: Invoice No
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: K
+            }
+        )
+
+        column MOBILE_NO (
+            type: plainText
+            heading {
+                heading: Mobile No
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: Q
+            }
+        )
+
+        column ORDER_CODE (
+            type: plainText
+            heading {
+                heading: Order Code
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: P
+            }
+        )
+
+        column PRINT_BTN (
+            type: link
+            heading {
+                heading: View Invoice
+            }
+            layout {
+                sequence: 180
+            }
+            link {
+                target: {
+                    page: 15
+                    items: {
+                        P15_INVOICE_NO: #INVOICE_NO#
+                    }
+                }
+                linkText: <span class="t-Icon fa fa-print" aria-hidden="true"></span><span class="t-Button-label">Print Invoice</span>
+                linkAttributes: class="t-Button t-Button--icon t-Button--hot t-Button--small t-Button--primary t-Button--stretch t-Button--iconLeft"
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: O
+            }
+            security {
+                escapeSpecialChars: false
+            }
+        )
+
+        column SL (
+            type: plainText
+            heading {
+                heading: Sl
+                alignment: end
+            }
+            layout {
+                sequence: 30
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: Z
+            }
+        )
+
+        column TOTAL_AMOUNT (
+            type: plainText
+            heading {
+                heading: Total Amount
+                alignment: end
+            }
+            layout {
+                sequence: 50
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: E
+            }
+        )
+
+        column TOTAL_DELIVERY_QTY (
+            type: plainText
+            heading {
+                heading: Total Delivery Qty
+                alignment: end
+            }
+            layout {
+                sequence: 200
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AE
+            }
+        )
+
+        column TOTAL_INVOICE_QTY (
+            type: plainText
+            heading {
+                heading: Total Invoice Qty
+                alignment: end
+            }
+            layout {
+                sequence: 190
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AD
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn CREATED_BY (
+                sequence: 11
+            )
+
+            displayColumn CREATED_DATE (
+                sequence: 12
+            )
+
+            displayColumn CUSTOMER_NAME (
+                sequence: 5
+            )
+
+            displayColumn DELIVERY_BTN (
+                sequence: 10
+            )
+
+            displayColumn DELIVERY_STATUS (
+                sequence: 9
+            )
+
+            displayColumn INVOICE_CODE (
+                sequence: 2
+            )
+
+            displayColumn INVOICE_DATE (
+                sequence: 3
+            )
+
+            displayColumn MOBILE_NO (
+                sequence: 6
+            )
+
+            displayColumn ORDER_CODE (
+                sequence: 4
+            )
+
+            displayColumn PRINT_BTN (
+                sequence: 8
+            )
+
+            displayColumn SL (
+                sequence: 1
+            )
+
+            displayColumn TOTAL_AMOUNT (
+                sequence: 7
+            )
+
+        )
+
+    )
+
+    pageItem P19_STATUS (
+        type: radioGroup
+        label {
+            alignment: left
+        }
+        settings {
+            noOfCols: 3
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:ALL;ALL,Pending;P,Delivered;D
+            displayExtraValues: false
+            displayNullValue: false
+        }
+        layout {
+            sequence: 10
+            region: @new
+            slot: regionBody
+            alignment: left
+            column: 4
+            columnSpan: 5
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+            ]
+        }
+        default {
+            type: static
+            staticValue: ALL
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-reset
+            customAttributes: disabled
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    dynamicAction new_2 (
+        name: New
+        execution {
+            sequence: 30
+        }
+        when {
+            selectionType: items
+            items: P19_STATUS
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @register_1
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process generate-invoice (
+        name: DELIVER_INVOICE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    v_order_no NUMBER;
+                BEGIN
+                
+                    SELECT ORDER_NO
+                      INTO v_order_no
+                      FROM TRN_SALES_INVOICE_MST
+                     WHERE INVOICE_NO = APEX_APPLICATION.G_X01;
+                
+                    ------------------------------------------------
+                    -- Stock Ledger Posting
+                    ------------------------------------------------
+                
+                    INSERT INTO TRN_STOCK_LEDGER
+                    (
+                        LEDGER_NO,
+                        TRAN_DATE,
+                        TRAN_TYPE,
+                        REF_NO,
+                        PRODUCT_NO,
+                        QTY_IN,
+                        QTY_OUT,
+                        CREATED_BY,
+                        CREATED_DATE
+                    )
+                    SELECT
+                        SEQ_LEDGER_NO.NEXTVAL,
+                        SYSDATE,
+                        'SALES',
+                        APEX_APPLICATION.G_X01,
+                        PRODUCT_NO,
+                        0,
+                        SALES_QTY,
+                        :APP_USER,
+                        SYSDATE
+                    FROM TRN_SALES_INVOICE_DTL
+                    WHERE INVOICE_NO = APEX_APPLICATION.G_X01;
+                
+                    ------------------------------------------------
+                    -- Invoice Delivered
+                    ------------------------------------------------
+                
+                    UPDATE TRN_SALES_INVOICE_MST
+                       SET DELIVERY_STATUS = 'D',
+                           DELIVERY_BY      = :APP_USER,
+                           DELIVERY_DATE    = SYSDATE
+                     WHERE INVOICE_NO = APEX_APPLICATION.G_X01;
+                
+                    ------------------------------------------------
+                    -- Order Delivered
+                    ------------------------------------------------
+                
+                    UPDATE TRN_SALES_ORDER_MST
+                       SET ORDER_STATUS = 'D',
+                           DELIVERY_BY   = :APP_USER,
+                           DELIVERY_DATE = SYSDATE
+                     WHERE ORDER_NO = v_order_no;
+                
+                    COMMIT;
+                
+                    HTP.P('Invoice delivered successfully.');
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: ajaxCallback
+        }
+        advanced {
+            executionMappingIdentifier: 9018175033799223954
+        }
+        config {
+            buildOption: @commented-out
+        }
+    )
+
+)
+

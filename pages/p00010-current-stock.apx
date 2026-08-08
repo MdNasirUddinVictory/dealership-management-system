@@ -1,0 +1,813 @@
+page 10 (
+    name: "Current Stock "
+    alias: CURRENT-STOCK
+    title: "Current Stock "
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region register (
+        name: Current Stock
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT *
+                FROM
+                (
+                    SELECT
+                           P.PRODUCT_NO,
+                           P.PRODUCT_CODE,
+                           P.PRODUCT_NAME,
+                
+                           C.CATEGORY_NAME,
+                
+                           P.PURCHASE_RATE,
+                           P.SALES_RATE,
+                
+                           NVL(P.MIN_STOCK_QTY,0) MIN_STOCK_QTY,
+                
+                           NVL(SUM(NVL(L.QTY_IN,0)),0) STOCK_IN,
+                
+                           NVL(SUM(NVL(L.QTY_OUT,0)),0) STOCK_OUT,
+                
+                           NVL(
+                               SUM(NVL(L.QTY_IN,0))
+                               -
+                               SUM(NVL(L.QTY_OUT,0)),
+                               0
+                           ) CURRENT_STOCK,
+                
+                           ROUND(
+                               NVL(
+                                   SUM(NVL(L.QTY_IN,0))
+                                   -
+                                   SUM(NVL(L.QTY_OUT,0)),
+                                   0
+                               ) * NVL(P.PURCHASE_RATE,0),
+                               2
+                           ) STOCK_VALUE,
+                
+                          CASE
+                    WHEN NVL(
+                             SUM(NVL(L.QTY_IN,0))
+                             -
+                             SUM(NVL(L.QTY_OUT,0)),
+                             0
+                         ) <= 0
+                    THEN
+                        '<span style="
+                            display:inline-block;
+                            background:#fee2e2;
+                            color:#b91c1c;
+                            border:1px solid #fecaca;
+                            padding:2px 8px;
+                            border-radius:12px;
+                            font-size:11px;
+                            font-weight:600;
+                            white-space:nowrap;">
+                            Out of Stock
+                         </span>'
+                
+                    WHEN NVL(
+                             SUM(NVL(L.QTY_IN,0))
+                             -
+                             SUM(NVL(L.QTY_OUT,0)),
+                             0
+                         ) < NVL(P.MIN_STOCK_QTY,0)
+                    THEN
+                        '<span style="
+                            display:inline-block;
+                            background:#fef3c7;
+                            color:#b45309;
+                            border:1px solid #fde68a;
+                            padding:2px 8px;
+                            border-radius:12px;
+                            font-size:11px;
+                            font-weight:600;
+                            white-space:nowrap;">
+                            Low Stock
+                         </span>'
+                
+                    ELSE
+                        '<span style="
+                            display:inline-block;
+                            background:#dcfce7;
+                            color:#15803d;
+                            border:1px solid #bbf7d0;
+                            padding:2px 8px;
+                            border-radius:12px;
+                            font-size:11px;
+                            font-weight:600;
+                            white-space:nowrap;">
+                            Available
+                         </span>'
+                END STOCK_STATUS,
+                
+                           CASE
+                    WHEN NVL(
+                             SUM(NVL(L.QTY_IN,0))
+                             -
+                             SUM(NVL(L.QTY_OUT,0)),
+                             0
+                         ) <= 0
+                    THEN
+                        '<span class="fa fa-times-circle"
+                               style="
+                                   color:#dc2626;
+                                   font-size:13px;
+                                   vertical-align:middle;
+                                   line-height:1;"
+                               title="Out of Stock">
+                         </span>'
+                
+                    WHEN NVL(
+                             SUM(NVL(L.QTY_IN,0))
+                             -
+                             SUM(NVL(L.QTY_OUT,0)),
+                             0
+                         ) < NVL(P.MIN_STOCK_QTY,0)
+                    THEN
+                        '<span class="fa fa-exclamation-triangle"
+                               style="
+                                   color:#f59e0b;
+                                   font-size:13px;
+                                   vertical-align:middle;
+                                   line-height:1;"
+                               title="Low Stock">
+                         </span>'
+                
+                    ELSE
+                        '<span class="fa fa-check-circle"
+                               style="
+                                   color:#16a34a;
+                                   font-size:13px;
+                                   vertical-align:middle;
+                                   line-height:1;"
+                               title="Available">
+                         </span>'
+                END STATUS_ICON
+                
+                    FROM MST_PRODUCT P
+                
+                    LEFT JOIN MST_PRODUCT_CATEGORY C
+                           ON C.CATEGORY_NO = P.CATEGORY_NO
+                
+                    LEFT JOIN TRN_STOCK_LEDGER L
+                           ON L.PRODUCT_NO = P.PRODUCT_NO
+                
+                    WHERE (:P10_CATEGORY_NO IS NULL
+                           OR P.CATEGORY_NO = :P10_CATEGORY_NO)
+                
+                      AND (:P10_PRODUCT_NO IS NULL
+                           OR P.PRODUCT_NO = :P10_PRODUCT_NO)
+                
+                    GROUP BY
+                           P.PRODUCT_NO,
+                           P.PRODUCT_CODE,
+                           P.PRODUCT_NAME,
+                           C.CATEGORY_NAME,
+                           P.PURCHASE_RATE,
+                           P.SALES_RATE,
+                           P.MIN_STOCK_QTY
+                )
+                WHERE
+                (
+                      :P10_STATUS IS NULL
+                
+                   OR (:P10_STATUS = 'A'
+                       AND CURRENT_STOCK >= MIN_STOCK_QTY)
+                
+                   OR (:P10_STATUS = 'L'
+                       AND CURRENT_STOCK > 0
+                       AND CURRENT_STOCK < MIN_STOCK_QTY)
+                
+                   OR (:P10_STATUS = 'O'
+                       AND CURRENT_STOCK <= 0)
+                )
+                
+                ORDER BY PRODUCT_NAME;
+                ```
+            pageItemsToSubmit: [
+                P10_CATEGORY_NO
+                P10_PRODUCT_NO
+                P10_STATUS
+            ]
+        }
+        layout {
+            sequence: 40
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--removeHeader js-removeLandmark
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 10853910344867970226
+        }
+
+        column CATEGORY_NAME (
+            type: plainText
+            heading {
+                heading: Category Name
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: D
+            }
+        )
+
+        column CURRENT_STOCK (
+            type: plainText
+            heading {
+                heading: Current Stock
+                alignment: end
+            }
+            layout {
+                sequence: 100
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: J
+            }
+        )
+
+        column MIN_STOCK_QTY (
+            type: plainText
+            heading {
+                heading: Min Stock Qty
+                alignment: end
+            }
+            layout {
+                sequence: 70
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: G
+            }
+        )
+
+        column PRODUCT_CODE (
+            type: plainText
+            heading {
+                heading: Product Code
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: B
+            }
+        )
+
+        column PRODUCT_NAME (
+            type: plainText
+            heading {
+                heading: Product Name
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: C
+            }
+        )
+
+        column PRODUCT_NO (
+            type: plainText
+            heading {
+                heading: Product No
+                alignment: end
+            }
+            layout {
+                sequence: 10
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: A
+            }
+        )
+
+        column PURCHASE_RATE (
+            type: plainText
+            heading {
+                heading: Purchase Rate
+                alignment: end
+            }
+            layout {
+                sequence: 50
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: E
+            }
+        )
+
+        column SALES_RATE (
+            type: plainText
+            heading {
+                heading: Sales Rate
+                alignment: end
+            }
+            layout {
+                sequence: 60
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: F
+            }
+        )
+
+        column STATUS_ICON (
+            type: plainText
+            heading {
+                heading: Status Icon
+            }
+            layout {
+                sequence: 130
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: M
+            }
+            security {
+                escapeSpecialChars: false
+            }
+        )
+
+        column STOCK_IN (
+            type: plainText
+            heading {
+                heading: Stock In
+                alignment: end
+            }
+            layout {
+                sequence: 80
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: H
+            }
+        )
+
+        column STOCK_OUT (
+            type: plainText
+            heading {
+                heading: Stock Out
+                alignment: end
+            }
+            layout {
+                sequence: 90
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: I
+            }
+        )
+
+        column STOCK_STATUS (
+            type: plainText
+            heading {
+                heading: Stock Status
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: L
+            }
+            security {
+                escapeSpecialChars: false
+            }
+        )
+
+        column STOCK_VALUE (
+            type: plainText
+            heading {
+                heading: Stock Value
+                alignment: end
+            }
+            layout {
+                sequence: 110
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: K
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn CATEGORY_NAME (
+                sequence: 3
+            )
+
+            displayColumn CURRENT_STOCK (
+                sequence: 9
+            )
+
+            displayColumn MIN_STOCK_QTY (
+                sequence: 6
+            )
+
+            displayColumn PRODUCT_CODE (
+                sequence: 1
+            )
+
+            displayColumn PRODUCT_NAME (
+                sequence: 2
+            )
+
+            displayColumn PURCHASE_RATE (
+                sequence: 4
+            )
+
+            displayColumn SALES_RATE (
+                sequence: 5
+            )
+
+            displayColumn STATUS_ICON (
+                sequence: 12
+            )
+
+            displayColumn STOCK_IN (
+                sequence: 7
+            )
+
+            displayColumn STOCK_OUT (
+                sequence: 8
+            )
+
+            displayColumn STOCK_STATUS (
+                sequence: 11
+            )
+
+            displayColumn STOCK_VALUE (
+                sequence: 10
+            )
+
+        )
+
+    )
+
+    pageItem P10_CATEGORY_NO (
+        type: selectList
+        label {
+            label: Category Name
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT 'All Categories' DISPLAY_VALUE,
+                       NULL RETURN_VALUE
+                FROM DUAL
+                
+                UNION ALL
+                
+                SELECT CATEGORY_NAME,
+                       CATEGORY_NO
+                FROM MST_PRODUCT_CATEGORY
+                
+                ORDER BY 1;
+                ```
+            displayExtraValues: false
+            nullDisplayValue: --Select--
+        }
+        layout {
+            sequence: 10
+            slot: body
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            height: 1
+        }
+    )
+
+    pageItem P10_PRODUCT_NO (
+        type: popupLov
+        label {
+            label: Product_Name
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT PRODUCT_CODE
+                       || ' - '
+                       || PRODUCT_NAME DISPLAY_VALUE,
+                
+                       PRODUCT_NO RETURN_VALUE
+                
+                FROM MST_PRODUCT
+                
+                WHERE (:P10_CATEGORY_NO IS NULL
+                       OR CATEGORY_NO = :P10_CATEGORY_NO)
+                
+                AND ACTIVE_FLAG = 1
+                
+                ORDER BY PRODUCT_NAME;
+                ```
+            displayExtraValues: false
+            nullDisplayValue: --Select--
+        }
+        layout {
+            sequence: 20
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+    )
+
+    pageItem P10_STATUS (
+        type: selectList
+        label {
+            label: Status
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT 'Available' DISPLAY_VALUE,
+                       'A' RETURN_VALUE
+                FROM DUAL
+                
+                UNION ALL
+                
+                SELECT 'Low Stock',
+                       'L'
+                FROM DUAL
+                
+                UNION ALL
+                
+                SELECT 'Out of Stock',
+                       'O'
+                FROM DUAL
+                ```
+            displayExtraValues: false
+            nullDisplayValue: --Select--
+        }
+        layout {
+            sequence: 30
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            height: 1
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-reset
+            customAttributes: disabled
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    dynamicAction new (
+        name: New
+        execution {
+            sequence: 10
+        }
+        when {
+            selectionType: items
+            items: [
+                P10_CATEGORY_NO
+                P10_PRODUCT_NO
+                P10_STATUS
+            ]
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @register
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)
+

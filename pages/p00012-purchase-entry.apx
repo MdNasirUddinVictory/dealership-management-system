@@ -1,0 +1,2001 @@
+page 12 (
+    name: Purchase Entry
+    alias: PURCHASE-ENTRY
+    title: Purchase Entry
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/modal-dialog
+        templateOptions: [
+            #DEFAULT#
+            ui-dialog--stretch
+        ]
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            function purchaseCalculate(){
+            var qty    = Number($v("PURCHASE_QTY")) || 0;
+            var rate   = Number($v("PURCHASE_RATE")) || 0;
+            var factor = Number($v("PACK_QTY")) || 1;
+            
+            $s("BASE_QTY", qty * factor);
+            $s("BASE_RATE", (rate / factor).toFixed(2));
+            $s("TOTAL_AMOUNT", (qty * rate).toFixed(2));
+            }
+            ```
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb-2 (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 30
+            slot: dialogHeader
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region entry (
+        name: ENTRY
+        type: form
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select PURCHASE_NO,
+                       PURCHASE_CODE,
+                       PURCHASE_DATE,
+                       SUPPLIER_NO,
+                       REMARKS,
+                       ACTIVE_FLAG,
+                       CREATED_BY,
+                       CREATED_DATE,
+                       UPDATED_BY,
+                       UPDATED_DATE,
+                       APPROVAL_STATUS,
+                       APPROVED_BY,
+                       APPROVED_DATE,
+                       PURCHASE_STATUS,
+                       RECEIVED_BY,
+                       RECEIVED_DATE,
+                       VOUCHER_NO,
+                       PAID_AMOUNT,
+                       DUE_AMOUNT,
+                       PAYMENT_STATUS,
+                       TOTAL_AMOUNT
+                  from TRN_PURCHASE_MST
+                ```
+        }
+        layout {
+            sequence: 10
+            slot: contentBody
+            startNewRow: false
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--removeHeader js-removeLandmark
+                t-Region--scrollBody
+                t-Form--slimPadding
+                t-Form--large
+                t-Form--stretchInputs
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+    )
+
+    region purchaseDtl (
+        name: DETAILS ENTRY
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT *
+                FROM
+                (
+                    SELECT
+                           D.PURCHASE_DTL_NO,
+                           D.PURCHASE_NO,
+                           D.PRODUCT_NO,
+                
+                           --P.PRODUCT_CODE,
+                          -- P.PRODUCT_NAME,
+                           P.DESCRIPTION,
+                           P.BRAND_NO,
+                
+                           D.UOM_NO,
+                           U.UOM_NAME,
+                
+                           D.PACK_QTY,
+                           D.PURCHASE_QTY,
+                           D.PURCHASE_RATE,
+                           D.BASE_QTY,
+                           D.BASE_RATE,
+                           D.TOTAL_AMOUNT,
+                
+                           D.RECEIVED_QTY,
+                           D.BALANCE_QTY,
+                
+                           D.REMARKS
+                
+                      FROM TRN_PURCHASE_DTL D
+                
+                      JOIN MST_PRODUCT P
+                        ON P.PRODUCT_NO = D.PRODUCT_NO
+                
+                 LEFT JOIN MST_UOM U
+                        ON U.UOM_NO = D.UOM_NO
+                
+                     WHERE D.PURCHASE_NO = :P12_PURCHASE_NO
+                
+                  ORDER BY D.PURCHASE_DTL_NO
+                );
+                ```
+            pageItemsToSubmit: P12_PURCHASE_NO
+        }
+        layout {
+            sequence: 20
+            slot: contentBody
+            startNewRow: false
+            newColumn: false
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--removeHeader js-removeLandmark
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        advanced {
+            htmlDomId: purchaseDtl
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+            addRowIfEmpty: false
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+            ]
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
+        }
+        advanced {
+            savedReportMappingIdentifier: 16561534146715589352
+        }
+
+        savedReport primary (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @PURCHASE_DTL_NO
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_NO
+                layout {
+                    width: 162
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @PURCHASE_QTY
+                layout {
+                    width: 91
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @PURCHASE_RATE
+                layout {
+                    width: 102
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @TOTAL_AMOUNT
+                layout {
+                    width: 104
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @PURCHASE_NO
+                layout {
+                    width: 100
+                    sequence: 10
+                }
+            )
+
+            displayColumn (
+                column: @RECEIVED_QTY
+                layout {
+                    width: 113.0625
+                    sequence: 14
+                }
+            )
+
+            displayColumn (
+                column: @BALANCE_QTY
+                layout {
+                    width: 95.0625
+                    sequence: 15
+                }
+            )
+
+            displayColumn (
+                column: @REMARKS
+                layout {
+                    width: 150
+                    sequence: 16
+                }
+            )
+
+            displayColumn (
+                column: @UOM_NO
+                layout {
+                    width: 96
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @PACK_QTY
+                layout {
+                    width: 73
+                    sequence: 13
+                }
+            )
+
+            displayColumn (
+                column: @BASE_QTY
+                layout {
+                    width: 69
+                    sequence: 11
+                }
+            )
+
+            displayColumn (
+                column: @BASE_RATE
+                layout {
+                    width: 84
+                    sequence: 12
+                }
+            )
+
+            displayColumn (
+                column: @DESCRIPTION
+                layout {
+                    width: 108
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @BRAND_NO
+                layout {
+                    show: false
+                    width: 80
+                    sequence: 17
+                }
+            )
+
+            displayColumn (
+                column: @UOM_NAME
+                layout {
+                    width: 80
+                    sequence: 5
+                }
+            )
+
+        )
+
+        column APEX$ROW_ACTION (
+            type: actionsMenu
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 10
+            }
+        )
+
+        column BALANCE_QTY (
+            type: hidden
+            heading {
+                heading: Balance Qty
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 240
+            }
+            source {
+                databaseColumn: BALANCE_QTY
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column BASE_QTY (
+            type: numberField
+            heading {
+                heading: Base Qty
+                alignment: end
+            }
+            layout {
+                sequence: 170
+                columnAlignment: end
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: BASE_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: BASE_QTY
+                customAttributes: readonly
+            }
+        )
+
+        column BASE_RATE (
+            type: numberField
+            heading {
+                heading: Base Rate
+                alignment: end
+            }
+            layout {
+                sequence: 180
+                columnAlignment: end
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: BASE_RATE
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: BASE_RATE
+                customAttributes: readonly
+            }
+        )
+
+        column BRAND_NO (
+            type: numberField
+            heading {
+                heading: Brand No
+                alignment: end
+            }
+            layout {
+                sequence: 200
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: BRAND_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column DESCRIPTION (
+            type: textField
+            heading {
+                heading: Description
+            }
+            layout {
+                sequence: 190
+            }
+            validation {
+                maxLength: 500
+            }
+            source {
+                databaseColumn: DESCRIPTION
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+            advanced {
+                htmlDomId: DESCRIPTION
+                customAttributes: readonly="TURE"
+            }
+        )
+
+        column PACK_QTY (
+            type: numberField
+            heading {
+                heading: Pack Qty
+                alignment: end
+            }
+            layout {
+                sequence: 160
+                columnAlignment: end
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: PACK_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: PACK_QTY
+            }
+        )
+
+        column PRODUCT_NO (
+            type: popupLov
+            heading {
+                heading: Product Name
+            }
+            settings {
+                displayAs: modalDialog
+                fetchOnSearch: true
+                title: Product List
+                popupWidth: 700
+                additionalOutputs: UOM_NO:UOM_NO,DESCRIPTION:DESCRIPTION,UOM_NAME:UOM_NAME,PURCHASE_RATE:PURCHASE_RATE
+            }
+            lov {
+                type: sharedComponent
+                lov: @lov-12-product
+                displayExtraValues: false
+                nullDisplayValue: --Select--
+            }
+            layout {
+                sequence: 70
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: PRODUCT_NO
+                dataType: number
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: useLov
+            }
+            advanced {
+                htmlDomId: PRODUCT_NO
+            }
+        )
+
+        column PURCHASE_DTL_NO (
+            type: hidden
+            layout {
+                sequence: 50
+            }
+            source {
+                databaseColumn: PURCHASE_DTL_NO
+                dataType: number
+                primaryKey: true
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column PURCHASE_NO (
+            type: hidden
+            heading {
+                heading: Purchase No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                databaseColumn: PURCHASE_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column PURCHASE_QTY (
+            type: numberField
+            heading {
+                heading: Purchase Qty
+                alignment: end
+            }
+            layout {
+                sequence: 80
+                columnAlignment: end
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: PURCHASE_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: PURCHASE_QTY
+            }
+        )
+
+        column PURCHASE_RATE (
+            type: numberField
+            heading {
+                heading: Purchase Rate
+                alignment: end
+            }
+            layout {
+                sequence: 90
+                columnAlignment: end
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: PURCHASE_RATE
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: PURCHASE_RATE
+            }
+        )
+
+        column RECEIVED_QTY (
+            type: hidden
+            heading {
+                heading: Received Qty
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 230
+            }
+            source {
+                databaseColumn: RECEIVED_QTY
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column REMARKS (
+            type: textField
+            heading {
+                heading: Remarks
+            }
+            layout {
+                sequence: 220
+            }
+            validation {
+                maxLength: 500
+            }
+            source {
+                databaseColumn: REMARKS
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+        )
+
+        column TOTAL_AMOUNT (
+            type: numberField
+            heading {
+                heading: Total Amount
+                alignment: end
+            }
+            layout {
+                sequence: 100
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: TOTAL_AMOUNT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: TOTAL_AMOUNT
+                customAttributes: readonly
+            }
+        )
+
+        column UOM_NAME (
+            type: textField
+            heading {
+                heading: Base UOM
+            }
+            layout {
+                sequence: 140
+            }
+            validation {
+                maxLength: 50
+            }
+            source {
+                databaseColumn: UOM_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+            advanced {
+                htmlDomId: UOM_NAME
+                customAttributes: readonly
+            }
+        )
+
+        column UOM_NO (
+            type: selectList
+            heading {
+                heading: Market UOM
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    SELECT UOM_NAME D,
+                           UOM_NO   R
+                    FROM
+                    (
+                        -- Base UOM
+                        SELECT U.UOM_NAME,
+                               U.UOM_NO,
+                               1 ORD
+                          FROM MST_PRODUCT P
+                          JOIN MST_UOM U
+                            ON U.UOM_NO = P.UOM_NO
+                         WHERE P.PRODUCT_NO = :PRODUCT_NO
+                    
+                        UNION ALL
+                    
+                        -- Conversion UOM
+                        SELECT U.UOM_NAME,
+                               C.CONVERT_UOM_NO,
+                               2 ORD
+                          FROM MST_UOM_CONVERSION C
+                          JOIN MST_UOM U
+                            ON U.UOM_NO = C.CONVERT_UOM_NO
+                         WHERE C.PRODUCT_NO = :PRODUCT_NO
+                           AND C.ACTIVE_FLAG = 'Y'
+                    )
+                    ORDER BY ORD, D;
+                    ```
+                displayExtraValues: false
+                displayNullValue: false
+            }
+            cascadingLov {
+                parentColumns: PRODUCT_NO
+                itemsToSubmit: PRODUCT_NO
+                parentRequired: false
+            }
+            layout {
+                sequence: 150
+            }
+            source {
+                databaseColumn: UOM_NO
+                dataType: number
+            }
+            advanced {
+                htmlDomId: UOM_NO
+            }
+            help {
+                helpText: Unit Of majerment
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    pageItem P12_ACTIVE_FLAG (
+        type: radioGroup
+        label {
+            label: Active Flag
+            alignment: left
+        }
+        settings {
+            noOfCols: 2
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC:Active;1,Inactive;2
+            displayExtraValues: false
+            displayNullValue: false
+        }
+        layout {
+            sequence: 160
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @entry
+            column: ACTIVE_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: 1
+        }
+    )
+
+    pageItem P12_APPROVAL_STATUS (
+        type: textField
+        label {
+            label: Approval Status
+            alignment: left
+        }
+        layout {
+            sequence: 240
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 1
+        }
+        source {
+            formRegion: @entry
+            column: APPROVAL_STATUS
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: item=value
+            item: P12_APPROVAL_STATUS
+            value: A
+        }
+    )
+
+    pageItem P12_APPROVED_BY (
+        type: textField
+        label {
+            label: Approved By
+            alignment: left
+        }
+        layout {
+            sequence: 250
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 100
+        }
+        source {
+            formRegion: @entry
+            column: APPROVED_BY
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: item=value
+            item: P12_APPROVAL_STATUS
+            value: A
+        }
+    )
+
+    pageItem P12_APPROVED_DATE (
+        type: datePicker
+        label {
+            label: Approved Date
+            alignment: left
+        }
+        layout {
+            sequence: 260
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        source {
+            formRegion: @entry
+            column: APPROVED_DATE
+            dataType: date
+        }
+        serverSideCondition {
+            type: item=value
+            item: P12_APPROVAL_STATUS
+            value: A
+        }
+    )
+
+    pageItem P12_CREATED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 290
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: CREATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P12_CREATED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 300
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: CREATED_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P12_DUE_AMOUNT (
+        type: numberField
+        label {
+            label: Due Amount
+            alignment: left
+        }
+        layout {
+            sequence: 200
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            formRegion: @entry
+            column: DUE_AMOUNT
+            dataType: number
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P12_PURCHASE_NO
+        }
+    )
+
+    pageItem P12_PAID_AMOUNT (
+        type: numberField
+        label {
+            label: Paid Amount
+            alignment: left
+        }
+        layout {
+            sequence: 190
+            region: @entry
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            formRegion: @entry
+            column: PAID_AMOUNT
+            dataType: number
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P12_PURCHASE_NO
+        }
+    )
+
+    pageItem P12_PAYMENT_STATUS (
+        type: textField
+        label {
+            label: Payment Status
+            alignment: left
+        }
+        layout {
+            sequence: 220
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 2
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            formRegion: @entry
+            column: PAYMENT_STATUS
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P12_PURCHASE_NO
+        }
+    )
+
+    pageItem P12_PURCHASE_CODE (
+        type: textField
+        label {
+            label: Purchase Code
+            alignment: left
+        }
+        layout {
+            sequence: 230
+            region: @entry
+            slot: regionBody
+            alignment: left
+            columnSpan: 3
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        source {
+            formRegion: @entry
+            column: PURCHASE_CODE
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P12_PURCHASE_NO
+        }
+    )
+
+    pageItem P12_PURCHASE_DATE (
+        type: datePicker
+        label {
+            label: Purchase Date
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @entry
+            column: PURCHASE_DATE
+            dataType: date
+        }
+        default {
+            type: functionBody
+            plsqlFunctionBody: RETURN SYSDATE;
+        }
+    )
+
+    pageItem P12_PURCHASE_NO (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: PURCHASE_NO
+            dataType: number
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P12_PURCHASE_STATUS (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 270
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: PURCHASE_STATUS
+            dataType: varchar2
+        }
+    )
+
+    pageItem P12_RECEIVED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 330
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: RECEIVED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P12_RECEIVED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 340
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: RECEIVED_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P12_REMARKS (
+        type: textField
+        label {
+            label: Remarks
+            alignment: left
+        }
+        layout {
+            sequence: 170
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 500
+        }
+        source {
+            formRegion: @entry
+            column: REMARKS
+            dataType: varchar2
+        }
+    )
+
+    pageItem P12_SUPPLIER_NO (
+        type: popupLov
+        label {
+            label: Supplier Name
+            alignment: left
+        }
+        settings {
+            fetchOnSearch: true
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT SUPPLIER_NAME,
+                       SUPPLIER_NO
+                FROM MST_SUPPLIER
+                WHERE ACTIVE_FLAG=1
+                ORDER BY SUPPLIER_NAME
+                ```
+            displayExtraValues: false
+            nullDisplayValue: --Select--
+        }
+        layout {
+            sequence: 20
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @entry
+            column: SUPPLIER_NO
+            dataType: number
+        }
+    )
+
+    pageItem P12_TOTAL_AMOUNT (
+        type: numberField
+        label {
+            label: Total Amount
+            alignment: left
+        }
+        layout {
+            sequence: 210
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            formRegion: @entry
+            column: TOTAL_AMOUNT
+            dataType: number
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P12_PURCHASE_NO
+        }
+    )
+
+    pageItem P12_UPDATED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 310
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: UPDATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P12_UPDATED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 320
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: UPDATED_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P12_VOUCHER_NO (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 280
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: VOUCHER_NO
+            dataType: number
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 12
+                clearCache: 12
+                action: clearRegions
+            }
+        }
+        advanced {
+            htmlDomId: pb-reset
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+        }
+    )
+
+    dynamicAction new (
+        name: New
+        execution {
+            sequence: 40
+        }
+        when {
+            selectionType: columns
+            interactiveGrid: @purchaseDtl
+            columns: UOM_NO
+        }
+
+        action native-execute-plsql-code (
+            action: executeServerSideCode
+            settings {
+                plsqlCode:
+                    ```plsql
+                    BEGIN
+                        BEGIN
+                            SELECT C.CONVERSION_FACTOR
+                              INTO :PACK_QTY
+                              FROM MST_UOM_CONVERSION C
+                             WHERE C.PRODUCT_NO = :PRODUCT_NO
+                               AND C.CONVERT_UOM_NO = :UOM_NO
+                               AND C.ACTIVE_FLAG = 'Y';
+                    
+                        EXCEPTION
+                            WHEN NO_DATA_FOUND THEN
+                                :PACK_QTY := 1;
+                        END;
+                    END;
+                    ```
+                itemsToSubmit: [
+                    UOM_NO
+                    PRODUCT_NO
+                ]
+                itemsToReturn: PACK_QTY
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction new_2 (
+        name: New
+        execution {
+            sequence: 30
+        }
+        when {
+            selectionType: columns
+            interactiveGrid: @purchaseDtl
+            columns: [
+                PURCHASE_QTY
+                PURCHASE_RATE
+                PACK_QTY
+            ]
+        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode: purchaseCalculate(this);
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    validation purchase-rate-cannot-be-less-than-the-standard-purchase-rate (
+        name: Purchase rate cannot be less than the standard purchase rate.
+        execution {
+            sequence: 40
+        }
+        validation {
+            editableRegion: @purchaseDtl
+            type: noRowsReturned
+            sqlQuery:
+                ```sql
+                SELECT 1
+                FROM MST_PRODUCT
+                WHERE PRODUCT_NO = :PRODUCT_NO
+                AND :PURCHASE_RATE < PURCHASE_RATE
+                ```
+        }
+        error {
+            errorMessage: Purchase rate cannot be less than the standard purchase rate.
+            associatedColumn: PURCHASE_RATE
+        }
+    )
+
+    validation purchase-rate-must-be-greater-than-zero (
+        name: Purchase rate must be greater than zero.
+        execution {
+            sequence: 10
+        }
+        validation {
+            editableRegion: @purchaseDtl
+            plsqlExpression: NVL(:PURCHASE_QTY,0) > 0
+        }
+        error {
+            errorMessage: Purchase quantity must be greater than zero.
+            associatedColumn: PURCHASE_QTY
+        }
+    )
+
+    validation purchase-rate-must-be-greater-than-zero_1 (
+        name: Purchase rate must be greater than zero.
+        execution {
+            sequence: 20
+        }
+        validation {
+            editableRegion: @purchaseDtl
+            plsqlExpression: NVL(:PURCHASE_RATE,0) > 0
+        }
+        error {
+            errorMessage: Purchase rate must be greater than zero.
+            associatedColumn: PURCHASE_RATE
+        }
+    )
+
+    validation this-product-already-exists-in-the-purchase-details (
+        name: This product already exists in the purchase details.
+        execution {
+            sequence: 30
+        }
+        validation {
+            editableRegion: @purchaseDtl
+            type: noRowsReturned
+            sqlQuery:
+                ```sql
+                SELECT 1
+                FROM TRN_PURCHASE_DTL
+                WHERE PURCHASE_NO = :P12_PURCHASE_NO
+                  AND PRODUCT_NO  = :PRODUCT_NO
+                  AND NVL(PURCHASE_DTL_NO,0) <> NVL(:PURCHASE_DTL_NO,0)
+                ```
+        }
+        error {
+            errorMessage: This product already exists in the purchase details.
+            associatedColumn: PURCHASE_RATE
+        }
+    )
+
+    process details-entry-save-interactive-grid-data (
+        name: DETAILS ENTRY - Save Interactive Grid Data
+        type: executeCode
+        editableRegion: @purchaseDtl
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    V_STATUS VARCHAR2(1);
+                
+                BEGIN
+                
+                    ----------------------------------------------------
+                    -- Approval Validation
+                    ----------------------------------------------------
+                    BEGIN
+                        SELECT APPROVAL_STATUS
+                          INTO V_STATUS
+                          FROM TRN_PURCHASE_MST
+                         WHERE PURCHASE_NO = :P12_PURCHASE_NO;
+                
+                    EXCEPTION
+                        WHEN NO_DATA_FOUND THEN
+                            V_STATUS := 'P';
+                    END;
+                
+                    IF V_STATUS = 'A' THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Approved purchase cannot be modified or deleted.'
+                        );
+                    END IF;
+                
+                    ----------------------------------------------------
+                    -- INSERT
+                    ----------------------------------------------------
+                    IF :APEX$ROW_STATUS = 'C' THEN
+                
+                        INSERT INTO TRN_PURCHASE_DTL
+                        (
+                            PURCHASE_DTL_NO,
+                            PURCHASE_NO,
+                            PRODUCT_NO,
+                            UOM_NO,
+                            PURCHASE_QTY,
+                            PURCHASE_RATE,
+                            PACK_QTY,
+                            BASE_QTY,
+                            BASE_RATE,
+                            TOTAL_AMOUNT,
+                            RECEIVED_QTY,
+                            BALANCE_QTY,
+                            REMARKS,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES
+                        (
+                            SEQ_PURCHASE_DTL_NO.NEXTVAL,
+                            :P12_PURCHASE_NO,
+                            :PRODUCT_NO,
+                            :UOM_NO,
+                            :PURCHASE_QTY,
+                            :PURCHASE_RATE,
+                            :PACK_QTY,
+                            :BASE_QTY,
+                            :BASE_RATE,
+                            :TOTAL_AMOUNT,
+                            0,
+                            :BASE_QTY,
+                            :REMARKS,
+                            :APP_USER,
+                            SYSDATE
+                        )
+                        RETURNING PURCHASE_DTL_NO
+                             INTO :PURCHASE_DTL_NO;
+                
+                        apex_application.g_print_success_message :=
+                            'Purchase detail saved successfully.';
+                
+                    ----------------------------------------------------
+                    -- UPDATE
+                    ----------------------------------------------------
+                    ELSIF :APEX$ROW_STATUS = 'U' THEN
+                
+                        UPDATE TRN_PURCHASE_DTL
+                           SET PRODUCT_NO    = :PRODUCT_NO,
+                               UOM_NO        = :UOM_NO,
+                               PURCHASE_QTY  = :PURCHASE_QTY,
+                               PURCHASE_RATE = :PURCHASE_RATE,
+                               PACK_QTY      = :PACK_QTY,
+                               BASE_QTY      = :BASE_QTY,
+                               BASE_RATE     = :BASE_RATE,
+                               TOTAL_AMOUNT  = :TOTAL_AMOUNT,
+                               BALANCE_QTY   = :BASE_QTY - NVL(RECEIVED_QTY,0),
+                               REMARKS       = :REMARKS,
+                               UPDATED_BY    = :APP_USER,
+                               UPDATED_DATE  = SYSDATE
+                         WHERE PURCHASE_DTL_NO = :PURCHASE_DTL_NO;
+                
+                        apex_application.g_print_success_message :=
+                            'Purchase detail updated successfully.';
+                
+                    ----------------------------------------------------
+                    -- DELETE
+                    ----------------------------------------------------
+                    ELSIF :APEX$ROW_STATUS = 'D' THEN
+                
+                        DELETE
+                          FROM TRN_PURCHASE_DTL
+                         WHERE PURCHASE_DTL_NO = :PURCHASE_DTL_NO;
+                
+                        apex_application.g_print_success_message :=
+                            'Purchase detail deleted successfully.';
+                
+                    END IF;
+                
+                    ----------------------------------------------------
+                    -- Update Header Total
+                    ----------------------------------------------------
+                    PKG_PURCHASE.UPDATE_TOTAL(:P12_PURCHASE_NO);
+                
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        RAISE_APPLICATION_ERROR(-20001, SQLERRM);
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 30
+        }
+        error {
+            errorMessage: #SQLERRM_TEXT#
+        }
+        advanced {
+            executionMappingIdentifier: 8293111900604552013
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+    process get-pack-factor (
+        name: GET_PACK_FACTOR
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    V_FACTOR NUMBER := 1;
+                
+                BEGIN
+                
+                    BEGIN
+                
+                        SELECT C.CONVERSION_FACTOR
+                          INTO V_FACTOR
+                          FROM MST_UOM_CONVERSION C
+                         WHERE C.PRODUCT_NO     = TO_NUMBER(APEX_APPLICATION.G_X01)
+                           AND C.CONVERT_UOM_NO = TO_NUMBER(APEX_APPLICATION.G_X02)
+                           AND C.ACTIVE_FLAG = 'Y';
+                
+                    EXCEPTION
+                        WHEN NO_DATA_FOUND THEN
+                
+                            V_FACTOR := 1;
+                
+                    END;
+                
+                    HTP.P(V_FACTOR);
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: ajaxCallback
+        }
+        advanced {
+            executionMappingIdentifier: 18574585735790404015
+        }
+    )
+
+    process initialize-form-tamplate (
+        name: Initialize form Tamplate
+        type: formInitialization
+        formRegion: @entry
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+        advanced {
+            executionMappingIdentifier: 8292984805001895932
+        }
+    )
+
+    process process-form-entry (
+        name: Process form ENTRY
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    V_TOTAL_AMOUNT NUMBER;
+                BEGIN
+                
+                    ----------------------------------------------------
+                    -- Insert
+                    ----------------------------------------------------
+                
+                    IF :P12_PURCHASE_NO IS NULL THEN
+                
+                        :P12_PURCHASE_NO := SEQ_PURCHASE_NO.NEXTVAL;
+                
+                        INSERT INTO TRN_PURCHASE_MST
+                        (
+                            PURCHASE_NO,
+                            PURCHASE_CODE,
+                            PURCHASE_DATE,
+                            SUPPLIER_NO,
+                            REMARKS,
+                            ACTIVE_FLAG,
+                            CREATED_BY,
+                            CREATED_DATE,
+                
+                            TOTAL_AMOUNT,
+                            PAID_AMOUNT,
+                            DUE_AMOUNT,
+                            PAYMENT_STATUS
+                        )
+                        VALUES
+                        (
+                            :P12_PURCHASE_NO,
+                            'PUR-' || LPAD(:P12_PURCHASE_NO,4,'0'),
+                            :P12_PURCHASE_DATE,
+                            :P12_SUPPLIER_NO,
+                            :P12_REMARKS,
+                            :P12_ACTIVE_FLAG,
+                            :APP_USER,
+                            SYSDATE,
+                
+                            0,
+                            0,
+                            0,
+                            'P'
+                        );
+                
+                        apex_application.g_print_success_message :=
+                            'Purchase information saved successfully.';
+                
+                    ----------------------------------------------------
+                    -- Update
+                    ----------------------------------------------------
+                
+                    ELSE
+                
+                        UPDATE TRN_PURCHASE_MST
+                           SET PURCHASE_DATE = :P12_PURCHASE_DATE,
+                               SUPPLIER_NO   = :P12_SUPPLIER_NO,
+                               REMARKS       = :P12_REMARKS,
+                               ACTIVE_FLAG   = :P12_ACTIVE_FLAG,
+                               UPDATED_BY    = :APP_USER,
+                               UPDATED_DATE  = SYSDATE
+                
+                         WHERE PURCHASE_NO = :P12_PURCHASE_NO;
+                
+                        apex_application.g_print_success_message :=
+                            'Purchase information updated successfully.';
+                
+                    END IF;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+        advanced {
+            executionMappingIdentifier: 8293111583625552009
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+    process purches-delete (
+        name: PURCHES DELETE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                    DELETE FROM TRN_PURCHASE_MST
+                     WHERE PURCHASE_NO = :P12_PURCHASE_NO;
+                
+                    apex_application.g_print_success_message :=
+                        'Purchase information deleted successfully.';
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 20
+        }
+        advanced {
+            executionMappingIdentifier: 8293111692319552010
+        }
+        serverSideCondition {
+            whenButtonPressed: @delete
+        }
+    )
+
+)
+

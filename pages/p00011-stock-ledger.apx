@@ -1,0 +1,775 @@
+page 11 (
+    name: Stock Ledger
+    alias: STOCK-LEDGER
+    title: Stock Ledger
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region register (
+        name: Stock Ledger
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT * FROM (SELECT
+                       L.LEDGER_NO,
+                
+                       L.TRAN_DATE,
+                
+                       P.PRODUCT_CODE,
+                
+                       P.PRODUCT_NAME,
+                
+                       L.TRAN_TYPE,
+                
+                       CASE L.TRAN_TYPE
+                            WHEN 'OPENING' THEN 'Opening Stock'
+                            WHEN 'PURCHASE' THEN 'Purchase'
+                            WHEN 'SALES' THEN 'Sales'
+                            WHEN 'DELIVERY' THEN 'Sales Delivery'
+                            WHEN 'CUSTOMER_RETURN' THEN 'Customer Return'
+                       END TRANSACTION_NAME,
+                
+                       L.REF_NO,
+                
+                       L.QTY_IN,
+                
+                       L.QTY_OUT,
+                
+                       SUM(
+                            NVL(L.QTY_IN,0)
+                            -
+                            NVL(L.QTY_OUT,0)
+                       )
+                       OVER
+                       (
+                            PARTITION BY L.PRODUCT_NO
+                            ORDER BY L.TRAN_DATE,
+                                     L.LEDGER_NO
+                       ) BALANCE,
+                
+                       L.CREATED_BY,
+                
+                       L.CREATED_DATE
+                
+                FROM TRN_STOCK_LEDGER L
+                
+                JOIN MST_PRODUCT P
+                  ON P.PRODUCT_NO = L.PRODUCT_NO
+                
+                WHERE (:P11_PRODUCT_NO IS NULL
+                       OR L.PRODUCT_NO = :P11_PRODUCT_NO)
+                
+                AND (:P11_DATE_FROM IS NULL
+                     OR L.TRAN_DATE >= :P11_DATE_FROM)
+                
+                AND (:P11_DATE_TO IS NULL
+                     OR L.TRAN_DATE <= :P11_DATE_TO)
+                
+                AND (:P11_TRAN_TYPE IS NULL
+                     OR L.TRAN_TYPE = :P11_TRAN_TYPE)
+                
+                ORDER BY
+                       L.PRODUCT_NO,
+                       L.TRAN_DATE,
+                       L.LEDGER_NO);
+                ```
+            pageItemsToSubmit: [
+                P11_PRODUCT_NO
+                P11_DATE_FROM
+                P11_DATE_TO
+                P11_TRAN_TYPE
+            ]
+        }
+        layout {
+            sequence: 50
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--removeHeader js-removeLandmark
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
+        }
+        advanced {
+            savedReportMappingIdentifier: 25854766236000286015
+        }
+
+        savedReport primary (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @LEDGER_NO
+                layout {
+                    show: false
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @TRAN_DATE
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @TRAN_TYPE
+                layout {
+                    show: false
+                    width: 142
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @REF_NO
+                layout {
+                    show: false
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @QTY_IN
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @QTY_OUT
+                layout {
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_CODE
+                layout {
+                    width: 95
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_NAME
+                layout {
+                    width: 141
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @TRANSACTION_NAME
+                layout {
+                    width: 131
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @BALANCE
+                layout {
+                    sequence: 10
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_BY
+                layout {
+                    sequence: 11
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_DATE
+                layout {
+                    sequence: 12
+                }
+            )
+
+        )
+
+        column BALANCE (
+            type: numberField
+            heading {
+                heading: Balance
+                alignment: end
+            }
+            layout {
+                sequence: 110
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: BALANCE
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column CREATED_BY (
+            type: textField
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 120
+            }
+            validation {
+                maxLength: 100
+            }
+            source {
+                databaseColumn: CREATED_BY
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CREATED_DATE (
+            type: datePicker
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 130
+            }
+            source {
+                databaseColumn: CREATED_DATE
+                dataType: date
+            }
+        )
+
+        column LEDGER_NO (
+            type: numberField
+            heading {
+                heading: Ledger No
+                alignment: end
+            }
+            layout {
+                sequence: 10
+                columnAlignment: end
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: LEDGER_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column PRODUCT_CODE (
+            type: textField
+            heading {
+                heading: Product Code
+            }
+            layout {
+                sequence: 80
+            }
+            validation {
+                valueRequired: true
+                maxLength: 50
+            }
+            source {
+                databaseColumn: PRODUCT_CODE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column PRODUCT_NAME (
+            type: textarea
+            heading {
+                heading: Product Name
+            }
+            layout {
+                sequence: 90
+            }
+            validation {
+                valueRequired: true
+                maxLength: 300
+            }
+            source {
+                databaseColumn: PRODUCT_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+        )
+
+        column QTY_IN (
+            type: numberField
+            heading {
+                heading: Qty In
+                alignment: end
+            }
+            layout {
+                sequence: 60
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: QTY_IN
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column QTY_OUT (
+            type: numberField
+            heading {
+                heading: Qty Out
+                alignment: end
+            }
+            layout {
+                sequence: 70
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: QTY_OUT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column REF_NO (
+            type: numberField
+            heading {
+                heading: Ref No
+                alignment: end
+            }
+            layout {
+                sequence: 40
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: REF_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column TRANSACTION_NAME (
+            type: textField
+            heading {
+                heading: Transaction Name
+            }
+            layout {
+                sequence: 100
+            }
+            validation {
+                maxLength: 15
+            }
+            source {
+                databaseColumn: TRANSACTION_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column TRAN_DATE (
+            type: datePicker
+            heading {
+                heading: Tran Date
+            }
+            layout {
+                sequence: 20
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: TRAN_DATE
+                dataType: date
+            }
+        )
+
+        column TRAN_TYPE (
+            type: textField
+            heading {
+                heading: Tran Type
+            }
+            layout {
+                sequence: 30
+            }
+            validation {
+                maxLength: 30
+            }
+            source {
+                databaseColumn: TRAN_TYPE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    pageItem P11_DATE_FROM (
+        type: datePicker
+        label {
+            label: Date From
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+    )
+
+    pageItem P11_DATE_TO (
+        type: datePicker
+        label {
+            label: Date To
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+    )
+
+    pageItem P11_PRODUCT_NO (
+        type: popupLov
+        label {
+            label: Product Name
+            alignment: left
+        }
+        settings {
+            displayAs: modalDialog
+            fetchOnSearch: true
+            popupWidth: 700
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-12-product
+            displayExtraValues: false
+            nullDisplayValue: --Select--
+        }
+        layout {
+            sequence: 10
+            slot: body
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+    )
+
+    pageItem P11_TRAN_TYPE (
+        type: selectList
+        label {
+            label: Tran Type
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT 'Opening Stock' DISPLAY_VALUE, 'OPENING' RETURN_VALUE FROM DUAL
+                UNION ALL
+                SELECT 'Purchase', 'PURCHASE' FROM DUAL
+                UNION ALL
+                SELECT 'Sales Delivery', 'DELIVERY' FROM DUAL
+                UNION ALL
+                SELECT 'Customer Return', 'CUSTOMER_RETURN' FROM DUAL
+                ```
+            displayExtraValues: false
+            nullDisplayValue: --Select--
+        }
+        layout {
+            sequence: 40
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            height: 1
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-reset
+            customAttributes: disabled
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    dynamicAction new (
+        name: New
+        execution {
+            sequence: 10
+        }
+        when {
+            selectionType: items
+            items: [
+                P11_PRODUCT_NO
+                P11_DATE_FROM
+                P11_DATE_TO
+                P11_TRAN_TYPE
+            ]
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @register
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)
+

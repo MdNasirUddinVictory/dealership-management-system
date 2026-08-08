@@ -1,0 +1,1194 @@
+page 1000 (
+    name: Tamplate
+    alias: TAMPLATE
+    title: Tamplate
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region entry (
+        name: ENTRY
+        type: form
+        source {
+            location: localDatabase
+            tableName: MST_PRODUCT_CATEGORY
+        }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--removeHeader js-removeLandmark
+                t-Region--scrollBody
+                t-Form--slimPadding
+                t-Form--large
+                t-Form--stretchInputs
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+    )
+
+    region register (
+        name: REGISTER
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            tableName: MST_PRODUCT_CATEGORY
+        }
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--removeHeader js-removeLandmark
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
+        }
+        advanced {
+            savedReportMappingIdentifier: 8268557286642693438
+        }
+
+        savedReport primary (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @CATEGORY_NO
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @CATEGORY_CODE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @CATEGORY_NAME
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @ACTIVE_FLAG
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_BY
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_DATE
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @UPDATED_BY
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @UPDATED_DATE
+                layout {
+                    sequence: 8
+                }
+            )
+
+        )
+
+        column ACTIVE_FLAG (
+            type: textField
+            heading {
+                heading: Active Flag
+            }
+            layout {
+                sequence: 40
+            }
+            validation {
+                maxLength: 1
+            }
+            source {
+                databaseColumn: ACTIVE_FLAG
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CATEGORY_CODE (
+            type: textField
+            heading {
+                heading: Category Code
+            }
+            layout {
+                sequence: 20
+            }
+            validation {
+                valueRequired: true
+                maxLength: 20
+            }
+            source {
+                databaseColumn: CATEGORY_CODE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CATEGORY_NAME (
+            type: textField
+            heading {
+                heading: Category Name
+            }
+            layout {
+                sequence: 30
+            }
+            validation {
+                valueRequired: true
+                maxLength: 200
+            }
+            source {
+                databaseColumn: CATEGORY_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CATEGORY_NO (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+            source {
+                databaseColumn: CATEGORY_NO
+                dataType: number
+                primaryKey: true
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column CREATED_BY (
+            type: textField
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 50
+            }
+            validation {
+                maxLength: 30
+            }
+            source {
+                databaseColumn: CREATED_BY
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CREATED_DATE (
+            type: datePicker
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                databaseColumn: CREATED_DATE
+                dataType: date
+            }
+        )
+
+        column UPDATED_BY (
+            type: textField
+            heading {
+                heading: Updated By
+            }
+            layout {
+                sequence: 70
+            }
+            validation {
+                maxLength: 30
+            }
+            source {
+                databaseColumn: UPDATED_BY
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column UPDATED_DATE (
+            type: datePicker
+            heading {
+                heading: Updated Date
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                databaseColumn: UPDATED_DATE
+                dataType: date
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    region register_1 (
+        name: REGISTER
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            tableName: MST_PRODUCT_CATEGORY
+        }
+        layout {
+            sequence: 30
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--removeHeader js-removeLandmark
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
+        }
+        advanced {
+            savedReportMappingIdentifier: 8268557286642693438
+        }
+
+        savedReport primary (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @CATEGORY_NO
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @CATEGORY_CODE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @CATEGORY_NAME
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @ACTIVE_FLAG
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_BY
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_DATE
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @UPDATED_BY
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @UPDATED_DATE
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    sequence: 0
+                }
+            )
+
+        )
+
+        column ACTIVE_FLAG (
+            type: textField
+            heading {
+                heading: Active Flag
+            }
+            layout {
+                sequence: 60
+            }
+            validation {
+                maxLength: 1
+            }
+            source {
+                databaseColumn: ACTIVE_FLAG
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column APEX$ROW_ACTION (
+            type: actionsMenu
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 10
+            }
+        )
+
+        column CATEGORY_CODE (
+            type: textField
+            heading {
+                heading: Category Code
+            }
+            layout {
+                sequence: 40
+            }
+            validation {
+                valueRequired: true
+                maxLength: 20
+            }
+            source {
+                databaseColumn: CATEGORY_CODE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CATEGORY_NAME (
+            type: textField
+            heading {
+                heading: Category Name
+            }
+            layout {
+                sequence: 50
+            }
+            validation {
+                valueRequired: true
+                maxLength: 200
+            }
+            source {
+                databaseColumn: CATEGORY_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CATEGORY_NO (
+            type: hidden
+            layout {
+                sequence: 30
+            }
+            source {
+                databaseColumn: CATEGORY_NO
+                dataType: number
+                primaryKey: true
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column CREATED_BY (
+            type: textField
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 70
+            }
+            validation {
+                maxLength: 30
+            }
+            source {
+                databaseColumn: CREATED_BY
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CREATED_DATE (
+            type: datePicker
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                databaseColumn: CREATED_DATE
+                dataType: date
+            }
+        )
+
+        column UPDATED_BY (
+            type: textField
+            heading {
+                heading: Updated By
+            }
+            layout {
+                sequence: 90
+            }
+            validation {
+                maxLength: 30
+            }
+            source {
+                databaseColumn: UPDATED_BY
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column UPDATED_DATE (
+            type: datePicker
+            heading {
+                heading: Updated Date
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                databaseColumn: UPDATED_DATE
+                dataType: date
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    pageItem P1000_ACTIVE_FLAG (
+        type: textField
+        label {
+            label: Active Flag
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 1
+        }
+        source {
+            formRegion: @entry
+            column: ACTIVE_FLAG
+            dataType: varchar2
+        }
+    )
+
+    pageItem P1000_CATEGORY_CODE (
+        type: textField
+        label {
+            label: Category Code
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+            maxLength: 20
+        }
+        source {
+            formRegion: @entry
+            column: CATEGORY_CODE
+            dataType: varchar2
+        }
+    )
+
+    pageItem P1000_CATEGORY_NAME (
+        type: textField
+        label {
+            label: Category Name
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+            maxLength: 200
+        }
+        source {
+            formRegion: @entry
+            column: CATEGORY_NAME
+            dataType: varchar2
+        }
+    )
+
+    pageItem P1000_CATEGORY_NO (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: CATEGORY_NO
+            dataType: number
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P1000_CREATED_BY (
+        type: textField
+        label {
+            label: Created By
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 30
+        }
+        source {
+            formRegion: @entry
+            column: CREATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P1000_CREATED_DATE (
+        type: datePicker
+        label {
+            label: Created Date
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+            columnSpan: 3
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        source {
+            formRegion: @entry
+            column: CREATED_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P1000_UPDATED_BY (
+        type: textField
+        label {
+            label: Updated By
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 3
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 30
+        }
+        source {
+            formRegion: @entry
+            column: UPDATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P1000_UPDATED_DATE (
+        type: datePicker
+        label {
+            label: Updated Date
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 3
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        source {
+            formRegion: @entry
+            column: UPDATED_DATE
+            dataType: date
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-reset
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+        }
+    )
+
+    process delete (
+        name: DELETE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                    DELETE FROM TRN_PURCHASE_MST
+                     WHERE PURCHASE_NO = :P12_PURCHASE_NO;
+                
+                    apex_application.g_print_success_message :=
+                        'Purchase information deleted successfully.';
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 30
+        }
+        advanced {
+            executionMappingIdentifier: 8293113768372552031
+        }
+        serverSideCondition {
+            whenButtonPressed: @delete
+        }
+    )
+
+    process initialize-form-tamplate (
+        name: Initialize form Tamplate
+        type: formInitialization
+        formRegion: @entry
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+        advanced {
+            executionMappingIdentifier: 8268556261211693428
+        }
+    )
+
+    process process-form-entry (
+        name: Process form ENTRY
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                    IF :P12_PURCHASE_NO IS NULL THEN
+                
+                        INSERT INTO TRN_PURCHASE_MST
+                        (
+                            PURCHASE_NO,
+                            PURCHASE_CODE,
+                            PURCHASE_DATE,
+                            SUPPLIER_NO,
+                            REMARKS,
+                            ACTIVE_FLAG,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES
+                        (
+                            SEQ_PURCHASE_NO.NEXTVAL,
+                           'PUR-'||LPAD(SEQ_PURCHASE_NO.NEXTVAL,4,'0'),
+                            :P12_PURCHASE_DATE,
+                            :P12_SUPPLIER_NO,
+                            :P12_REMARKS,
+                            :P12_ACTIVE_FLAG,
+                            :APP_USER,
+                            SYSDATE
+                        );
+                
+                        apex_application.g_print_success_message :=
+                            'Purchase information saved successfully.';
+                
+                    ELSE
+                
+                        UPDATE TRN_PURCHASE_MST
+                           SET
+                               PURCHASE_DATE = :P12_PURCHASE_DATE,
+                               SUPPLIER_NO   = :P12_SUPPLIER_NO,
+                               REMARKS       = :P12_REMARKS,
+                               ACTIVE_FLAG   = :P12_ACTIVE_FLAG,
+                               UPDATED_BY    = :APP_USER,
+                               UPDATED_DATE  = SYSDATE
+                         WHERE PURCHASE_NO = :P12_PURCHASE_NO;
+                
+                        apex_application.g_print_success_message :=
+                            'Purchase information updated successfully.';
+                
+                    END IF;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 20
+        }
+        advanced {
+            executionMappingIdentifier: 8293113625135552030
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+    process register-save-interactive-grid-data (
+        name: REGISTER - Save Interactive Grid Data
+        type: executeCode
+        editableRegion: @register_1
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                    IF :APEX$ROW_STATUS = 'C' THEN
+                
+                        INSERT INTO TRN_PURCHASE_DTL
+                        (
+                            PURCHASE_DTL_NO,
+                            PURCHASE_NO,
+                            PRODUCT_NO,
+                            PURCHASE_QTY,
+                            PURCHASE_RATE,
+                            TOTAL_AMOUNT,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES
+                        (
+                            SEQ_PURCHASE_DTL_NO.NEXTVAL,
+                            :P12_PURCHASE_NO,
+                            :PRODUCT_NO,
+                            :PURCHASE_QTY,
+                            :PURCHASE_RATE,
+                            NVL(:PURCHASE_QTY,0) * NVL(:PURCHASE_RATE,0),
+                            :APP_USER,
+                            SYSDATE
+                        );
+                
+                        apex_application.g_print_success_message :=
+                            'Purchase detail saved successfully.';
+                
+                    ELSIF :APEX$ROW_STATUS = 'U' THEN
+                
+                        UPDATE TRN_PURCHASE_DTL
+                           SET PRODUCT_NO    = :PRODUCT_NO,
+                               PURCHASE_QTY  = :PURCHASE_QTY,
+                               PURCHASE_RATE = :PURCHASE_RATE,
+                               TOTAL_AMOUNT  = NVL(:PURCHASE_QTY,0) * NVL(:PURCHASE_RATE,0)--,
+                               --UPDATED_BY    = :APP_USER,
+                           --    UPDATED_DATE  = SYSDATE
+                         WHERE PURCHASE_DTL_NO = :PURCHASE_DTL_NO;
+                
+                        apex_application.g_print_success_message :=
+                            'Purchase detail updated successfully.';
+                
+                    ELSIF :APEX$ROW_STATUS = 'D' THEN
+                
+                        DELETE
+                          FROM TRN_PURCHASE_DTL
+                         WHERE PURCHASE_DTL_NO = :PURCHASE_DTL_NO;
+                
+                        apex_application.g_print_success_message :=
+                            'Purchase detail deleted successfully.';
+                
+                    END IF;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 40
+        }
+        advanced {
+            executionMappingIdentifier: 8293113448145552028
+        }
+    )
+
+)
+

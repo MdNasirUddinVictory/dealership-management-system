@@ -1,0 +1,754 @@
+page 22 (
+    name: Delivery Challan Register
+    alias: DELIVERY-CHALLAN-REGISTER1
+    title: Delivery Challan Register
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            function f_openModal(deliveryNo) {
+            
+                apex.item("P22_DELIVERY_NO").setValue(deliveryNo);
+            
+                openModal('challan_approve');
+            
+                apex.region('challan-detail').refresh();
+            
+            }
+            
+            ```
+    }
+    security {
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region new (
+        name: New
+        type: staticContent
+        layout {
+            sequence: 10
+            parentRegion: @register
+            slot: regionBody
+            column: 4
+            columnSpan: 8
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region register (
+        name: Delivery Challan Report
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT * FROM (SELECT
+                       M.DELIVERY_NO,
+                
+                       M.DELIVERY_CODE,
+                
+                       M.DELIVERY_DATE,
+                
+                       I.INVOICE_CODE,
+                
+                       I.INVOICE_DATE,
+                
+                       C.CUSTOMER_NAME,
+                
+                       C.MOBILE_NO,
+                
+                       M.DELIVERY_PERSON,
+                
+                       M.VEHICLE_NO,
+                
+                       (
+                           SELECT NVL(SUM(D.DELIVERY_QTY),0)
+                             FROM TRN_DELIVERY_DTL D
+                            WHERE D.DELIVERY_NO = M.DELIVERY_NO
+                       ) TOTAL_QTY,
+                
+                       (
+                           SELECT NVL(SUM(D.TOTAL_AMOUNT),0)
+                             FROM TRN_DELIVERY_DTL D
+                            WHERE D.DELIVERY_NO = M.DELIVERY_NO
+                       ) TOTAL_AMOUNT,
+                
+                       CASE M.APPROVAL_STATUS
+                           WHEN 'P' THEN
+                               '<span style="
+                                    background:#f59e0b;
+                                    color:white;
+                                    padding:3px 8px;
+                                    border-radius:12px;
+                                    font-size:11px;
+                                    font-weight:600;">
+                                    Pending
+                                </span>'
+                
+                           WHEN 'A' THEN
+                               '<span style="
+                                    background:#22c55e;
+                                    color:white;
+                                    padding:3px 8px;
+                                    border-radius:12px;
+                                    font-size:11px;
+                                    font-weight:600;">
+                                    Approved
+                                </span>'
+                
+                           WHEN 'R' THEN
+                               '<span style="
+                                    background:#ef4444;
+                                    color:white;
+                                    padding:3px 8px;
+                                    border-radius:12px;
+                                    font-size:11px;
+                                    font-weight:600;">
+                                    Rejected
+                                </span>'
+                       END APPROVAL_STATUS,
+                
+                      null PRINT,
+                       M.CREATED_BY,
+                
+                       M.CREATED_DATE
+                
+                FROM TRN_DELIVERY_MST M
+                
+                JOIN TRN_SALES_INVOICE_MST I
+                  ON I.INVOICE_NO = M.INVOICE_NO
+                
+                JOIN MST_CUSTOMER C
+                  ON C.CUSTOMER_NO = M.CUSTOMER_NO
+                  WHERE (:P22_STATUS IS NULL
+                       OR :P22_STATUS = 'ALL'
+                       OR M.APPROVAL_STATUS = :P22_STATUS)
+                       AND (:P22_DATE_FROM IS NULL
+                     OR M.DELIVERY_DATE >= :P22_DATE_FROM)
+                
+                AND (:P22_DATE_TO IS NULL
+                     OR M.DELIVERY_DATE <= :P22_DATE_TO)
+                
+                ORDER BY M.DELIVERY_NO DESC);
+                ```
+            pageItemsToSubmit: [
+                P22_STATUS
+                P22_DATE_FROM
+                P22_DATE_TO
+            ]
+        }
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--removeHeader js-removeLandmark
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        genAI {
+            naturalLanguageSupport: true
+        }
+        advanced {
+            savedReportMappingIdentifier: 23775247030231233053
+        }
+
+        column APPROVAL_STATUS (
+            type: plainText
+            heading {
+                heading: Approval Status
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: L
+            }
+            security {
+                escapeSpecialChars: false
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 160
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: P
+            }
+        )
+
+        column CREATED_DATE (
+            type: plainText
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 170
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: Q
+            }
+        )
+
+        column CUSTOMER_NAME (
+            type: plainText
+            heading {
+                heading: Customer Name
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: F
+            }
+        )
+
+        column DELIVERY_CODE (
+            type: link
+            heading {
+                heading: Delivery Code
+            }
+            layout {
+                sequence: 20
+            }
+            link {
+                target: {
+                    page: 105
+                    items: {
+                        P105_DELIVERY_NO: #DELIVERY_NO#
+                    }
+                }
+                linkText: #DELIVERY_CODE#
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: B
+            }
+        )
+
+        column DELIVERY_DATE (
+            type: plainText
+            heading {
+                heading: Delivery Date
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: C
+            }
+        )
+
+        column DELIVERY_NO (
+            type: hidden
+            heading {
+                heading: Delivery No
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: A
+            }
+        )
+
+        column DELIVERY_PERSON (
+            type: plainText
+            heading {
+                heading: Delivery Person
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: H
+            }
+        )
+
+        column INVOICE_CODE (
+            type: plainText
+            heading {
+                heading: Invoice Code
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: D
+            }
+        )
+
+        column INVOICE_DATE (
+            type: plainText
+            heading {
+                heading: Invoice Date
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: E
+            }
+        )
+
+        column MOBILE_NO (
+            type: plainText
+            heading {
+                heading: Mobile No
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: G
+            }
+        )
+
+        column PRINT (
+            type: link
+            heading {
+                heading: Print
+            }
+            layout {
+                sequence: 180
+            }
+            link {
+                target: {
+                    page: 20
+                    items: {
+                        P20_DELIVERY_NO: #DELIVERY_NO#
+                    }
+                }
+                linkText: <span class="t-Icon fa fa-print" aria-hidden="true"></span><span class="t-Button-label">Print Challan</span>
+                linkAttributes: class="t-Button t-Button--icon t-Button--hot t-Button--small t-Button--primary t-Button--stretch t-Button--iconLeft"
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: S
+            }
+        )
+
+        column TOTAL_AMOUNT (
+            type: plainText
+            heading {
+                heading: Total Amount
+                alignment: end
+            }
+            layout {
+                sequence: 110
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: K
+            }
+        )
+
+        column TOTAL_QTY (
+            type: plainText
+            heading {
+                heading: Total Qty
+                alignment: end
+            }
+            layout {
+                sequence: 100
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: J
+            }
+        )
+
+        column VEHICLE_NO (
+            type: plainText
+            heading {
+                heading: Vehicle No
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: I
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn APPROVAL_STATUS (
+                sequence: 12
+            )
+
+            displayColumn CREATED_BY (
+                sequence: 13
+            )
+
+            displayColumn CREATED_DATE (
+                sequence: 14
+            )
+
+            displayColumn CUSTOMER_NAME (
+                sequence: 6
+            )
+
+            displayColumn DELIVERY_CODE (
+                sequence: 2
+            )
+
+            displayColumn DELIVERY_DATE (
+                sequence: 3
+            )
+
+            displayColumn DELIVERY_NO (
+                sequence: 1
+            )
+
+            displayColumn DELIVERY_PERSON (
+                sequence: 8
+            )
+
+            displayColumn INVOICE_CODE (
+                sequence: 4
+            )
+
+            displayColumn INVOICE_DATE (
+                sequence: 5
+            )
+
+            displayColumn MOBILE_NO (
+                sequence: 7
+            )
+
+            displayColumn TOTAL_AMOUNT (
+                sequence: 11
+            )
+
+            displayColumn TOTAL_QTY (
+                sequence: 10
+            )
+
+            displayColumn VEHICLE_NO (
+                sequence: 9
+            )
+
+        )
+
+    )
+
+    pageItem P22_DATE_FROM (
+        type: datePicker
+        label {
+            label: Date From
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @new
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        config {
+            buildOption: @commented-out
+        }
+    )
+
+    pageItem P22_DATE_TO (
+        type: datePicker
+        label {
+            label: To Date
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @new
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        config {
+            buildOption: @commented-out
+        }
+    )
+
+    pageItem P22_STATUS (
+        type: radioGroup
+        label {
+            label: Status :
+            alignment: left
+        }
+        settings {
+            noOfCols: 4
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:ALL;ALL,Pending;P,Approved;A,Rejected;R
+            displayExtraValues: false
+            displayNullValue: false
+        }
+        layout {
+            sequence: 10
+            region: @new
+            slot: regionBody
+            alignment: left
+            columnSpan: 5
+        }
+        appearance {
+            template: @/optional
+            templateOptions: #DEFAULT#
+        }
+        default {
+            type: static
+            staticValue: ALL
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-reset
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+        }
+    )
+
+    dynamicAction new (
+        name: New
+        execution {
+            sequence: 10
+        }
+        when {
+            selectionType: items
+            items: [
+                P22_STATUS
+                P22_DATE_FROM
+                P22_DATE_TO
+            ]
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @register
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)
+

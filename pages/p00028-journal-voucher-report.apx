@@ -1,0 +1,1012 @@
+page 28 (
+    name: Journal Voucher Report
+    alias: JOURNAL-VOUCHER-REPORT
+    title: Journal Voucher Report
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            function openVoucher(pVoucherNo, pvoucherCode, pVoucherType, pVoucherDate, pNarattion) {
+                $s('P304_VOUCHER_NO', pVoucherNo);
+                $s('P28_VOUCHER_CODE_DISPLAY', pvoucherCode);
+                $s('P28_VOUCHER_TYPE_DISPLAY', pVoucherType);
+                $s('P28_VOUCHER_DATE_DISPLAY', pVoucherDate);
+                $s('P28_NARRATION_DISPLAY', pNarattion);
+                apex.region('vioucherViewDtl').refresh();
+                openModal('vioucherView');
+            
+            
+            }
+            ```
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region details (
+        name: DETAILS
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT
+                       A.ACCOUNT_CODE,
+                
+                       A.ACCOUNT_NAME,
+                
+                       D.DEBIT_AMOUNT,
+                
+                       D.CREDIT_AMOUNT,
+                
+                       D.PARTICULARS
+                
+                FROM ACC_VOUCHER_DTL D
+                
+                JOIN MST_ACCOUNT_HEAD A
+                  ON A.ACCOUNT_NO = D.ACCOUNT_NO
+                
+                WHERE D.VOUCHER_NO =
+                      :P304_VOUCHER_NO
+                
+                ORDER BY D.VOUCHER_DTL_NO
+                ```
+        }
+        layout {
+            sequence: 10
+            parentRegion: @voucher-view
+            slot: subRegions
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        advanced {
+            htmlDomId: vioucherViewDtl
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 28097459845435980245
+        }
+
+        column ACCOUNT_CODE (
+            type: plainText
+            heading {
+                heading: Account Code
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: A
+            }
+        )
+
+        column ACCOUNT_NAME (
+            type: plainText
+            heading {
+                heading: Account Name
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: B
+            }
+        )
+
+        column CREDIT_AMOUNT (
+            type: plainText
+            heading {
+                heading: Credit Amount
+                alignment: end
+            }
+            layout {
+                sequence: 40
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: D
+            }
+        )
+
+        column DEBIT_AMOUNT (
+            type: plainText
+            heading {
+                heading: Debit Amount
+                alignment: end
+            }
+            layout {
+                sequence: 30
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: C
+            }
+        )
+
+        column PARTICULARS (
+            type: plainText
+            heading {
+                heading: Particulars
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: E
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn ACCOUNT_CODE (
+                sequence: 1
+            )
+
+            displayColumn ACCOUNT_NAME (
+                sequence: 2
+            )
+
+            displayColumn CREDIT_AMOUNT (
+                sequence: 4
+            )
+
+            displayColumn DEBIT_AMOUNT (
+                sequence: 3
+            )
+
+            displayColumn PARTICULARS (
+                sequence: 5
+            )
+
+        )
+
+    )
+
+    region voucher-mst (
+        name: VOUCHER REGISTER
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT * FROM (SELECT
+                       M.VOUCHER_NO,
+                
+                       M.VOUCHER_CODE,
+                
+                       M.VOUCHER_DATE,
+                
+                       M.VOUCHER_TYPE,
+                
+                       M.NARRATION,
+                
+                       (
+                           SELECT NVL(SUM(DEBIT_AMOUNT),0)
+                           FROM ACC_VOUCHER_DTL D
+                           WHERE D.VOUCHER_NO = M.VOUCHER_NO
+                       ) TOTAL_DEBIT,
+                
+                       (
+                           SELECT NVL(SUM(CREDIT_AMOUNT),0)
+                           FROM ACC_VOUCHER_DTL D
+                           WHERE D.VOUCHER_NO = M.VOUCHER_NO
+                       ) TOTAL_CREDIT,
+                
+                       CASE M.APPROVAL_STATUS
+                
+                           WHEN 'A' THEN
+                               '<span class="t-Badge t-Badge--success">
+                                Approved
+                                </span>'
+                
+                           WHEN 'P' THEN
+                               '<span class="t-Badge t-Badge--warning">
+                                Pending
+                                </span>'
+                
+                           WHEN 'R' THEN
+                               '<span class="t-Badge t-Badge--danger">
+                                Rejected
+                                </span>'
+                
+                       END STATUS,
+                
+                       M.CREATED_BY,
+                
+                       M.CREATED_DATE,
+                NULL VIEW_BTN
+                
+                FROM ACC_VOUCHER_MST M
+                
+                WHERE (:P28_FROM_DATE IS NULL
+                       OR M.VOUCHER_DATE >= :P28_FROM_DATE)
+                
+                AND (:P28_TO_DATE IS NULL
+                     OR M.VOUCHER_DATE <= :P28_TO_DATE)
+                
+                AND (:P28_VOUCHER_TYPE IS NULL
+                     OR M.VOUCHER_TYPE = :P28_VOUCHER_TYPE)
+                
+                AND (:P28_STATUS IS NULL
+                     OR M.APPROVAL_STATUS = :P28_STATUS)
+                
+                ORDER BY M.VOUCHER_NO DESC)
+                ```
+            pageItemsToSubmit: [
+                P28_FROM_DATE
+                P28_TO_DATE
+                P28_VOUCHER_TYPE
+                P28_STATUS
+            ]
+        }
+        layout {
+            sequence: 60
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 27201220717860013072
+        }
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: I
+            }
+        )
+
+        column CREATED_DATE (
+            type: plainText
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: J
+            }
+        )
+
+        column NARRATION (
+            type: plainText
+            heading {
+                heading: Narration
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: E
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: H
+            }
+            security {
+                escapeSpecialChars: false
+            }
+        )
+
+        column TOTAL_CREDIT (
+            type: plainText
+            heading {
+                heading: Total Credit
+                alignment: end
+            }
+            layout {
+                sequence: 80
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: G
+            }
+        )
+
+        column TOTAL_DEBIT (
+            type: plainText
+            heading {
+                heading: Total Debit
+                alignment: end
+            }
+            layout {
+                sequence: 70
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: F
+            }
+        )
+
+        column VIEW_BTN (
+            type: link
+            heading {
+                heading: View Btn
+            }
+            layout {
+                sequence: 120
+            }
+            link {
+                target: {
+                    type: url
+                    url: javascript:openVoucher('#VOUCHER_NO#','#VOUCHER_CODE#','#VOUCHER_TYPE#','#VOUCHER_DATE#','#NARRATION#');
+                }
+                linkText: <span class="t-Button-label">View</span>
+                linkAttributes: class="t-Button t-Button--hot t-Button--small t-Button--primary t-Button--stretch"
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: K
+            }
+        )
+
+        column VOUCHER_CODE (
+            type: plainText
+            heading {
+                heading: Voucher Code
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: B
+            }
+        )
+
+        column VOUCHER_DATE (
+            type: plainText
+            heading {
+                heading: Voucher Date
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: C
+            }
+        )
+
+        column VOUCHER_NO (
+            type: hidden
+            heading {
+                heading: Voucher No
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: A
+            }
+        )
+
+        column VOUCHER_TYPE (
+            type: plainText
+            heading {
+                heading: Voucher Type
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: D
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn CREATED_BY (
+                sequence: 9
+            )
+
+            displayColumn CREATED_DATE (
+                sequence: 10
+            )
+
+            displayColumn NARRATION (
+                sequence: 5
+            )
+
+            displayColumn STATUS (
+                sequence: 8
+            )
+
+            displayColumn TOTAL_CREDIT (
+                sequence: 7
+            )
+
+            displayColumn TOTAL_DEBIT (
+                sequence: 6
+            )
+
+            displayColumn VIEW_BTN (
+                sequence: 11
+            )
+
+            displayColumn VOUCHER_CODE (
+                sequence: 2
+            )
+
+            displayColumn VOUCHER_DATE (
+                sequence: 3
+            )
+
+            displayColumn VOUCHER_NO (
+                sequence: 1
+            )
+
+            displayColumn VOUCHER_TYPE (
+                sequence: 4
+            )
+
+        )
+
+    )
+
+    region voucher-view (
+        name: VOUCHER_VIEW
+        type: staticContent
+        layout {
+            sequence: 70
+            slot: body
+        }
+        appearance {
+            template: @/inline-drawer
+            templateOptions: [
+                #DEFAULT#
+                js-dialog-class-t-Drawer--pullOutEnd
+                js-dialog-class-t-Drawer--md
+            ]
+        }
+        advanced {
+            htmlDomId: vioucherView
+        }
+    )
+
+    pageItem 28_P304_VOUCHER_NO (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 50
+            region: @voucher-view
+            slot: regionBody
+        }
+    )
+
+    pageItem P28_FROM_DATE (
+        type: datePicker
+        label {
+            label: From Date
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            slot: body
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+    )
+
+    pageItem P28_NARRATION_DISPLAY (
+        type: displayOnly
+        label {
+            label: Narration
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @voucher-view
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            column: 9
+            columnSpan: 4
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+            ]
+        }
+    )
+
+    pageItem P28_STATUS (
+        type: textField
+        label {
+            label: From Date
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+    )
+
+    pageItem P28_TO_DATE (
+        type: datePicker
+        label {
+            label: From Date
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+    )
+
+    pageItem P28_VOUCHER_CODE_DISPLAY (
+        type: displayOnly
+        label {
+            label: Voucher Code
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @voucher-view
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+            ]
+        }
+    )
+
+    pageItem P28_VOUCHER_DATE_DISPLAY (
+        type: displayOnly
+        label {
+            label: Date
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @voucher-view
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+            ]
+        }
+    )
+
+    pageItem P28_VOUCHER_TYPE (
+        type: textField
+        label {
+            label: From Date
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+    )
+
+    pageItem P28_VOUCHER_TYPE_DISPLAY (
+        type: displayOnly
+        label {
+            label: Type
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @voucher-view
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            column: 7
+            columnSpan: 2
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+            ]
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-reset
+            customAttributes: disabled
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            slot: NEXT
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    process debit-and-credit-amount-must-be-equal (
+        name: Debit and Credit amount must be equal.
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    v_dr NUMBER;
+                    v_cr NUMBER;
+                
+                BEGIN
+                
+                    SELECT NVL(SUM(DEBIT_AMOUNT),0),
+                           NVL(SUM(CREDIT_AMOUNT),0)
+                      INTO v_dr,
+                           v_cr
+                      FROM ACC_VOUCHER_DTL
+                     WHERE VOUCHER_NO =
+                           :P28_VOUCHER_NO;
+                
+                    IF v_dr <> v_cr THEN
+                
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Debit and Credit amount must be equal.'
+                        );
+                
+                    END IF;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: afterSubmit
+        }
+        advanced {
+            executionMappingIdentifier: 14055405033039314971
+        }
+    )
+
+    process process-form-voucher-mst (
+        name: Process form VOUCHER MST
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    v_code VARCHAR2(30);
+                
+                BEGIN
+                
+                    IF :P28_VOUCHER_DATE IS NULL THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Please enter voucher date.'
+                        );
+                    END IF;
+                
+                    IF :P28_VOUCHER_TYPE IS NULL THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Please select voucher type.'
+                        );
+                    END IF;
+                
+                    --------------------------------------------------
+                    -- INSERT
+                    --------------------------------------------------
+                
+                    IF :P28_VOUCHER_NO IS NULL THEN
+                
+                        :P28_VOUCHER_NO :=
+                            SEQ_VOUCHER_NO.NEXTVAL;
+                
+                        v_code :=
+                            :P28_VOUCHER_TYPE
+                            || '-'
+                            || LPAD(:P28_VOUCHER_NO,6,'0');
+                
+                        INSERT INTO ACC_VOUCHER_MST
+                        (
+                            VOUCHER_NO,
+                            VOUCHER_CODE,
+                            VOUCHER_DATE,
+                            VOUCHER_TYPE,
+                            NARRATION,
+                            APPROVAL_STATUS,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES
+                        (
+                            :P28_VOUCHER_NO,
+                            v_code,
+                            :P28_VOUCHER_DATE,
+                            :P28_VOUCHER_TYPE,
+                            :P28_NARRATION,
+                            'P',
+                            :APP_USER,
+                            SYSDATE
+                        ) RETURNING VOUCHER_NO INTO :P28_VOUCHER_NO ;
+                
+                    --------------------------------------------------
+                    -- UPDATE
+                    --------------------------------------------------
+                
+                    ELSE
+                
+                        UPDATE ACC_VOUCHER_MST
+                           SET VOUCHER_DATE = :P28_VOUCHER_DATE,
+                               VOUCHER_TYPE = :P28_VOUCHER_TYPE,
+                               NARRATION    = :P28_NARRATION,
+                               UPDATED_BY   = :APP_USER,
+                               UPDATED_DATE = SYSDATE
+                         WHERE VOUCHER_NO = :P28_VOUCHER_NO;
+                
+                    END IF;
+                
+                    apex_application.g_print_success_message :=
+                        'Voucher saved successfully.';
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+        advanced {
+            executionMappingIdentifier: 14055404689295314970
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+)
+

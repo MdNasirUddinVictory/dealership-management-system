@@ -1,0 +1,462 @@
+page 15 (
+    name: Sales Invoice Print
+    alias: SALES-INVOICE-PRINT1
+    title: Sales Invoice Print
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/modal-dialog
+        templateOptions: [
+            #DEFAULT#
+            ui-dialog--stretch
+        ]
+    }
+    dialog {
+        width: 60%
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: dialogHeader
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: [
+                #DEFAULT#
+                t-BreadcrumbRegion--useBreadcrumbTitle
+            ]
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region new (
+        name: INVOICE PRINT
+        type: plSqlDynamicContent
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    v_total NUMBER := 0;
+                
+                BEGIN
+                
+                    FOR h IN
+                    (
+                        SELECT I.INVOICE_CODE,
+                               TO_CHAR(I.INVOICE_DATE,'DD-MON-YYYY') INVOICE_DATE,
+                               C.CUSTOMER_NAME,
+                               C.MOBILE_NO,
+                               C.ADDRESS,
+                               O.ORDER_CODE,
+                               null REMARKS
+                          FROM TRN_SALES_INVOICE_MST I
+                          JOIN MST_CUSTOMER C
+                            ON C.CUSTOMER_NO = I.CUSTOMER_NO
+                          LEFT JOIN TRN_SALES_ORDER_MST O
+                            ON O.ORDER_NO = I.ORDER_NO
+                         WHERE I.INVOICE_NO = :P15_INVOICE_NO
+                    )
+                    LOOP
+                
+                        HTP.P('
+                
+                <style>
+                
+                body{
+                    font-family:Segoe UI,Arial;
+                    font-size:13px;
+                    color:#222;
+                    margin:25px;
+                }
+                
+                .toolbar{
+                    text-align:right;
+                    margin-bottom:15px;
+                }
+                
+                .btn{
+                    border:none;
+                    padding:10px 18px;
+                    border-radius:5px;
+                    color:#fff;
+                    cursor:pointer;
+                    font-weight:600;
+                }
+                
+                .print{
+                    background:#1565c0;
+                }
+                
+                .close{
+                    background:#777;
+                }
+                
+                .header{
+                    border-bottom:3px solid #0d47a1;
+                    text-align:center;
+                    padding-bottom:10px;
+                }
+                
+                .header h1{
+                    margin:0;
+                    color:#0d47a1;
+                }
+                
+                .title{
+                    text-align:center;
+                    margin:20px;
+                }
+                
+                .title span{
+                    border:2px solid #0d47a1;
+                    padding:8px 25px;
+                    font-size:22px;
+                    color:#0d47a1;
+                    font-weight:bold;
+                }
+                
+                .info{
+                    width:100%;
+                    border-collapse:collapse;
+                    margin-bottom:20px;
+                }
+                
+                .info td{
+                    border:1px solid #ddd;
+                    padding:8px;
+                }
+                
+                .detail{
+                    width:100%;
+                    border-collapse:collapse;
+                }
+                
+                .detail th{
+                    background:#0d47a1;
+                    color:#fff;
+                    padding:10px;
+                    border:1px solid #ddd;
+                }
+                
+                .detail td{
+                    border:1px solid #ddd;
+                    padding:8px;
+                }
+                
+                .total{
+                    width:300px;
+                    float:right;
+                    margin-top:20px;
+                    border-collapse:collapse;
+                }
+                
+                .total td{
+                    border:1px solid #ccc;
+                    padding:10px;
+                }
+                
+                .footer{
+                    margin-top:90px;
+                }
+                
+                .sign{
+                    width:30%;
+                    display:inline-block;
+                    text-align:center;
+                }
+                
+                .sign hr{
+                    border:1px solid black;
+                }
+                
+                .watermark{
+                    position:fixed;
+                    top:45%;
+                    left:20%;
+                    font-size:90px;
+                    color:#f3f3f3;
+                    transform:rotate(-30deg);
+                    z-index:-1;
+                }
+                
+                .terms{
+                    margin-top:30px;
+                    border:1px solid #ddd;
+                    padding:10px;
+                    background:#fafafa;
+                }
+                
+                @media print{
+                
+                    .toolbar{
+                        display:none;
+                    }
+                
+                    body{
+                        margin:0;
+                    }
+                }
+                
+                </style>
+                
+                <div class="toolbar">
+                
+                <button class="btn print"
+                onclick="window.print();">
+                🖨 Print
+                </button>
+                
+                <button class="btn close"
+                onclick="apex.navigation.dialog.close(true);">
+                ✖ Close
+                </button>
+                
+                </div>
+                
+                <div class="watermark">
+                INVOICE
+                </div>
+                
+                <div class="header">
+                
+                <h1>YOUR COMPANY NAME</h1>
+                
+                <p>Dhaka, Bangladesh</p>
+                
+                <p>Phone: 017XXXXXXXX</p>
+                
+                </div>
+                
+                <div class="title">
+                <span>SALES INVOICE</span>
+                </div>
+                
+                <table class="info">
+                
+                <tr>
+                
+                <td><b>Invoice No</b></td>
+                
+                <td>'||h.INVOICE_CODE||'</td>
+                
+                <td><b>Date</b></td>
+                
+                <td>'||h.INVOICE_DATE||'</td>
+                
+                </tr>
+                
+                <tr>
+                
+                <td><b>Order No</b></td>
+                
+                <td>'||h.ORDER_CODE||'</td>
+                
+                <td><b>Mobile</b></td>
+                
+                <td>'||NVL(h.MOBILE_NO,'')||'</td>
+                
+                </tr>
+                
+                <tr>
+                
+                <td><b>Customer</b></td>
+                
+                <td>'||h.CUSTOMER_NAME||'</td>
+                
+                <td><b>Status</b></td>
+                
+                <td>Approved</td>
+                
+                </tr>
+                
+                <tr>
+                
+                <td><b>Address</b></td>
+                
+                <td colspan="3">'||NVL(h.ADDRESS,'')||'</td>
+                
+                </tr>
+                
+                </table>
+                
+                <table class="detail">
+                
+                <tr>
+                
+                <th>SL</th>
+                <th>Code</th>
+                <th>Product Name</th>
+                <th>Qty</th>
+                <th>Rate</th>
+                <th>Amount</th>
+                
+                </tr>
+                
+                ');
+                
+                    END LOOP;
+                
+                    FOR d IN
+                    (
+                        SELECT ROW_NUMBER()
+                               OVER(ORDER BY D.INVOICE_DTL_NO) SL,
+                               P.PRODUCT_CODE,
+                               P.PRODUCT_NAME,
+                               D.SALES_QTY,
+                               D.SALES_RATE,
+                               D.TOTAL_AMOUNT
+                          FROM TRN_SALES_INVOICE_DTL D
+                          JOIN MST_PRODUCT P
+                            ON P.PRODUCT_NO = D.PRODUCT_NO
+                         WHERE D.INVOICE_NO = :P15_INVOICE_NO
+                    )
+                    LOOP
+                
+                        v_total := v_total + NVL(d.TOTAL_AMOUNT,0);
+                
+                        HTP.P('
+                
+                <tr>
+                
+                <td align="center">'||d.SL||'</td>
+                
+                <td>'||d.PRODUCT_CODE||'</td>
+                
+                <td>'||d.PRODUCT_NAME||'</td>
+                
+                <td align="right">'||d.SALES_QTY||'</td>
+                
+                <td align="right">'||
+                TO_CHAR(d.SALES_RATE,'999G999D99')
+                ||'</td>
+                
+                <td align="right">'||
+                TO_CHAR(d.TOTAL_AMOUNT,'999G999G999D99')
+                ||'</td>
+                
+                </tr>
+                
+                ');
+                
+                    END LOOP;
+                
+                    HTP.P('
+                
+                </table>
+                
+                <table class="total">
+                
+                <tr>
+                
+                <td><b>Grand Total</b></td>
+                
+                <td align="right">
+                
+                <b>'||
+                TO_CHAR(v_total,'999G999G999D99')
+                ||'</b>
+                
+                </td>
+                
+                </tr>
+                
+                </table>
+                
+                <div style="clear:both"></div>
+                
+                <div class="terms">
+                
+                <b>Terms & Conditions</b>
+                
+                <ul>
+                
+                <li>Goods sold are not returnable without approval.</li>
+                
+                <li>Please verify products before receiving.</li>
+                
+                <li>Payment terms as per agreement.</li>
+                
+                </ul>
+                
+                </div>
+                
+                <div style="margin-top:20px;">
+                
+                <b>Remarks :</b>
+                
+                Thank you for your business.
+                
+                </div>
+                
+                <div class="footer">
+                
+                <div class="sign">
+                
+                <hr>
+                
+                Prepared By
+                
+                </div>
+                
+                <div class="sign">
+                
+                <hr>
+                
+                Checked By
+                
+                </div>
+                
+                <div class="sign">
+                
+                <hr>
+                
+                Authorized By
+                
+                </div>
+                
+                </div>
+                
+                ');
+                
+                END;
+                
+                ```
+        }
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P15_INVOICE_NO (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 20
+            slot: contentBody
+        }
+    )
+
+)
+

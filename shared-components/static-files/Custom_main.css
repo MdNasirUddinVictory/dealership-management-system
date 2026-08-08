@@ -1,0 +1,173 @@
+/* ==================================================
+   BREADCRUMB
+================================================== */
+/* 
+.breadcrumb {
+    background: linear-gradient(90deg,#f8fafc,#eef2f7);
+    border-bottom: 1px solid #d8dee9;
+    box-shadow: 0 2px 8px rgba(0,0,0,.05);
+}
+
+.Breadcrumb-label,
+.t-Breadcrumb-item {
+    color: #4b5563;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.t-Breadcrumb-item.is-active {
+    color: #2563eb;
+    font-weight: 600;
+}
+
+.t-Breadcrumb-item:after {
+    color: #94a3b8;
+}
+ */
+
+ .breadcrumb {
+  /* background-color: linear-gradient(90deg,#f8fafc,#eef2f7)  */
+ background-color:   #8a38386b;
+  /* var(--breadcrumb-bg-color) */
+}
+.t-Breadcrumb-label {
+  color: #000000ff;
+  f
+}
+
+.t-Breadcrumb-item.is-active {
+  color: #301c8aff;
+  font-size : 15px;
+}
+
+.t-Breadcrumb-item:after {
+ color: #301c8aff;
+}
+
+
+/* ==================================================
+   COMMON BUTTON STYLE
+================================================== */
+
+#pb-new,
+#pb-save,
+#pb-update,
+#pb-delete,
+#pb-reset {
+    /* min-width: 115px; */
+    height: 30px;
+    /* padding: 0 16px; */
+    font-size: 11px;
+    /* font-weight: 100; */
+    /* letter-spacing: .3px; */
+    color: #ffffff;
+    border: 0px solid;
+    border-radius: 5px;
+    transition: all .50s ease;
+}
+}
+
+
+/* ==================================================
+   NEW BUTTON
+================================================== */
+
+#pb-new {
+    background: #5589ccff;
+}
+
+#pb-new:hover {
+    background: #172e94ff;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(96, 53, 175, 0.35);
+}
+
+#pb-new:focus,
+#pb-new:active {
+    box-shadow: 0 0 0 3px rgba(31, 4, 95, 0.25);
+    outline: none !important;
+}
+
+
+/* ==================================================
+   SAVE BUTTON
+================================================== */
+
+#pb-save {
+    background: #198754;
+}
+
+#pb-save:hover {
+    background: #147939ff;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(22,163,74,.35);
+}
+
+#pb-save:focus,
+#pb-save:active {
+    box-shadow: 0 0 0 3px rgba(22,163,74,.25);
+    outline: none !important;
+}
+
+
+/* ==================================================
+   UPDATE BUTTON
+================================================== */
+
+#pb-update {
+    background: #f59e0b;
+}
+
+#pb-update:hover {
+    background: #d35009ff;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(234,88,12,.35);
+}
+
+#pb-update:focus,
+#pb-update:active {
+    box-shadow: 0 0 0 3px rgba(234,88,12,.25);
+    outline: none !important;
+}
+
+
+/* ==================================================
+   DELETE BUTTON
+================================================== */
+
+#pb-delete {
+    background: #dc3545;
+}
+
+#pb-delete:hover {
+    background: #991111ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220,38,38,.35);
+}
+
+#pb-delete:focus,
+#pb-delete:active {
+    box-shadow: 0 0 0 3px rgba(220,38,38,.25);
+    outline: none !important;
+}
+
+
+/* ==================================================
+   NEW BUTTON
+================================================== */
+
+#pb-reset {
+    background: #6c757d;
+}
+
+#pb-reset:hover {
+    background: #475569;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(71,85,105,.35);
+}
+
+#pb-reset:focus,
+#pb-reset:active {
+    box-shadow: 0 0 0 3px rgba(71,85,105,.25);
+    outline: none !important;
+}

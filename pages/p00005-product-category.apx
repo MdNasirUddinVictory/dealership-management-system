@@ -1,0 +1,782 @@
+page 5 (
+    name: Product Category
+    alias: PRODUCT-CATEGORY
+    title: Product Category
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        formAutoComplete: false
+    }
+
+    region breadcrumb-2 (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 40
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region entry (
+        name: Entry
+        type: form
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select CATEGORY_NO,
+                       CATEGORY_CODE,
+                       CATEGORY_NAME,
+                       ACTIVE_FLAG,
+                       CREATED_BY,
+                       CREATED_DATE,
+                       UPDATED_BY,
+                       UPDATED_DATE
+                  from MST_PRODUCT_CATEGORY
+                ```
+        }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--removeHeader js-removeLandmark
+                t-Region--noBorder
+                t-Region--hiddenOverflow
+                t-Form--slimPadding
+                t-Form--large
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+    )
+
+    region register (
+        name: Register
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select CATEGORY_NO,
+                       CATEGORY_CODE,
+                       CATEGORY_NAME,
+                       ACTIVE_FLAG,
+                       CREATED_BY,
+                       CREATED_DATE,
+                       UPDATED_BY,
+                       UPDATED_DATE
+                  from MST_PRODUCT_CATEGORY
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
+        }
+        advanced {
+            savedReportMappingIdentifier: 24286733083662956359
+        }
+
+        savedReport primary (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @CATEGORY_NO
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @CATEGORY_CODE
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @CATEGORY_NAME
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @ACTIVE_FLAG
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_BY
+                layout {
+                    width: 81
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_DATE
+                layout {
+                    width: 90
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @UPDATED_BY
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @UPDATED_DATE
+                layout {
+                    width: 104
+                    sequence: 4
+                }
+            )
+
+        )
+
+        column ACTIVE_FLAG (
+            type: textField
+            heading {
+                heading: Active Flag
+            }
+            layout {
+                sequence: 40
+            }
+            validation {
+                maxLength: 1
+            }
+            source {
+                databaseColumn: ACTIVE_FLAG
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CATEGORY_CODE (
+            type: link
+            heading {
+                heading: Category Code
+                alignment: center
+            }
+            layout {
+                sequence: 20
+                columnAlignment: center
+            }
+            link {
+                target: {
+                    page: 5
+                    items: {
+                        P5_CATEGORY_NO: &CATEGORY_NO.
+                    }
+                }
+                linkText: &CATEGORY_CODE.
+            }
+            source {
+                databaseColumn: CATEGORY_CODE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CATEGORY_NAME (
+            type: textField
+            heading {
+                heading: Category Name
+            }
+            layout {
+                sequence: 30
+            }
+            validation {
+                valueRequired: true
+                maxLength: 200
+            }
+            source {
+                databaseColumn: CATEGORY_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CATEGORY_NO (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+            source {
+                databaseColumn: CATEGORY_NO
+                dataType: number
+                primaryKey: true
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column CREATED_BY (
+            type: textField
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 50
+            }
+            validation {
+                maxLength: 30
+            }
+            source {
+                databaseColumn: CREATED_BY
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CREATED_DATE (
+            type: datePicker
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                databaseColumn: CREATED_DATE
+                dataType: date
+            }
+        )
+
+        column UPDATED_BY (
+            type: textField
+            heading {
+                heading: Updated By
+            }
+            layout {
+                sequence: 70
+            }
+            validation {
+                maxLength: 30
+            }
+            source {
+                databaseColumn: UPDATED_BY
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column UPDATED_DATE (
+            type: datePicker
+            heading {
+                heading: Updated Date
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                databaseColumn: UPDATED_DATE
+                dataType: date
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    pageItem P5_ACTIVE_FLAG (
+        type: radioGroup
+        label {
+            label: Active Flag
+            alignment: left
+        }
+        settings {
+            noOfCols: 2
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:Active;1,Inactive;2
+            displayExtraValues: false
+            displayNullValue: false
+        }
+        layout {
+            sequence: 20
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @entry
+            column: ACTIVE_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: 1
+        }
+    )
+
+    pageItem P5_CATEGORY_CODE (
+        type: textField
+        label {
+            label: Category Code
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--large
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 20
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            formRegion: @entry
+            column: CATEGORY_CODE
+            dataType: varchar2
+        }
+    )
+
+    pageItem P5_CATEGORY_NAME (
+        type: textField
+        label {
+            label: Category Name
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--large
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+            maxLength: 200
+        }
+        source {
+            formRegion: @entry
+            column: CATEGORY_NAME
+            dataType: varchar2
+        }
+    )
+
+    pageItem P5_CATEGORY_NO (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: CATEGORY_NO
+            dataType: number
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P5_CREATED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 30
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: CREATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P5_CREATED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 40
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: CREATED_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P5_UPDATED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 50
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: UPDATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P5_UPDATED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 60
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: UPDATED_DATE
+            dataType: date
+        }
+    )
+
+    button add-customer (
+        buttonName: Add_Product_Category
+        label: Add Product Category
+        layout {
+            sequence: 10
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-cart-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 24
+                clearCache: 24
+                action: clearRegions
+            }
+        }
+        advanced {
+            htmlDomId: pb-reset
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    process delete (
+        name: DELETE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                    DELETE FROM MST_PRODUCT_CATEGORY
+                     WHERE CATEGORY_NO = :P5_CATEGORY_NO;
+                
+                    apex_application.g_print_success_message :=
+                        'Product Category has been deleted successfully.';
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 20
+        }
+        advanced {
+            executionMappingIdentifier: 8111272996881426324
+        }
+    )
+
+    process initialize-form-supplier-setup (
+        name: Initialize form Supplier Setup
+        type: formInitialization
+        formRegion: @entry
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+        advanced {
+            executionMappingIdentifier: 8111264929230426309
+        }
+    )
+
+    process process-form-entry (
+        name: Process form Entry
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                
+                BEGIN
+                    IF :P5_CATEGORY_NO IS NULL
+                    THEN
+                        INSERT INTO MST_PRODUCT_CATEGORY (CATEGORY_NO,
+                                                          CATEGORY_CODE,
+                                                          CATEGORY_NAME,
+                                                          ACTIVE_FLAG,
+                                                          CREATED_BY,
+                                                          CREATED_DATE)
+                             VALUES (SEQ_CATEGORY_NO.NEXTVAL,
+                                     'CAT' || LPAD (SEQ_CATEGORY_NO.NEXTVAL, 4, '0'),
+                                     :P5_CATEGORY_NAME,
+                                     NVL ( :P5_ACTIVE_FLAG, 'Y'),
+                                     :APP_USER,
+                                     SYSDATE);
+                
+                        APEX_APPLICATION.g_print_success_message :=
+                            'Product Category has been saved successfully.';
+                    ELSE
+                        UPDATE MST_PRODUCT_CATEGORY
+                           SET CATEGORY_NAME = :P5_CATEGORY_NAME,
+                               ACTIVE_FLAG = :P5_ACTIVE_FLAG,
+                               UPDATED_BY = :APP_USER,
+                               UPDATED_DATE = SYSDATE
+                         WHERE CATEGORY_NO = :P5_CATEGORY_NO;
+                
+                        APEX_APPLICATION.g_print_success_message :=
+                            'Product Category has been updated successfully.';
+                    END IF;
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+        advanced {
+            executionMappingIdentifier: 8111272596661426323
+        }
+    )
+
+)
+

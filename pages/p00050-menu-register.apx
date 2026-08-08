@@ -1,0 +1,663 @@
+page 50 (
+    name: Menu Register
+    alias: MENU-REGISTER
+    title: Menu Register
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        title: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 30
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-Form--slimPadding
+            ]
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region register (
+        name: Register
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                /* Formatted on 6/12/2026 9:36:49 AM (QP5 v5.391) */
+                SELECT *
+                  FROM (  SELECT SUBMENU_NO,
+                                 SUBMENU_ID,
+                                 MENU_NO,
+                                 SUBMENU_NAME,
+                                 DECODE(SUBMENU_TYPE,'F','From','R','Report')SUBMENU_TYPE,
+                                 DECODE (ACTIVE_FLAG,  1, 'Active',  0, 'Inactive')
+                                     ACTIVE_FLAG,
+                                 DECODE (CAN_VIEW,  1, 'Yes',  0, 'No')
+                                     CAN_VIEW,
+                                 DECODE (CAN_MODIFY,  1, 'Yes',  0, 'No')
+                                     CAN_MODIFY,
+                                 DECODE (CAN_REMOVE,  1, 'Yes',  0, 'No')
+                                     CAN_REMOVE,
+                                 DECODE (CAN_CREATE,  1, 'Yes',  0, 'No')
+                                     CAN_CREATE,
+                                 DECODE (HIDE_FROM_MENU,  1, 'Yes',  0, 'No')
+                                     HIDE_FROM_MENU,
+                                 DESCROPTION,
+                                 APEX_PAGE_NO
+                            FROM SA_SUBMENU
+                        ORDER BY APEX_PAGE_NO)
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
+        }
+        advanced {
+            savedReportMappingIdentifier: 32555206904598641292
+        }
+
+        savedReport primary (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @SUBMENU_NO
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @SUBMENU_ID
+                layout {
+                    width: 89.7969
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @MENU_NO
+                layout {
+                    show: false
+                    width: 86.7969
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @SUBMENU_NAME
+                layout {
+                    width: 155.7969
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @SUBMENU_TYPE
+                layout {
+                    width: 104.7969
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @CAN_VIEW
+                layout {
+                    width: 79.7969
+                    sequence: 11
+                }
+            )
+
+            displayColumn (
+                column: @CAN_MODIFY
+                layout {
+                    width: 87.7969
+                    sequence: 12
+                }
+            )
+
+            displayColumn (
+                column: @CAN_REMOVE
+                layout {
+                    width: 90.7969
+                    sequence: 13
+                }
+            )
+
+            displayColumn (
+                column: @CAN_CREATE
+                layout {
+                    width: 86.7969
+                    sequence: 14
+                }
+            )
+
+            displayColumn (
+                column: @HIDE_FROM_MENU
+                layout {
+                    width: 126.7969
+                    sequence: 15
+                }
+            )
+
+            displayColumn (
+                column: @DESCROPTION
+                layout {
+                    width: 90.7969
+                    sequence: 16
+                }
+            )
+
+            displayColumn (
+                column: @APEX_PAGE_NO
+                layout {
+                    width: 106
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @ACTIVE_FLAG
+                layout {
+                    width: 87.7969
+                    sequence: 8
+                }
+            )
+
+        )
+
+        column ACTIVE_FLAG (
+            type: textField
+            heading {
+                heading: Active Flag
+            }
+            layout {
+                sequence: 40
+            }
+            validation {
+                valueRequired: true
+                maxLength: 1
+            }
+            source {
+                databaseColumn: ACTIVE_FLAG
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column APEX_PAGE_NO (
+            type: numberField
+            heading {
+                heading: Apex Page No
+                alignment: end
+            }
+            layout {
+                sequence: 230
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: APEX_PAGE_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column CAN_CREATE (
+            type: numberField
+            heading {
+                heading: Can Create
+                alignment: end
+            }
+            layout {
+                sequence: 130
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: CAN_CREATE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+        )
+
+        column CAN_MODIFY (
+            type: numberField
+            heading {
+                heading: Can Modify
+                alignment: end
+            }
+            layout {
+                sequence: 110
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: CAN_MODIFY
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+        )
+
+        column CAN_REMOVE (
+            type: numberField
+            heading {
+                heading: Can Remove
+                alignment: end
+            }
+            layout {
+                sequence: 120
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: CAN_REMOVE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+        )
+
+        column CAN_VIEW (
+            type: numberField
+            heading {
+                heading: Can View
+                alignment: end
+            }
+            layout {
+                sequence: 100
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: CAN_VIEW
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+        )
+
+        column DESCROPTION (
+            type: textarea
+            heading {
+                heading: Descroption
+            }
+            layout {
+                sequence: 150
+            }
+            validation {
+                maxLength: 4000
+            }
+            source {
+                databaseColumn: DESCROPTION
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+        )
+
+        column HIDE_FROM_MENU (
+            type: numberField
+            heading {
+                heading: Hide From Menu
+                alignment: end
+            }
+            layout {
+                sequence: 140
+                columnAlignment: end
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: HIDE_FROM_MENU
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+        )
+
+        column MENU_NO (
+            type: numberField
+            heading {
+                heading: Menu No
+                alignment: end
+            }
+            layout {
+                sequence: 70
+                columnAlignment: end
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: MENU_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column SUBMENU_ID (
+            type: textField
+            heading {
+                heading: Submenu Id
+            }
+            layout {
+                sequence: 60
+            }
+            validation {
+                maxLength: 10
+            }
+            source {
+                databaseColumn: SUBMENU_ID
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column SUBMENU_NAME (
+            type: textField
+            heading {
+                heading: Submenu Name
+            }
+            layout {
+                sequence: 80
+            }
+            validation {
+                valueRequired: true
+                maxLength: 50
+            }
+            source {
+                databaseColumn: SUBMENU_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column SUBMENU_NO (
+            type: hidden
+            layout {
+                sequence: 50
+            }
+            source {
+                databaseColumn: SUBMENU_NO
+                dataType: number
+                primaryKey: true
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column SUBMENU_TYPE (
+            type: textField
+            heading {
+                heading: Submenu Type
+            }
+            layout {
+                sequence: 90
+            }
+            validation {
+                valueRequired: true
+                maxLength: 1
+            }
+            source {
+                databaseColumn: SUBMENU_TYPE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            showAsDisabled: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--primary
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 50
+                clearCache: 50
+            }
+        }
+        advanced {
+            customAttributes: disabled
+        }
+    )
+
+    button new-1 (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            showAsDisabled: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--success
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            customAttributes: disabled
+        }
+    )
+
+    button new-2 (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            showAsDisabled: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--danger
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are You Sure !
+            style: warning
+        }
+        advanced {
+            customAttributes: disabled
+        }
+    )
+
+    process delete (
+        name: DELETE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                    DELETE FROM MST_PRODUCT_CATEGORY
+                     WHERE CATEGORY_NO = :P50_CATEGORY_NO;
+                
+                    apex_application.g_print_success_message :=
+                        'Product Category has been deleted successfully.';
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 20
+        }
+        advanced {
+            executionMappingIdentifier: 8268486866069684970
+        }
+        serverSideCondition {
+            whenButtonPressed: @new-2
+        }
+    )
+
+)
+

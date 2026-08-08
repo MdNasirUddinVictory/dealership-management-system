@@ -1,0 +1,657 @@
+page 6 (
+    name: Product Detail
+    alias: PRODUCT-DETAIL
+    title: Product Detail
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        formAutoComplete: false
+    }
+
+    region breadcrumb-2 (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 50
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region register (
+        name: Register
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT *
+                FROM
+                (
+                    SELECT
+                           P.PRODUCT_NO,
+                           C.CATEGORY_NAME,
+                           P.PRODUCT_CODE,
+                           P.PRODUCT_NAME,
+                           U.UOM_CODE,
+                           U.UOM_NAME,
+                
+                           P.PURCHASE_RATE,
+                           P.SALES_RATE,
+                
+                           P.MIN_STOCK_QTY,
+                
+                           NVL(STK.CURRENT_STOCK,0) AS CURRENT_STOCK,
+                
+                           CASE
+                               WHEN P.ACTIVE_FLAG = 1 THEN 'Active'
+                               ELSE 'Inactive'
+                           END AS STATUS,
+                
+                           P.CREATED_BY,
+                           P.CREATED_DATE,
+                           P.UPDATED_BY,
+                           P.UPDATED_DATE
+                
+                      FROM MST_PRODUCT P
+                
+                 LEFT JOIN MST_PRODUCT_CATEGORY C
+                        ON C.CATEGORY_NO = P.CATEGORY_NO
+                
+                 LEFT JOIN MST_UOM U
+                        ON U.UOM_NO = P.UOM_NO
+                
+                 LEFT JOIN
+                 (
+                        SELECT PRODUCT_NO,
+                               SUM(NVL(QTY_IN,0) - NVL(QTY_OUT,0)) CURRENT_STOCK
+                          FROM TRN_STOCK_LEDGER
+                         GROUP BY PRODUCT_NO
+                 ) STK
+                        ON STK.PRODUCT_NO = P.PRODUCT_NO
+                
+                     ORDER BY
+                           P.PRODUCT_NAME
+                );
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 14837765232740653442
+        }
+
+        column CATEGORY_NAME (
+            type: plainText
+            heading {
+                heading: Category Name
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: B
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: L
+            }
+        )
+
+        column CREATED_DATE (
+            type: plainText
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 130
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: M
+            }
+        )
+
+        column CURRENT_STOCK (
+            type: plainText
+            heading {
+                heading: Current Stock
+                alignment: end
+            }
+            layout {
+                sequence: 100
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: J
+            }
+        )
+
+        column MIN_STOCK_QTY (
+            type: plainText
+            heading {
+                heading: Min Stock Qty
+                alignment: end
+            }
+            layout {
+                sequence: 90
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: I
+            }
+        )
+
+        column PRODUCT_CODE (
+            type: link
+            heading {
+                heading: Product Code
+            }
+            layout {
+                sequence: 30
+            }
+            link {
+                target: {
+                    page: 24
+                    items: {
+                        P24_PRODUCT_NO: #PRODUCT_NO#
+                    }
+                }
+                linkText: #PRODUCT_CODE#
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: C
+            }
+        )
+
+        column PRODUCT_NAME (
+            type: plainText
+            heading {
+                heading: Product Name
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: D
+            }
+        )
+
+        column PRODUCT_NO (
+            type: hidden
+            heading {
+                heading: Product No
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: A
+            }
+        )
+
+        column PURCHASE_RATE (
+            type: plainText
+            heading {
+                heading: Purchase Rate
+                alignment: end
+            }
+            layout {
+                sequence: 70
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: G
+            }
+        )
+
+        column SALES_RATE (
+            type: plainText
+            heading {
+                heading: Sales Rate
+                alignment: end
+            }
+            layout {
+                sequence: 80
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: H
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: K
+            }
+        )
+
+        column UOM_CODE (
+            type: plainText
+            heading {
+                heading: Uom Code
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: E
+            }
+        )
+
+        column UOM_NAME (
+            type: plainText
+            heading {
+                heading: Uom Name
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: F
+            }
+        )
+
+        column UPDATED_BY (
+            type: plainText
+            heading {
+                heading: Updated By
+            }
+            layout {
+                sequence: 140
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: N
+            }
+        )
+
+        column UPDATED_DATE (
+            type: plainText
+            heading {
+                heading: Updated Date
+            }
+            layout {
+                sequence: 150
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: O
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn CATEGORY_NAME (
+                sequence: 2
+            )
+
+            displayColumn CREATED_BY (
+                sequence: 12
+            )
+
+            displayColumn CREATED_DATE (
+                sequence: 13
+            )
+
+            displayColumn CURRENT_STOCK (
+                sequence: 10
+            )
+
+            displayColumn MIN_STOCK_QTY (
+                sequence: 9
+            )
+
+            displayColumn PRODUCT_CODE (
+                sequence: 3
+            )
+
+            displayColumn PRODUCT_NAME (
+                sequence: 4
+            )
+
+            displayColumn PRODUCT_NO (
+                sequence: 1
+            )
+
+            displayColumn PURCHASE_RATE (
+                sequence: 7
+            )
+
+            displayColumn SALES_RATE (
+                sequence: 8
+            )
+
+            displayColumn STATUS (
+                sequence: 11
+            )
+
+            displayColumn UOM_CODE (
+                sequence: 5
+            )
+
+            displayColumn UOM_NAME (
+                sequence: 6
+            )
+
+            displayColumn UPDATED_BY (
+                sequence: 14
+            )
+
+            displayColumn UPDATED_DATE (
+                sequence: 15
+            )
+
+        )
+
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
+    button new-3 (
+        buttonName: Add_Product
+        label: Add Product
+        layout {
+            sequence: 10
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-cart-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 24
+                clearCache: 24
+                action: clearRegions
+            }
+        }
+        advanced {
+            htmlDomId: pb-reset
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    process delete (
+        name: DELETE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                    DELETE FROM MST_PRODUCT_CATEGORY
+                     WHERE CATEGORY_NO = :P6_CATEGORY_NO;
+                
+                    apex_application.g_print_success_message :=
+                        'Product Category has been deleted successfully.';
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 20
+        }
+        advanced {
+            executionMappingIdentifier: 8121371891415049861
+        }
+    )
+
+    process process-form-entry (
+        name: Process form Entry
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                    IF :P6_PRODUCT_NO IS NULL THEN
+                        INSERT INTO MST_PRODUCT (
+                            PRODUCT_NO,
+                            CATEGORY_NO,
+                            PRODUCT_CODE,
+                            PRODUCT_NAME,
+                            PURCHASE_RATE,
+                            SALES_RATE,
+                            MIN_STOCK_QTY,
+                            ACTIVE_FLAG,
+                            UOM_NO,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES (
+                            SEQ_PRODUCT_NO.NEXTVAL,
+                            :P6_PRODUCT_CATEGORY,
+                           'PRD' || LPAD(SEQ_PRODUCT_NO.NEXTVAL,4,'0'),
+                            :P6_PRODUCT_NAME,
+                            :P6_PURCHASE_RATE,
+                            :P6_SALES_RATE,
+                            :P6_MIN_STOCK_QTY,
+                            :P6_ACTIVE_FLAG,
+                            :P6_UOM_NO,
+                            :APP_USER,
+                            SYSDATE
+                        );
+                
+                          APEX_APPLICATION.g_print_success_message :=
+                            'Product has been saved successfully.';
+                    ELSE
+                        UPDATE MST_PRODUCT
+                           SET CATEGORY_NO   = :P6_CATEGORY_NO,
+                               PRODUCT_NAME  = :P6_PRODUCT_NAME,
+                               PURCHASE_RATE = :P6_PURCHASE_RATE,
+                               SALES_RATE    = :P6_SALES_RATE,
+                               MIN_STOCK_QTY = :P6_MIN_STOCK_QTY,
+                               ACTIVE_FLAG   = :P6_ACTIVE_FLAG,
+                               UOM_NO        = :P6_UOM_NO,
+                               UPDATED_BY    = :APP_USER,
+                               UPDATED_DATE  = SYSDATE
+                         WHERE PRODUCT_NO    = :P6_PRODUCT_NO;
+                
+                         
+                        APEX_APPLICATION.g_print_success_message :=
+                            'Product has been updated successfully.';
+                    END IF;
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+        advanced {
+            executionMappingIdentifier: 8121371439552049860
+        }
+    )
+
+)
+

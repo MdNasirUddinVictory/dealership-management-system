@@ -1,0 +1,2522 @@
+page 21 (
+    name: Invoice Entry
+    alias: INVOICE-ENTRY
+    title: Invoice Entry
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            function generateInvoice(orderNo) {
+            
+                if (confirm('Generate Invoice?')) {
+            
+                    apex.server.process(
+                        'GENERATE_INVOICE',
+                        {
+                            x01: orderNo
+                        },
+                        {
+                            success: function (pData) {
+            
+                                apex.message.showPageSuccess(pData);
+            
+                                apex.region('sales_order_list').refresh();
+            
+                            }
+                        }
+                    );
+            
+                }
+            }
+            function populateInvoice() {
+            
+                if (!$v('P21_ORDER_NO')) {
+                    apex.message.alert('Please select order.');
+                    return;
+                }
+            
+                var model = apex.region("invoice-dtl")
+                    .widget()
+                    .interactiveGrid("getViews", "grid")
+                    .model;
+            
+                // আগে থেকেই Data আছে কিনা
+                if (model.getTotalRecords() > 0) {
+                    apex.message.alert('Invoice details already exist.');
+                    return;
+                }
+            
+                apex.server.process(
+                    'INVOICE_POPULATE',
+                    {
+                        x01: $v('P21_ORDER_NO')
+                    },
+                    {
+                        success: function (pData) {
+            
+                            var json = JSON.parse(pData);
+            
+                            // Data না থাকলে
+                            if (!json || json.length === 0) {
+                                apex.message.alert(
+                                    'No pending order items found for invoice.'
+                                );
+                                return;
+                            }
+            
+                            for (var key in json) {
+            
+                                if (json.hasOwnProperty(key)) {
+            
+                                    var rec = model.insertNewRecord();
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "ORDER_DTL_NO",
+                                        json[key].ORDER_DTL_NO.toString()
+                                    );
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "PRODUCT_NO",
+                                        json[key].PRODUCT_NO.toString()
+                                    );
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "ORDER_QTY",
+                                        json[key].ORDER_QTY.toString()
+                                    );
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "PREVIOUS_INVOICE_QTY",
+                                        json[key].PREVIOUS_INVOICE_QTY.toString()
+                                    );
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "BALANCE_QTY",
+                                        json[key].BALANCE_QTY.toString()
+                                    );
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "SALES_QTY",
+                                        json[key].SALES_QTY.toString()
+                                    );
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "SALES_RATE",
+                                        json[key].SALES_RATE.toString()
+                                    );
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "TOTAL_AMOUNT",
+                                        json[key].TOTAL_AMOUNT.toString()
+                                    );
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "PRODUCT_NAME",
+                                        json[key].PRODUCT_NAME.toString()
+                                    );
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "PRODUCT_CODE",
+                                        json[key].PRODUCT_CODE.toString()
+                                    );
+                                    model.setRecordValue(
+                rec,
+                "UOM_NO",
+                json[key].UOM_NO.toString()
+            );
+            
+            model.setRecordValue(
+                rec,
+                "PACK_QTY",
+                json[key].PACK_QTY.toString()
+            );
+            
+            model.setRecordValue(
+                rec,
+                "BASE_QTY",
+                json[key].BASE_QTY.toString()
+            );
+            
+            model.setRecordValue(
+                rec,
+                "BASE_RATE",
+                json[key].BASE_RATE.toString()
+            );
+                                }
+                            }
+            
+                            apex.message.showPageSuccess(
+                                json.length +
+                                ' item(s) loaded successfully.'
+                            );
+                        },
+                        error: function () {
+                            apex.message.alert(
+                                'Error loading invoice details.'
+                            );
+                        },
+                        dataType: "text"
+                    }
+                );
+            }
+            ```
+    }
+    security {
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region invoice-details (
+        name: INVOICE DETAILS
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT
+                       D.INVOICE_DTL_NO,
+                
+                       D.ORDER_DTL_NO,
+                
+                       D.PRODUCT_NO,
+                
+                       P.PRODUCT_CODE,
+                
+                       P.PRODUCT_NAME,
+                
+                       P.DESCRIPTION,
+                
+                       P.BRAND_NO,
+                
+                       D.UOM_NO,
+                
+                       U.UOM_NAME,
+                
+                       D.PACK_QTY,
+                
+                       D.ORDER_QTY,
+                
+                       D.BASE_QTY,
+                
+                       NVL(
+                           (
+                               SELECT SUM(X.SALES_QTY)
+                                 FROM TRN_SALES_INVOICE_DTL X
+                                WHERE X.ORDER_DTL_NO=D.ORDER_DTL_NO
+                                  AND X.INVOICE_DTL_NO<>D.INVOICE_DTL_NO
+                           ),
+                           0
+                       ) PREVIOUS_INVOICE_QTY,
+                
+                       (
+                           D.ORDER_QTY-
+                           NVL(
+                               (
+                                   SELECT SUM(X.SALES_QTY)
+                                     FROM TRN_SALES_INVOICE_DTL X
+                                    WHERE X.ORDER_DTL_NO=D.ORDER_DTL_NO
+                                      AND X.INVOICE_DTL_NO<>D.INVOICE_DTL_NO
+                               ),
+                               0
+                           )
+                       ) BALANCE_QTY,
+                
+                       D.SALES_QTY,
+                
+                       D.SALES_RATE,
+                
+                       D.BASE_RATE,
+                
+                       D.TOTAL_AMOUNT,
+                
+                       D.REMARKS
+                
+                FROM TRN_SALES_INVOICE_DTL D
+                
+                JOIN MST_PRODUCT P
+                ON P.PRODUCT_NO=D.PRODUCT_NO
+                
+                LEFT JOIN MST_UOM U
+                ON U.UOM_NO=D.UOM_NO
+                
+                WHERE D.INVOICE_NO=:P21_INVOICE_NO;
+                ```
+            pageItemsToSubmit: P21_INVOICE_NO
+        }
+        layout {
+            sequence: 30
+            parentRegion: @new
+            slot: regionBody
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        advanced {
+            htmlDomId: invoice-dtl
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+            addRowIfEmpty: false
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
+        }
+        componentAdvanced {
+            initJavaScriptFunction:
+                ```javascript-browser
+                function(config) {
+                    var $ = apex.jQuery;
+                    var toolbarData = $.apex.interactiveGrid.copyDefaultToolbar();
+                
+                    // actions2 remove করো
+                    toolbarData.toolbarRemove("actions2");
+                    toolbarData.toolbarRemove("actions3");
+                
+                    // actions1 group খুঁজে button add করো
+                    var toolbarGroup = toolbarData.toolbarFind("actions1");
+                
+                    // Add button লুকাও
+                    // toolbarGroup.controls = toolbarGroup.controls.filter(function(ctrl) {
+                    //     return ctrl.id !== "add";  // Add Row button hide
+                    // });
+                
+                    // Populate button যোগ করো
+                    toolbarGroup.controls.push({
+                        type: "BUTTON",
+                        id: "btn_populate",
+                        label: "Populate",
+                        hot: true,
+                        iconCss: "a-Icon icon-ig-download",
+                        iconBeforeLabel: true,
+                        action: "populate-action"
+                    });
+                
+                    config.toolbarData = toolbarData;
+                
+                    var originalInitActions = config.initActions;
+                    config.initActions = function(actions) {
+                        if (originalInitActions) {
+                            originalInitActions.call(this, actions);
+                        }
+                        actions.add({
+                            name: "populate-action",
+                            label: "Populate",
+                            action: function() {
+                                populateInvoice();
+                            }
+                        });
+                    };
+                
+                    return config;
+                }
+                ```
+        }
+        advanced {
+            savedReportMappingIdentifier: 11401340066902981849
+        }
+
+        savedReport primary (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @INVOICE_DTL_NO
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_NO
+                layout {
+                    show: false
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @SALES_QTY
+                layout {
+                    width: 88
+                    sequence: 11
+                }
+            )
+
+            displayColumn (
+                column: @SALES_RATE
+                layout {
+                    width: 81
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @TOTAL_AMOUNT
+                layout {
+                    width: 110
+                    sequence: 12
+                }
+            )
+
+            displayColumn (
+                column: @ORDER_QTY
+                layout {
+                    width: 91
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @ORDER_DTL_NO
+                layout {
+                    sequence: 13
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_CODE
+                layout {
+                    width: 122
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_NAME
+                layout {
+                    width: 116
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @PREVIOUS_INVOICE_QTY
+                layout {
+                    width: 144
+                    sequence: 10
+                }
+            )
+
+            displayColumn (
+                column: @BALANCE_QTY
+                layout {
+                    width: 91
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @REMARKS
+                layout {
+                    width: 120
+                    sequence: 17
+                }
+            )
+
+            displayColumn (
+                column: @DESCRIPTION
+                layout {
+                    show: false
+                    width: 113
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @BRAND_NO
+                layout {
+                    show: false
+                    width: 71
+                    sequence: 18
+                }
+            )
+
+            displayColumn (
+                column: @UOM_NO
+                layout {
+                    show: false
+                    width: 85
+                    sequence: 19
+                }
+            )
+
+            displayColumn (
+                column: @UOM_NAME
+                layout {
+                    show: false
+                    width: 93
+                    sequence: 20
+                }
+            )
+
+            displayColumn (
+                column: @PACK_QTY
+                layout {
+                    width: 70
+                    sequence: 16
+                }
+            )
+
+            displayColumn (
+                column: @BASE_QTY
+                layout {
+                    width: 70
+                    sequence: 14
+                }
+            )
+
+            displayColumn (
+                column: @BASE_RATE
+                layout {
+                    width: 97
+                    sequence: 15
+                }
+            )
+
+        )
+
+        column APEX$ROW_ACTION (
+            type: actionsMenu
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 10
+            }
+        )
+
+        column BALANCE_QTY (
+            type: numberField
+            heading {
+                heading: Balance Qty
+                alignment: end
+            }
+            layout {
+                sequence: 140
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: BALANCE_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: BALANCE_QTY
+                customAttributes: readonly
+            }
+        )
+
+        column BASE_QTY (
+            type: numberField
+            heading {
+                heading: Base Qty
+                alignment: end
+            }
+            layout {
+                sequence: 210
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: BASE_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: BASE_QTY
+                customAttributes: readonly
+            }
+        )
+
+        column BASE_RATE (
+            type: numberField
+            heading {
+                heading: Base Rate
+                alignment: end
+            }
+            layout {
+                sequence: 220
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: BASE_RATE
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: BASE_RATE
+                customAttributes: readonly
+            }
+        )
+
+        column BRAND_NO (
+            type: numberField
+            heading {
+                heading: Brand No
+                alignment: end
+            }
+            layout {
+                sequence: 170
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: BRAND_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column DESCRIPTION (
+            type: textarea
+            heading {
+                heading: Description
+            }
+            layout {
+                sequence: 160
+            }
+            validation {
+                maxLength: 500
+            }
+            source {
+                databaseColumn: DESCRIPTION
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column INVOICE_DTL_NO (
+            type: hidden
+            heading {
+                heading: Invoice Dtl No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                databaseColumn: INVOICE_DTL_NO
+                dataType: number
+                primaryKey: true
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column ORDER_DTL_NO (
+            type: hidden
+            heading {
+                heading: Order Dtl No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                databaseColumn: ORDER_DTL_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column ORDER_QTY (
+            type: numberField
+            heading {
+                heading: Order Qty
+                alignment: end
+            }
+            layout {
+                sequence: 80
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: ORDER_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column PACK_QTY (
+            type: numberField
+            heading {
+                heading: Pack Qty
+                alignment: end
+            }
+            layout {
+                sequence: 200
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: PACK_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: PACK_QTY
+                customAttributes: readonly
+            }
+        )
+
+        column PREVIOUS_INVOICE_QTY (
+            type: numberField
+            heading {
+                heading: Previous Invoice Qty
+                alignment: end
+            }
+            layout {
+                sequence: 130
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: PREVIOUS_INVOICE_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column PRODUCT_CODE (
+            type: textField
+            heading {
+                heading: Product Code
+            }
+            layout {
+                sequence: 60
+            }
+            validation {
+                valueRequired: true
+                maxLength: 50
+            }
+            source {
+                databaseColumn: PRODUCT_CODE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column PRODUCT_NAME (
+            type: textField
+            heading {
+                heading: Product Name
+            }
+            layout {
+                sequence: 70
+            }
+            validation {
+                valueRequired: true
+                maxLength: 300
+            }
+            source {
+                databaseColumn: PRODUCT_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column PRODUCT_NO (
+            type: textField
+            heading {
+                heading: Product No
+            }
+            layout {
+                sequence: 50
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: PRODUCT_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column REMARKS (
+            type: textField
+            heading {
+                heading: Remarks
+            }
+            layout {
+                sequence: 150
+            }
+            source {
+                databaseColumn: REMARKS
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column SALES_QTY (
+            type: numberField
+            heading {
+                heading: Invoice Qty
+                alignment: end
+            }
+            layout {
+                sequence: 90
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: SALES_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: SALES_QTY
+            }
+        )
+
+        column SALES_RATE (
+            type: numberField
+            heading {
+                heading: Sales Rate
+                alignment: end
+            }
+            layout {
+                sequence: 100
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: SALES_RATE
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: SALES_RATE
+                customAttributes: readonly
+            }
+        )
+
+        column TOTAL_AMOUNT (
+            type: numberField
+            heading {
+                heading: Total Amount
+                alignment: end
+            }
+            layout {
+                sequence: 110
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: TOTAL_AMOUNT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                htmlDomId: TOTAL_AMOUNT
+                customAttributes: readonly
+            }
+        )
+
+        column UOM_NAME (
+            type: textField
+            heading {
+                heading: Uom Name
+            }
+            layout {
+                sequence: 190
+            }
+            validation {
+                maxLength: 50
+            }
+            source {
+                databaseColumn: UOM_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column UOM_NO (
+            type: numberField
+            heading {
+                heading: Uom No
+                alignment: end
+            }
+            layout {
+                sequence: 180
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: UOM_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    region new (
+        name: MAIN_CONTAINER
+        type: staticContent
+        layout {
+            sequence: 30
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+    )
+
+    region register_1 (
+        name: SALES INVOICE MST
+        type: form
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT
+                       I.INVOICE_NO,
+                       I.INVOICE_CODE,
+                       I.INVOICE_DATE,
+                
+                       I.ORDER_NO,
+                
+                       I.CUSTOMER_NO,
+                
+                       C.CUSTOMER_NAME,
+                
+                       C.MOBILE_NO,
+                
+                       C.ADDRESS,
+                
+                       I.TOTAL_AMOUNT,
+                
+                       I.DELIVERY_STATUS,
+                
+                       I.CREATED_BY,
+                
+                       I.CREATED_DATE,
+                
+                       I.UPDATED_BY,
+                
+                       I.UPDATED_DATE,
+                
+                       I.DELIVERY_BY,
+                
+                       I.DELIVERY_DATE
+                
+                FROM TRN_SALES_INVOICE_MST I
+                
+                JOIN MST_CUSTOMER C
+                  ON C.CUSTOMER_NO = I.CUSTOMER_NO
+                
+                WHERE I.INVOICE_NO = :P21_INVOICE_NO;
+                ```
+        }
+        layout {
+            sequence: 20
+            parentRegion: @new
+            slot: regionBody
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--removeHeader js-removeLandmark
+                t-Form--slimPadding
+                t-Form--large
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        advanced {
+            htmlDomId: sales_order_list
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+    )
+
+    pageItem P21_ADDRESS (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 100
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: ADDRESS
+            dataType: varchar2
+        }
+    )
+
+    pageItem P21_CREATED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 110
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: CREATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P21_CREATED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 120
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: CREATED_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P21_CUSTOMER_NAME (
+        type: textField
+        label {
+            label: Customer Name
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+                t-Form-fieldContainer--boldDisplay
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+            maxLength: 300
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            formRegion: @register_1
+            column: CUSTOMER_NAME
+            dataType: varchar2
+        }
+    )
+
+    pageItem P21_CUSTOMER_NO (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 130
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: CUSTOMER_NO
+            dataType: number
+        }
+    )
+
+    pageItem P21_DELIVERY_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 170
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: DELIVERY_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P21_DELIVERY_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 180
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: DELIVERY_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P21_DELIVERY_STATUS (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 140
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: DELIVERY_STATUS
+            dataType: varchar2
+        }
+    )
+
+    pageItem P21_INVOICE_CODE (
+        type: textField
+        label {
+            label: Invoice Code
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @register_1
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+                t-Form-fieldContainer--boldDisplay
+            ]
+            width: 30
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            formRegion: @register_1
+            column: INVOICE_CODE
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P21_INVOICE_NO
+        }
+    )
+
+    pageItem P21_INVOICE_DATE (
+        type: datePicker
+        label {
+            label: Invoice Date
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+                t-Form-fieldContainer--boldDisplay
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+            maxLength: 20
+        }
+        source {
+            formRegion: @register_1
+            column: INVOICE_DATE
+            dataType: date
+        }
+        default {
+            type: functionBody
+            plsqlFunctionBody: RETURN SYSDATE;
+        }
+    )
+
+    pageItem P21_INVOICE_NO (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: INVOICE_NO
+            dataType: number
+            primaryKey: true
+        }
+    )
+
+    pageItem P21_MOBILE_NO (
+        type: textField
+        label {
+            label: Mobile No
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            columnSpan: 3
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+                t-Form-fieldContainer--boldDisplay
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 30
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            formRegion: @register_1
+            column: MOBILE_NO
+            dataType: varchar2
+        }
+    )
+
+    pageItem P21_ORDER_NO (
+        type: popupLov
+        label {
+            label: Order No
+            alignment: left
+        }
+        settings {
+            fetchOnSearch: true
+            popupWidth: 800
+            additionalOutputs: CUSTOMER_NO:P21_CUSTOMER_NO,CUSTOMER_NAME:P21_CUSTOMER_NAME,MOBILE_NO:P21_MOBILE_NO,ADDRESS:P21_ADDRESS,TOTAL_AMOUNT:P21_TOTAL_AMOUNT
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-21-invoice
+            displayExtraValues: false
+            nullDisplayValue: --Select--
+        }
+        layout {
+            sequence: 30
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+                t-Form-fieldContainer--boldDisplay
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @register_1
+            column: ORDER_NO
+            dataType: number
+        }
+    )
+
+    pageItem P21_TOTAL_AMOUNT (
+        type: numberField
+        label {
+            label: Total Amount
+            alignment: left
+        }
+        layout {
+            sequence: 90
+            region: @register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 3
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+                t-Form-fieldContainer--boldDisplay
+            ]
+            width: 30
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            formRegion: @register_1
+            column: TOTAL_AMOUNT
+            dataType: number
+        }
+    )
+
+    pageItem P21_UPDATED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 150
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: UPDATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P21_UPDATED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 160
+            region: @register_1
+            slot: regionBody
+        }
+        source {
+            formRegion: @register_1
+            column: UPDATED_DATE
+            dataType: date
+        }
+    )
+
+    button create-challan_1 (
+        buttonName: Create_Challan
+        label: Create Challan
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--primary
+                t-Button--iconLeft
+            ]
+            icon: fa-shopping-cart
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 105
+                items: {
+                    P105_INVOICE_NO: &P21_INVOICE_NO.
+                }
+            }
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P21_INVOICE_NO
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 21
+                clearCache: 21
+                action: clearRegions
+            }
+        }
+        advanced {
+            htmlDomId: pb-reset
+        }
+    )
+
+    button print-invoice (
+        buttonName: PRINT_INVOICE
+        label: Print Invoice
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--primary
+                t-Button--iconLeft
+            ]
+            icon: fa-print
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 15
+                items: {
+                    P15_INVOICE_NO: &P21_INVOICE_NO.
+                }
+            }
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P21_INVOICE_NO
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    dynamicAction new (
+        name: New
+        execution {
+            sequence: 40
+        }
+        when {
+            selectionType: columns
+            interactiveGrid: @invoice-details
+            columns: SALES_QTY
+        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                    apex.message.clearErrors();
+                    
+                    var salesQty   = parseFloat($v("SALES_QTY")) || 0;
+                    var balanceQty = parseFloat($v("BALANCE_QTY")) || 0;
+                    var salesRate  = parseFloat($v("SALES_RATE")) || 0;
+                    var packQty    = parseFloat($v("PACK_QTY")) || 1;
+                    
+                    if (packQty <= 0) {
+                        packQty = 1;
+                    }
+                    
+                    if (salesQty > balanceQty) {
+                    
+                        apex.message.alert("Invoice quantity exceeds balance quantity.");
+                    
+                        $s("SALES_QTY", "");
+                        $s("BASE_QTY", "");
+                        $s("BASE_RATE", "");
+                        $s("TOTAL_AMOUNT", "");
+                    
+                        return;
+                    }
+                    
+                    /* Calculate */
+                    
+                    var baseQty    = salesQty * packQty;
+                    var baseRate   = salesRate / packQty;
+                    var totalAmt   = salesQty * salesRate;
+                    
+                    $s("BASE_QTY", baseQty.toFixed(3));
+                    $s("BASE_RATE", baseRate.toFixed(6));
+                    $s("TOTAL_AMOUNT", totalAmt.toFixed(2));
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction new_1 (
+        name: New
+        execution {
+            sequence: 50
+        }
+        when {
+            selectionType: items
+            items: P21_ORDER_NO
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @invoice-details
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction new_2 (
+        name: New
+        execution {
+            sequence: 30
+        }
+        when {
+            selectionType: items
+            items: P21_STATUS
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @register_1
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction new_3 (
+        name: New
+        execution {
+            sequence: 60
+        }
+        when {
+            event: ready
+        }
+
+        action native-disable (
+            action: disable
+            affectedElements {
+                selectionType: button
+                button: @delete
+            }
+            execution {
+                sequence: 10
+            }
+            clientSideCondition {
+                type: itemIsNull
+                item: P21_INVOICE_NO
+            }
+            serverSideCondition {
+                type: itemIsNull
+                item: P21_INVOICE_NO
+            }
+        )
+
+    )
+
+    process delete (
+        name: DELETE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    v_count NUMBER;
+                
+                BEGIN
+                
+                    SELECT COUNT(*)
+                      INTO v_count
+                      FROM TRN_DELIVERY_MST
+                     WHERE INVOICE_NO = :P21_INVOICE_NO
+                       AND APPROVAL_STATUS = 'A';
+                
+                    IF v_count > 0 THEN
+                
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Delivery already exists. Invoice cannot be deleted.'
+                        );
+                
+                    END IF;
+                
+                    SELECT COUNT(*)
+                      INTO v_count
+                      FROM TRN_CUSTOMER_RETURN_MST
+                     WHERE INVOICE_NO = :P21_INVOICE_NO
+                       AND APPROVAL_STATUS = 'A';
+                
+                    IF v_count > 0 THEN
+                
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Customer return exists. Invoice cannot be deleted.'
+                        );
+                
+                    END IF;
+                
+                    DELETE
+                      FROM TRN_SALES_INVOICE_DTL
+                     WHERE INVOICE_NO = :P21_INVOICE_NO;
+                
+                    DELETE
+                      FROM TRN_SALES_INVOICE_MST
+                     WHERE INVOICE_NO = :P21_INVOICE_NO;
+                
+                    UPDATE TRN_SALES_ORDER_MST
+                       SET ORDER_STATUS = 'P'
+                     WHERE ORDER_NO = :P21_ORDER_NO;
+                
+                    :P21_INVOICE_NO := null;
+                
+                    apex_application.g_print_success_message :=
+                        'Invoice deleted successfully.';
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 20
+        }
+        advanced {
+            executionMappingIdentifier: 11471338484512832921
+        }
+        serverSideCondition {
+            whenButtonPressed: @delete
+        }
+    )
+
+    process generate-invoice (
+        name: GENERATE_INVOICE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    v_invoice_no      NUMBER;
+                    v_invoice_code    VARCHAR2(30);
+                
+                    v_exists          NUMBER;
+                
+                BEGIN
+                
+                    --------------------------------------------------
+                    -- Already Invoiced Check
+                    --------------------------------------------------
+                
+                    SELECT COUNT(*)
+                      INTO v_exists
+                      FROM TRN_SALES_INVOICE_MST
+                     WHERE ORDER_NO = APEX_APPLICATION.G_X01;
+                
+                    IF v_exists > 0 THEN
+                
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Invoice already generated for this order.'
+                        );
+                
+                    END IF;
+                
+                    --------------------------------------------------
+                    -- Generate Invoice No
+                    --------------------------------------------------
+                
+                    SELECT SEQ_INVOICE_NO.NEXTVAL
+                      INTO v_invoice_no
+                      FROM DUAL;
+                
+                    v_invoice_code :=
+                        'INV-' || LPAD(v_invoice_no,6,'0');
+                
+                    --------------------------------------------------
+                    -- Invoice Master
+                    --------------------------------------------------
+                
+                    INSERT INTO TRN_SALES_INVOICE_MST
+                    (
+                        INVOICE_NO,
+                        INVOICE_CODE,
+                        INVOICE_DATE,
+                        ORDER_NO,
+                        CUSTOMER_NO,
+                        TOTAL_AMOUNT,
+                        DELIVERY_STATUS,
+                        CREATED_BY,
+                        CREATED_DATE
+                    )
+                    SELECT
+                        v_invoice_no,
+                        v_invoice_code,
+                        SYSDATE,
+                        M.ORDER_NO,
+                        M.CUSTOMER_NO,
+                        (
+                            SELECT NVL(SUM(TOTAL_AMOUNT),0)
+                              FROM TRN_SALES_ORDER_DTL
+                             WHERE ORDER_NO = M.ORDER_NO
+                        ),
+                        'P',
+                        :APP_USER,
+                        SYSDATE
+                    FROM TRN_SALES_ORDER_MST M
+                    WHERE M.ORDER_NO = APEX_APPLICATION.G_X01;
+                
+                    --------------------------------------------------
+                    -- Invoice Detail
+                    --------------------------------------------------
+                
+                    INSERT INTO TRN_SALES_INVOICE_DTL
+                    (
+                        INVOICE_DTL_NO,
+                        INVOICE_NO,
+                        ORDER_DTL_NO,
+                        PRODUCT_NO,
+                        ORDER_QTY,
+                        SALES_QTY,
+                        SALES_RATE,
+                        TOTAL_AMOUNT
+                    )
+                    SELECT
+                        SEQ_INVOICE_DTL_NO.NEXTVAL,
+                        v_invoice_no,
+                        ORDER_DTL_NO,
+                        PRODUCT_NO,
+                        ORDER_QTY,
+                        ORDER_QTY,
+                        SALES_RATE,
+                        TOTAL_AMOUNT
+                    FROM TRN_SALES_ORDER_DTL
+                    WHERE ORDER_NO = APEX_APPLICATION.G_X01;
+                
+                    --------------------------------------------------
+                    -- Update Order Detail
+                    --------------------------------------------------
+                
+                    UPDATE TRN_SALES_ORDER_DTL
+                       SET INVOICED_QTY =
+                               NVL(INVOICED_QTY,0)
+                               + ORDER_QTY,
+                
+                           BALANCE_QTY =
+                               ORDER_QTY -
+                               (
+                                   NVL(INVOICED_QTY,0)
+                                   + ORDER_QTY
+                               ),
+                
+                           UPDATED_BY = :APP_USER,
+                           UPDATED_DATE = SYSDATE
+                
+                     WHERE ORDER_NO = APEX_APPLICATION.G_X01;
+                
+                    --------------------------------------------------
+                    -- Update Order Master
+                    --------------------------------------------------
+                
+                    UPDATE TRN_SALES_ORDER_MST
+                       SET ORDER_STATUS = 'I',
+                           UPDATED_BY   = :APP_USER,
+                           UPDATED_DATE = SYSDATE
+                     WHERE ORDER_NO = APEX_APPLICATION.G_X01;
+                
+                    COMMIT;
+                
+                    HTP.P(
+                        'Invoice generated successfully. Invoice No: '
+                        || v_invoice_code
+                    );
+                
+                EXCEPTION
+                    WHEN OTHERS THEN
+                
+                        ROLLBACK;
+                
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            SQLERRM
+                        );
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: ajaxCallback
+        }
+        advanced {
+            executionMappingIdentifier: 11427231942290783653
+        }
+        config {
+            buildOption: @commented-out
+        }
+    )
+
+    process invoice-details-save-interactive-grid-data (
+        name: INVOICE DETAILS - Save Interactive Grid Data
+        type: executeCode
+        editableRegion: @invoice-details
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    v_count          NUMBER;
+                    v_balance        NUMBER;
+                    v_total_order    NUMBER;
+                    v_total_invoice  NUMBER;
+                
+                BEGIN
+                
+                    ------------------------------------------------
+                    -- Delete Validation
+                    ------------------------------------------------
+                
+                    IF :APEX$ROW_STATUS='D' THEN
+                
+                        SELECT COUNT(*)
+                        INTO v_count
+                        FROM TRN_DELIVERY_DTL D
+                             JOIN TRN_DELIVERY_MST M
+                               ON M.DELIVERY_NO=D.DELIVERY_NO
+                        WHERE D.PRODUCT_NO=:PRODUCT_NO
+                          AND M.INVOICE_NO=:P21_INVOICE_NO
+                          AND M.APPROVAL_STATUS='A';
+                
+                        IF v_count>0 THEN
+                
+                            RAISE_APPLICATION_ERROR
+                            (
+                                -20001,
+                                'Delivery already completed. Delete not allowed.'
+                            );
+                
+                        END IF;
+                
+                        SELECT COUNT(*)
+                        INTO v_count
+                        FROM TRN_CUSTOMER_RETURN_DTL R
+                             JOIN TRN_CUSTOMER_RETURN_MST M
+                               ON M.RETURN_NO=R.RETURN_NO
+                        WHERE R.PRODUCT_NO=:PRODUCT_NO
+                          AND M.INVOICE_NO=:P21_INVOICE_NO
+                          AND M.APPROVAL_STATUS='A';
+                
+                        IF v_count>0 THEN
+                
+                            RAISE_APPLICATION_ERROR
+                            (
+                                -20001,
+                                'Customer return exists. Delete not allowed.'
+                            );
+                
+                        END IF;
+                
+                    END IF;
+                
+                    ------------------------------------------------
+                    -- INSERT
+                    ------------------------------------------------
+                
+                    IF :APEX$ROW_STATUS='C' THEN
+                
+                        INSERT INTO TRN_SALES_INVOICE_DTL
+                        (
+                            INVOICE_DTL_NO,
+                            INVOICE_NO,
+                            ORDER_DTL_NO,
+                            PRODUCT_NO,
+                            UOM_NO,
+                            PACK_QTY,
+                            ORDER_QTY,
+                            SALES_QTY,
+                            BASE_QTY,
+                            SALES_RATE,
+                            BASE_RATE,
+                            TOTAL_AMOUNT,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES
+                        (
+                            SEQ_INVOICE_DTL_NO.NEXTVAL,
+                            :P21_INVOICE_NO,
+                            :ORDER_DTL_NO,
+                            :PRODUCT_NO,
+                            :UOM_NO,
+                            :PACK_QTY,
+                            :ORDER_QTY,
+                            :SALES_QTY,
+                            :BASE_QTY,
+                            :SALES_RATE,
+                            :BASE_RATE,
+                            NVL(:SALES_QTY,0) * NVL(:SALES_RATE,0),
+                            :APP_USER,
+                            SYSDATE
+                        );
+                
+                    ------------------------------------------------
+                    -- UPDATE
+                    ------------------------------------------------
+                
+                    ELSIF :APEX$ROW_STATUS='U' THEN
+                
+                        UPDATE TRN_SALES_INVOICE_DTL
+                           SET UOM_NO       = :UOM_NO,
+                               PACK_QTY     = :PACK_QTY,
+                               ORDER_QTY    = :ORDER_QTY,
+                               SALES_QTY    = :SALES_QTY,
+                               BASE_QTY     = :BASE_QTY,
+                               SALES_RATE   = :SALES_RATE,
+                               BASE_RATE    = :BASE_RATE,
+                               TOTAL_AMOUNT = NVL(:SALES_QTY,0) * NVL(:SALES_RATE,0),
+                               UPDATED_BY   = :APP_USER,
+                               UPDATED_DATE = SYSDATE
+                         WHERE INVOICE_DTL_NO = :INVOICE_DTL_NO;
+                
+                    ------------------------------------------------
+                    -- DELETE
+                    ------------------------------------------------
+                
+                    ELSIF :APEX$ROW_STATUS='D' THEN
+                
+                        DELETE
+                        FROM TRN_SALES_INVOICE_DTL
+                        WHERE INVOICE_DTL_NO=:INVOICE_DTL_NO;
+                
+                    END IF;
+                
+                    ------------------------------------------------
+                    -- Update Invoice Total
+                    ------------------------------------------------
+                
+                    UPDATE TRN_SALES_INVOICE_MST
+                       SET TOTAL_AMOUNT =
+                       (
+                           SELECT NVL(SUM(TOTAL_AMOUNT),0)
+                           FROM TRN_SALES_INVOICE_DTL
+                           WHERE INVOICE_NO=:P21_INVOICE_NO
+                       ),
+                       UPDATED_BY=:APP_USER,
+                       UPDATED_DATE=SYSDATE
+                    WHERE INVOICE_NO=:P21_INVOICE_NO;
+                
+                    ------------------------------------------------
+                    -- Update Order Status
+                    ------------------------------------------------
+                
+                    SELECT NVL(SUM(BASE_QTY),0)
+                    INTO v_total_order
+                    FROM TRN_SALES_ORDER_DTL
+                    WHERE ORDER_NO=:P21_ORDER_NO;
+                
+                    SELECT NVL(SUM(D.BASE_QTY),0)
+                    INTO v_total_invoice
+                    FROM TRN_SALES_INVOICE_DTL D
+                         JOIN TRN_SALES_INVOICE_MST M
+                           ON M.INVOICE_NO=D.INVOICE_NO
+                    WHERE M.ORDER_NO=:P21_ORDER_NO;
+                
+                    UPDATE TRN_SALES_ORDER_MST
+                       SET ORDER_STATUS =
+                           CASE
+                               WHEN v_total_invoice = 0 THEN 'P'
+                               WHEN v_total_invoice < v_total_order THEN 'PI'
+                               ELSE 'I'
+                           END,
+                           UPDATED_BY=:APP_USER,
+                           UPDATED_DATE=SYSDATE
+                     WHERE ORDER_NO=:P21_ORDER_NO;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 30
+        }
+        error {
+            errorMessage: #SQLERRM_TEXT#
+        }
+        advanced {
+            executionMappingIdentifier: 11471337673643832913
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+    process invoice-populate (
+        name: INVOICE_POPULATE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    V_DATA CLOB;
+                BEGIN
+                
+                    SELECT JSON_ARRAYAGG(
+                             JSON_OBJECT(
+                
+                               'ORDER_DTL_NO' VALUE D.ORDER_DTL_NO,
+                
+                               'PRODUCT_NO' VALUE D.PRODUCT_NO,
+                
+                               'PRODUCT_CODE' VALUE P.PRODUCT_CODE,
+                
+                               'PRODUCT_NAME' VALUE P.PRODUCT_NAME,
+                
+                               'UOM_NO' VALUE D.UOM_NO,
+                
+                               'PACK_QTY' VALUE D.PACK_QTY,
+                
+                               'BASE_QTY' VALUE D.BASE_QTY,
+                
+                               'BASE_RATE' VALUE D.BASE_RATE,
+                
+                               'ORDER_QTY' VALUE D.ORDER_QTY,
+                
+                               'PREVIOUS_INVOICE_QTY' VALUE NVL
+                               (
+                                   (
+                                       SELECT SUM(I.SALES_QTY)
+                                         FROM TRN_SALES_INVOICE_DTL I
+                                        WHERE I.ORDER_DTL_NO=D.ORDER_DTL_NO
+                                   ),
+                                   0
+                               ),
+                
+                               'BALANCE_QTY' VALUE
+                               (
+                                   D.ORDER_QTY-
+                                   NVL
+                                   (
+                                       (
+                                           SELECT SUM(I.SALES_QTY)
+                                             FROM TRN_SALES_INVOICE_DTL I
+                                            WHERE I.ORDER_DTL_NO=D.ORDER_DTL_NO
+                                       ),
+                                       0
+                                   )
+                               ),
+                
+                               'SALES_QTY' VALUE
+                               (
+                                   D.ORDER_QTY-
+                                   NVL
+                                   (
+                                       (
+                                           SELECT SUM(I.SALES_QTY)
+                                             FROM TRN_SALES_INVOICE_DTL I
+                                            WHERE I.ORDER_DTL_NO=D.ORDER_DTL_NO
+                                       ),
+                                       0
+                                   )
+                               ),
+                
+                               'SALES_RATE' VALUE D.SALES_RATE,
+                
+                               'TOTAL_AMOUNT' VALUE
+                               (
+                                   (
+                                       D.ORDER_QTY-
+                                       NVL
+                                       (
+                                           (
+                                               SELECT SUM(I.SALES_QTY)
+                                                 FROM TRN_SALES_INVOICE_DTL I
+                                                WHERE I.ORDER_DTL_NO=D.ORDER_DTL_NO
+                                           ),
+                                           0
+                                       )
+                                   )*D.SALES_RATE
+                               )
+                
+                             ) RETURNING CLOB
+                           )
+                    INTO V_DATA
+                    FROM TRN_SALES_ORDER_DTL D
+                         JOIN MST_PRODUCT P
+                           ON P.PRODUCT_NO=D.PRODUCT_NO
+                   WHERE D.ORDER_NO=APEX_APPLICATION.G_X01
+                     AND
+                     (
+                        D.ORDER_QTY-
+                        NVL
+                        (
+                            (
+                                SELECT SUM(I.SALES_QTY)
+                                  FROM TRN_SALES_INVOICE_DTL I
+                                 WHERE I.ORDER_DTL_NO=D.ORDER_DTL_NO
+                            ),
+                            0
+                        )
+                     )>0;
+                
+                    HTP.PRN(NVL(V_DATA,'[]'));
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: ajaxCallback
+        }
+        advanced {
+            executionMappingIdentifier: 11471337375671832910
+        }
+    )
+
+    process new (
+        name: New
+        type: formInitialization
+        formRegion: @register_1
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+        advanced {
+            executionMappingIdentifier: 11401339570303981844
+        }
+    )
+
+    process process-form-sales-invoice-mst (
+        name: Process form SALES INVOICE MST
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    v_invoice_no      NUMBER;
+                    v_invoice_code    VARCHAR2(30);
+                
+                    v_total_order     NUMBER;
+                    v_total_invoice   NUMBER;
+                
+                BEGIN
+                
+                    --------------------------------------------------
+                    -- Header Validation
+                    --------------------------------------------------
+                
+                    IF :P21_ORDER_NO IS NULL THEN
+                
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Please select sales order.'
+                        );
+                
+                    END IF;
+                
+                    IF :P21_INVOICE_DATE IS NULL THEN
+                
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Please enter invoice date.'
+                        );
+                
+                    END IF;
+                
+                    --------------------------------------------------
+                    -- New Invoice
+                    --------------------------------------------------
+                
+                    IF :P21_INVOICE_NO IS NULL THEN
+                
+                        SELECT SEQ_INVOICE_NO.NEXTVAL
+                          INTO v_invoice_no
+                          FROM DUAL;
+                
+                        v_invoice_code :=
+                            'INV-' || LPAD(v_invoice_no,6,'0');
+                
+                        INSERT INTO TRN_SALES_INVOICE_MST
+                        (
+                            INVOICE_NO,
+                            INVOICE_CODE,
+                            INVOICE_DATE,
+                            ORDER_NO,
+                            CUSTOMER_NO,
+                            TOTAL_AMOUNT,
+                            DELIVERY_STATUS,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES
+                        (
+                            v_invoice_no,
+                            v_invoice_code,
+                            :P21_INVOICE_DATE,
+                            :P21_ORDER_NO,
+                            :P21_CUSTOMER_NO,
+                            0,
+                            'P',
+                            :APP_USER,
+                            SYSDATE
+                        );
+                
+                        :P21_INVOICE_NO := v_invoice_no;
+                
+                    --------------------------------------------------
+                    -- Update Invoice
+                    --------------------------------------------------
+                
+                    ELSE
+                
+                        UPDATE TRN_SALES_INVOICE_MST
+                           SET INVOICE_DATE = :P21_INVOICE_DATE,
+                               CUSTOMER_NO  = :P21_CUSTOMER_NO,
+                               UPDATED_BY   = :APP_USER,
+                               UPDATED_DATE = SYSDATE
+                         WHERE INVOICE_NO = :P21_INVOICE_NO;
+                
+                    END IF;
+                
+                   
+                
+                    --------------------------------------------------
+                    -- Success Message
+                    --------------------------------------------------
+                
+                    apex_application.g_print_success_message :=
+                        'Invoice saved successfully.';
+                
+                EXCEPTION
+                
+                    WHEN OTHERS THEN
+                
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            SQLERRM
+                        );
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+        error {
+            errorMessage: #SQLERRM_TEXT#
+        }
+        advanced {
+            executionMappingIdentifier: 11401339484150981843
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+)
+

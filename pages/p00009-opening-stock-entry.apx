@@ -1,0 +1,978 @@
+page 9 (
+    name: Opening Stock Entry
+    alias: OPENING-STOCK-ENTRY
+    title: Opening Stock Entry
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        formAutoComplete: false
+    }
+
+    region breadcrumb-2 (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 40
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region entry (
+        name: Entry
+        type: form
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select OPENING_NO,
+                       OPENING_DATE,
+                       PRODUCT_NO,
+                       OPENING_QTY,
+                       REMARKS,
+                       CREATED_BY,
+                       CREATED_DATE,
+                       UPDATED_BY,
+                       UPDATED_DATE
+                  from TRN_OPENING_STOCK
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--removeHeader js-removeLandmark
+                t-Region--noBorder
+                t-Region--hiddenOverflow
+                t-Form--slimPadding
+                t-Form--large
+                t-Form--stretchInputs
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+    )
+
+    region register (
+        name: Register
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select S.OPENING_NO,
+                       S.OPENING_DATE,
+                       S.PRODUCT_NO,
+                       S.OPENING_QTY,
+                       S.REMARKS,
+                       S.CREATED_BY,
+                       S.CREATED_DATE,
+                       S.UPDATED_BY,
+                       S.UPDATED_DATE,
+                       P.PRODUCT_NAME
+                  from TRN_OPENING_STOCK S,MST_PRODUCT P
+                  WHERE S.PRODUCT_NO = P.PRODUCT_NO
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
+        }
+        advanced {
+            savedReportMappingIdentifier: 40537137981432022365
+        }
+
+        savedReport primary (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @OPENING_NO
+                layout {
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @OPENING_DATE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @OPENING_QTY
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @REMARKS
+                layout {
+                    sequence: 10
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_NAME
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_NO
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_BY
+                layout {
+                    show: false
+                    width: 81
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_DATE
+                layout {
+                    show: false
+                    width: 90
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @UPDATED_BY
+                layout {
+                    show: false
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @UPDATED_DATE
+                layout {
+                    show: false
+                    width: 104
+                    sequence: 5
+                }
+            )
+
+        )
+
+        column CREATED_BY (
+            type: textField
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 60
+            }
+            validation {
+                maxLength: 30
+            }
+            source {
+                databaseColumn: CREATED_BY
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CREATED_DATE (
+            type: datePicker
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                databaseColumn: CREATED_DATE
+                dataType: date
+            }
+        )
+
+        column OPENING_DATE (
+            type: datePicker
+            heading {
+                heading: Opening Date
+            }
+            layout {
+                sequence: 30
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: OPENING_DATE
+                dataType: date
+            }
+        )
+
+        column OPENING_NO (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+            source {
+                databaseColumn: OPENING_NO
+                dataType: number
+                primaryKey: true
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column OPENING_QTY (
+            type: numberField
+            heading {
+                heading: Opening Qty
+                alignment: end
+            }
+            layout {
+                sequence: 40
+                columnAlignment: end
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: OPENING_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column PRODUCT_NAME (
+            type: link
+            heading {
+                heading: Product Name
+            }
+            layout {
+                sequence: 20
+            }
+            link {
+                target: {
+                    page: 9
+                    items: {
+                        P9_OPENING_NO: &OPENING_NO.
+                    }
+                }
+                linkText: &PRODUCT_NAME.
+            }
+            source {
+                databaseColumn: PRODUCT_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+        )
+
+        column PRODUCT_NO (
+            type: hidden
+            heading {
+                heading: Product No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                databaseColumn: PRODUCT_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column REMARKS (
+            type: textarea
+            heading {
+                heading: Remarks
+            }
+            layout {
+                sequence: 50
+            }
+            validation {
+                maxLength: 500
+            }
+            source {
+                databaseColumn: REMARKS
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+        )
+
+        column UPDATED_BY (
+            type: textField
+            heading {
+                heading: Updated By
+            }
+            layout {
+                sequence: 80
+            }
+            validation {
+                maxLength: 30
+            }
+            source {
+                databaseColumn: UPDATED_BY
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column UPDATED_DATE (
+            type: datePicker
+            heading {
+                heading: Updated Date
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                databaseColumn: UPDATED_DATE
+                dataType: date
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    pageItem P9_CREATED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 70
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: CREATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P9_CREATED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 80
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: CREATED_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P9_OPENING_DATE (
+        type: datePicker
+        label {
+            label: Opening Date
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @entry
+            column: OPENING_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P9_OPENING_NO (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: OPENING_NO
+            dataType: number
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P9_OPENING_QTY (
+        type: numberField
+        label {
+            label: Opening Qty
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @entry
+            column: OPENING_QTY
+            dataType: number
+        }
+    )
+
+    pageItem P9_PRODUCT_NO (
+        type: popupLov
+        label {
+            label: Product List
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT PRODUCT_CODE || '-'||PRODUCT_NAME PRODUCT_NAME,
+                       PRODUCT_NO
+                FROM MST_PRODUCT
+                WHERE ACTIVE_FLAG= 1
+                ORDER BY PRODUCT_NAME
+                ```
+            displayExtraValues: false
+            nullDisplayValue: --Select--
+        }
+        layout {
+            sequence: 20
+            region: @entry
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        source {
+            formRegion: @entry
+            column: PRODUCT_NO
+            dataType: number
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P9_REMARKS (
+        type: textField
+        label {
+            label: Remarks
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 500
+        }
+        source {
+            formRegion: @entry
+            column: REMARKS
+            dataType: varchar2
+        }
+    )
+
+    pageItem P9_UPDATED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 90
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: UPDATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P9_UPDATED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 100
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: UPDATED_DATE
+            dataType: date
+        }
+    )
+
+    button add-product-category (
+        buttonName: NEW
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 24
+                clearCache: 24
+                action: clearRegions
+            }
+        }
+        advanced {
+            htmlDomId: pb-reset
+            customAttributes: disabled
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update-2 (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    validation opening-quantity-must-be-greater-than-zero (
+        name: Opening quantity must be greater than zero.
+        execution {
+            sequence: 10
+        }
+        validation {
+            plsqlExpression: NVL(:P9_OPENING_QTY,0) > 0
+        }
+        error {
+            errorMessage: Opening quantity must be greater than zero.
+            associatedItem: @P9_OPENING_QTY
+        }
+    )
+
+    validation opening-stock-already-exists-for-this-product (
+        name: Opening stock already exists for this product.
+        execution {
+            sequence: 20
+        }
+        validation {
+            type: noRowsReturned
+            sqlQuery:
+                ```sql
+                SELECT 1
+                FROM TRN_OPENING_STOCK
+                WHERE PRODUCT_NO = :P9_PRODUCT_NO
+                  AND NVL(OPENING_NO,0) <> NVL(:P9_OPENING_NO,0)
+                ```
+        }
+        error {
+            errorMessage: Opening stock already exists for this product.
+            associatedItem: @P9_OPENING_QTY
+        }
+    )
+
+    process delete (
+        name: DELETE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                    DELETE FROM TRN_OPENING_STOCK
+                    WHERE OPENING_NO = :P9_OPENING_NO;
+                
+                    apex_application.g_print_success_message :=
+                        'Opening stock deleted successfully.';
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 20
+        }
+        advanced {
+            executionMappingIdentifier: 8129065651435016243
+        }
+    )
+
+    process initialize-form-supplier-setup (
+        name: Initialize form Supplier Setup
+        type: formInitialization
+        formRegion: @entry
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+        advanced {
+            executionMappingIdentifier: 8129056810661016221
+        }
+    )
+
+    process process-form-entry (
+        name: Process form Entry
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                    IF :P9_OPENING_NO IS NULL THEN
+                
+                        INSERT INTO TRN_OPENING_STOCK
+                        (
+                            OPENING_NO,
+                            OPENING_DATE,
+                            PRODUCT_NO,
+                            OPENING_QTY,
+                            REMARKS,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES
+                        (
+                            SEQ_OPENING_NO.NEXTVAL,
+                            :P9_OPENING_DATE,
+                            :P9_PRODUCT_NO,
+                            :P9_OPENING_QTY,
+                            :P9_REMARKS,
+                            :APP_USER,
+                            SYSDATE
+                        )
+                        RETURNING OPENING_NO
+                             INTO :P9_OPENING_NO;
+                
+                        /* STOCK LEDGER POSTING */
+                
+                        INSERT INTO TRN_STOCK_LEDGER
+                        (
+                            LEDGER_NO,
+                            TRAN_DATE,
+                            TRAN_TYPE,
+                            REF_NO,
+                            PRODUCT_NO,
+                            QTY_IN,
+                            QTY_OUT,
+                            REMARKS,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES
+                        (
+                            SEQ_LEDGER_NO.NEXTVAL,
+                            :P9_OPENING_DATE,
+                            'OPENING',
+                            :P9_OPENING_NO,
+                            :P9_PRODUCT_NO,
+                            :P9_OPENING_QTY,
+                            0,
+                            :P9_REMARKS,
+                            :APP_USER,
+                            SYSDATE
+                        );
+                
+                        apex_application.g_print_success_message :=
+                            'Opening stock saved successfully.';
+                
+                    ELSE
+                
+                        UPDATE TRN_OPENING_STOCK
+                           SET OPENING_DATE = :P9_OPENING_DATE,
+                               PRODUCT_NO   = :P9_PRODUCT_NO,
+                               OPENING_QTY  = :P9_OPENING_QTY,
+                               REMARKS      = :P9_REMARKS,
+                               UPDATED_BY   = :APP_USER,
+                               UPDATED_DATE = SYSDATE
+                         WHERE OPENING_NO = :P9_OPENING_NO;
+                
+                        /* LEDGER UPDATE */
+                
+                        UPDATE TRN_STOCK_LEDGER
+                           SET TRAN_DATE   = :P9_OPENING_DATE,
+                               PRODUCT_NO  = :P9_PRODUCT_NO,
+                               QTY_IN      = :P9_OPENING_QTY,
+                               REMARKS     = :P9_REMARKS
+                         WHERE TRAN_TYPE = 'OPENING'
+                           AND REF_NO    = :P9_OPENING_NO;
+                
+                        apex_application.g_print_success_message :=
+                            'Opening stock updated successfully.';
+                
+                    END IF;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+        advanced {
+            executionMappingIdentifier: 8129065283753016243
+        }
+    )
+
+)
+

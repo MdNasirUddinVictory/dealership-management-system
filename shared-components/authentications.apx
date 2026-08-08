@@ -1,0 +1,46 @@
+authentication database-user-authentication (
+    name: DATABASE_USER_AUTHENTICATION
+    type: custom
+    settings {
+        authFunctionName: CUSTOM_AUTH
+    }
+    source {
+        plsqlCode:
+            ```plsql
+            FUNCTION CUSTOM_AUTH(P_USERNAME IN VARCHAR2,
+                                         P_PASSWORD IN VARCHAR2)
+            RETURN BOOLEAN
+            AS
+            v_user_info NUMBER := 0;
+            V_ISVALIDATE VARCHAR(100);
+            v_user_no number;
+            BEGIN
+                SELECT F_PASSWORD(P_USERNAME,P_PASSWORD)
+                    INTO V_ISVALIDATE
+                FROM DUAL;
+                SELECT --COUNT(USER_NO),
+                USER_NO,USER_TYPE
+                    INTO --v_user_info, 
+                    :G_USER_NO,:G_USER_TYPE
+                FROM SA_USER
+                    WHERE UPPER(USER_NAME) = UPPER(P_USERNAME)
+                    AND USER_PWD = P_PASSWORD --V_ISVALIDATE
+                   -- GROUP BY USER_NO
+                    ;
+            
+                    -- APEX_UTIL.SET_SESSION_STATE('G_USER',v_user_no);
+                    -- :G_USER := G_USER_NAME(v_user_no);
+                        RETURN TRUE;
+                    EXCEPTION
+                        WHEN NO_DATA_FOUND THEN
+                RETURN FALSE;
+            END;
+            ```
+    }
+)
+
+authentication oracle-apex-accounts (
+    name: Oracle APEX Accounts
+    type: oracleApexAccounts
+)
+

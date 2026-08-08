@@ -1,0 +1,408 @@
+breadcrumb breadcrumb (
+    name: Breadcrumb
+
+    entry current-stock (
+        name: "Current Stock "
+        pageNumber: 10
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 10
+            }
+        }
+    )
+
+    entry customer-return (
+        name: Customer Return
+        pageNumber: 102
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 102
+            }
+        }
+    )
+
+    entry customer-return-2 (
+        name: Delivery Challan Entry
+        pageNumber: 105
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 105
+            }
+        }
+    )
+
+    entry customer-return-register (
+        name: Customer Return Register
+        pageNumber: 104
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 104
+            }
+        }
+    )
+
+    entry delivery-challan-register (
+        name: Delivery Challan Approval
+        pageNumber: 106
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 106
+            }
+        }
+    )
+
+    entry delivery-challan-register-2 (
+        name: Delivery Challan Register
+        pageNumber: 22
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 22
+            }
+        }
+    )
+
+    entry home (
+        name: Home
+        pageNumber: 1
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 1
+            }
+        }
+    )
+
+    entry invoice-entry (
+        name: Invoice Entry
+        pageNumber: 21
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 21
+            }
+        }
+    )
+
+    entry journal-voucher (
+        name: Journal Voucher
+        pageNumber: 301
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 301
+            }
+        }
+    )
+
+    entry journal-voucher-register (
+        name: Journal Voucher Register
+        pageNumber: 302
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 302
+            }
+        }
+    )
+
+    entry low-stock-alert (
+        name: Low Stock Alert
+        pageNumber: 101
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 101
+            }
+        }
+    )
+
+    entry menu-register (
+        name: Menu Register
+        pageNumber: 50
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 50
+            }
+        }
+    )
+
+    entry opening-stock-entry (
+        name: Opening Stock Entry
+        pageNumber: 9
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 9
+            }
+        }
+    )
+
+    entry product-category (
+        name: Product Category
+        pageNumber: 5
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 5
+            }
+        }
+    )
+
+    entry product-detail (
+        name: Product Entry
+        pageNumber: 6
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 6
+            }
+        }
+    )
+
+    entry product-entry (
+        name: Product Entry
+        pageNumber: 24
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 24
+            }
+        }
+    )
+
+    entry purchase-approval (
+        name: Purchase Approval
+        pageNumber: 16
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 16
+            }
+        }
+    )
+
+    entry purchase-entry (
+        name: Purchase Entry
+        pageNumber: 12
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 12
+            }
+        }
+    )
+
+    entry purchase-list (
+        name: Purchase List
+        pageNumber: 13
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 13
+            }
+        }
+    )
+
+    entry purchase-print-report (
+        name: PURCHASE PRINT REPORT
+        pageNumber: 3
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 3
+            }
+        }
+    )
+
+    entry purchase-register (
+        name: Purchase Register
+        pageNumber: 14
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 14
+            }
+        }
+    )
+
+    entry sales-entry (
+        name: Sales Order  Entry
+        pageNumber: 17
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 17
+            }
+        }
+    )
+
+    entry sales-invoice-list (
+        name: Sales Invoice List
+        pageNumber: 19
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 19
+            }
+        }
+    )
+
+    entry sales-invoice-print-2 (
+        name: Sales Invoice Print
+        pageNumber: 15
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 15
+            }
+        }
+    )
+
+    entry sales-order-list (
+        name: Sales Order List
+        pageNumber: 18
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 18
+            }
+        }
+    )
+
+    entry sales-return-approval (
+        name: Sales Return Approval
+        pageNumber: 103
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 103
+            }
+        }
+    )
+
+    entry stock-ledger (
+        name: Stock Ledger
+        pageNumber: 11
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 11
+            }
+        }
+    )
+
+    entry supplier-setup (
+        name: Supplier Setup
+        pageNumber: 7
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 7
+            }
+        }
+    )
+
+    entry tamplate (
+        name: Tamplate
+        pageNumber: 1000
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 1000
+            }
+        }
+    )
+
+    entry transaction-approval (
+        name: Transaction Approval
+        pageNumber: 305
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 305
+            }
+        }
+    )
+
+    entry transaction-request (
+        name: Transaction Request
+        pageNumber: 304
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 304
+            }
+        }
+    )
+
+)
+

@@ -1,0 +1,779 @@
+lov boolean (
+    name: BOOLEAN
+    source {
+        location: staticValues
+    }
+
+    entry false (
+        sequence: 2
+        display: No
+        return: FALSE
+    )
+
+    entry true (
+        sequence: 1
+        display: Yes
+        return: TRUE
+    )
+
+)
+
+lov lov-102-product (
+    name: LOV_102_PRODUCT
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            SELECT P.PRODUCT_CODE
+                   || ' - '
+                   || P.PRODUCT_NAME DISPLAY_VALUE,
+                   P.PRODUCT_NO RETURN_VALUE,
+                   D.SALES_RATE,
+                   D.SALES_QTY
+            FROM TRN_SALES_INVOICE_DTL D
+            JOIN MST_PRODUCT P
+              ON P.PRODUCT_NO = D.PRODUCT_NO
+            WHERE D.INVOICE_NO = :P102_INVOICE_NO
+            ORDER BY P.PRODUCT_NAME
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+
+    column DISPLAY_VALUE (
+        heading {
+            heading: Product Name
+        }
+        layout {
+            sequence: 10
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column RETURN_VALUE (
+        show: false
+        layout {
+            sequence: 20
+        }
+        source {
+            dataType: number
+        }
+    )
+
+    column SALES_QTY (
+        heading {
+            heading: Sales Qty
+        }
+        layout {
+            sequence: 40
+        }
+        source {
+            dataType: number
+        }
+    )
+
+    column SALES_RATE (
+        heading {
+            heading: Sales Rate
+        }
+        layout {
+            sequence: 30
+        }
+        source {
+            dataType: number
+        }
+    )
+
+)
+
+lov lov-105-invoice-lov (
+    name: LOV_105_INVOICE_LOV
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            SELECT
+                   I.INVOICE_NO,
+            
+                   I.INVOICE_CODE,
+            
+                   I.INVOICE_DATE,
+            
+                   i.CUSTOMER_NO,
+            
+                   C.CUSTOMER_NAME,
+            
+                   C.MOBILE_NO,
+            
+                   I.TOTAL_AMOUNT,
+            
+                   (
+                       SELECT NVL(SUM(D.SALES_QTY),0)
+                         FROM TRN_SALES_INVOICE_DTL D
+                        WHERE D.INVOICE_NO = I.INVOICE_NO
+                   ) TOTAL_QTY
+            
+            FROM TRN_SALES_INVOICE_MST I
+            JOIN MST_CUSTOMER C
+              ON C.CUSTOMER_NO = I.CUSTOMER_NO
+            
+            WHERE (
+                    I.DELIVERY_STATUS IN ('P','PD')
+                 OR EXISTS
+                    (
+                        SELECT 1
+                          FROM TRN_DELIVERY_MST D
+                         WHERE D.DELIVERY_NO = :P105_DELIVERY_NO
+                           AND D.INVOICE_NO = I.INVOICE_NO
+                    )
+                  )
+            
+            ORDER BY I.INVOICE_NO DESC
+            ```
+    }
+    columnMapping {
+        return: INVOICE_NO
+        display: INVOICE_CODE
+    }
+
+    column CUSTOMER_NAME (
+        heading {
+            heading: Customer Name
+        }
+        layout {
+            sequence: 40
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column CUSTOMER_NO (
+        show: false
+        heading {
+            heading: Customer No
+        }
+        layout {
+            sequence: 10
+        }
+        source {
+            dataType: number
+        }
+    )
+
+    column INVOICE_CODE (
+        heading {
+            heading: Invoice Code
+        }
+        layout {
+            sequence: 20
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column INVOICE_DATE (
+        heading {
+            heading: Invoice Date
+        }
+        layout {
+            sequence: 30
+        }
+        source {
+            dataType: date
+        }
+    )
+
+    column INVOICE_NO (
+        show: false
+        layout {
+            sequence: 10
+        }
+        source {
+            dataType: number
+        }
+        advanced {
+            searchable: false
+        }
+    )
+
+    column MOBILE_NO (
+        heading {
+            heading: Mobile No
+        }
+        layout {
+            sequence: 50
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column TOTAL_AMOUNT (
+        heading {
+            heading: Total Amount
+        }
+        layout {
+            sequence: 60
+        }
+        source {
+            dataType: number
+        }
+    )
+
+    column TOTAL_QTY (
+        heading {
+            heading: Total Qty
+        }
+        layout {
+            sequence: 70
+        }
+        source {
+            dataType: number
+        }
+    )
+
+)
+
+lov lov-11-product (
+    name: LOV_11_PRODUCT
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            SELECT
+                   PRODUCT_NO,
+            
+                   PRODUCT_CODE,
+            
+                   PRODUCT_NAME,
+            
+                   PURCHASE_RATE,
+            
+                   SALES_RATE,
+            
+                   MIN_STOCK_QTY
+            
+            FROM MST_PRODUCT
+            
+            WHERE ACTIVE_FLAG = 1
+            
+            ORDER BY PRODUCT_NAME;
+            ```
+    }
+    columnMapping {
+        return: PRODUCT_NO
+        display: PRODUCT_CODE
+    }
+)
+
+lov lov-12-product (
+    name: LOV_12_PRODUCT
+    source {
+        type: sqlQuery
+        sqlQuery: SELECT P.PRODUCT_NO, P.PRODUCT_CODE || ' - ' ||P.PRODUCT_NAME PRODUCT_NAME, p.DESCRIPTION, P.UOM_NO, U.UOM_NAME, P.PURCHASE_RATE, P.SALES_RATE FROM MST_PRODUCT P LEFT JOIN MST_UOM U ON U.UOM_NO = P.UOM_NO WHERE P.ACTIVE_FLAG = 1 ORDER BY P.PRODUCT_NAME
+    }
+    columnMapping {
+        return: PRODUCT_NO
+        display: PRODUCT_NAME
+    }
+
+    column DESCRIPTION (
+        show: false
+        heading {
+            heading: Description
+        }
+        layout {
+            sequence: 6
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column PRODUCT_NAME (
+        heading {
+            heading: Product Name
+        }
+        layout {
+            sequence: 5
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column PRODUCT_NO (
+        show: false
+        layout {
+            sequence: 10
+        }
+        source {
+            dataType: number
+        }
+        advanced {
+            searchable: false
+        }
+    )
+
+    column PURCHASE_RATE (
+        heading {
+            heading: Purchase Rate
+        }
+        layout {
+            sequence: 50
+        }
+        source {
+            dataType: number
+        }
+    )
+
+    column UOM_NAME (
+        show: false
+        heading {
+            heading: Uom Name
+        }
+        layout {
+            sequence: 40
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column UOM_NO (
+        show: false
+        heading {
+            heading: Uom No
+        }
+        layout {
+            sequence: 10
+        }
+        source {
+            dataType: number
+        }
+    )
+
+)
+
+lov lov-17-customer-lov (
+    name: LOV_17_CUSTOMER
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            SELECT
+                   CUSTOMER_CODE
+                   || ' - '
+                   || CUSTOMER_NAME DISPLAY_VALUE,
+                   CUSTOMER_NO RETURN_VALUE,
+                   CUSTOMER_NAME,
+                   MOBILE_NO,
+                   ADDRESS
+            FROM MST_CUSTOMER
+            WHERE NVL(ACTIVE_FLAG,1) = 1
+            ORDER BY CUSTOMER_NAME;
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+
+    column ADDRESS (
+        heading {
+            heading: Address
+        }
+        layout {
+            sequence: 50
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column CUSTOMER_NAME (
+        heading {
+            heading: Customer Name
+        }
+        layout {
+            sequence: 30
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column DISPLAY_VALUE (
+        heading {
+            heading: Display Value
+        }
+        layout {
+            sequence: 20
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column MOBILE_NO (
+        heading {
+            heading: Mobile No
+        }
+        layout {
+            sequence: 40
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column RETURN_VALUE (
+        show: false
+        layout {
+            sequence: 10
+        }
+        source {
+            dataType: number
+        }
+        advanced {
+            searchable: false
+        }
+    )
+
+)
+
+lov lov-17-product (
+    name: LOV_17_PRODUCT
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            SELECT P.PRODUCT_NO,
+                   P.PRODUCT_CODE || ' - ' || P.PRODUCT_NAME AS PRODUCT_NAME,
+                   P.DESCRIPTION,
+                   P.UOM_NO,
+                   U.UOM_NAME,
+                   P.PURCHASE_RATE,
+                   P.SALES_RATE,
+                   NVL(S.STOCK_QTY,0) AS STOCK_QTY
+            FROM MST_PRODUCT P
+            JOIN MST_UOM U
+              ON U.UOM_NO = P.UOM_NO
+            LEFT JOIN
+            (
+                SELECT PRODUCT_NO,
+                       SUM(QTY_IN) - SUM(QTY_OUT) AS STOCK_QTY
+                  FROM TRN_STOCK_LEDGER
+                 GROUP BY PRODUCT_NO
+            ) S
+              ON S.PRODUCT_NO = P.PRODUCT_NO
+            WHERE P.ACTIVE_FLAG = 1
+            ORDER BY P.PRODUCT_NAME;
+            ```
+    }
+    columnMapping {
+        return: PRODUCT_NO
+        display: PRODUCT_NAME
+    }
+
+    column DESCRIPTION (
+        heading {
+            heading: Description
+        }
+        layout {
+            sequence: 30
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column PRODUCT_NAME (
+        heading {
+            heading: Product Name
+        }
+        layout {
+            sequence: 20
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column PRODUCT_NO (
+        show: false
+        layout {
+            sequence: 10
+        }
+        source {
+            dataType: number
+        }
+        advanced {
+            searchable: false
+        }
+    )
+
+    column PURCHASE_RATE (
+        show: false
+        heading {
+            heading: Purchase Rate
+        }
+        layout {
+            sequence: 60
+        }
+        source {
+            dataType: number
+        }
+    )
+
+    column SALES_RATE (
+        heading {
+            heading: Sales Rate
+        }
+        layout {
+            sequence: 70
+        }
+        source {
+            dataType: number
+        }
+    )
+
+    column STOCK_QTY (
+        heading {
+            heading: Stock Qty
+        }
+        layout {
+            sequence: 80
+        }
+        source {
+            dataType: number
+        }
+    )
+
+    column UOM_NAME (
+        show: false
+        heading {
+            heading: Uom Name
+        }
+        layout {
+            sequence: 50
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column UOM_NO (
+        show: false
+        heading {
+            heading: Uom No
+        }
+        layout {
+            sequence: 40
+        }
+        source {
+            dataType: number
+        }
+    )
+
+)
+
+lov lov-21-invoice (
+    name: LOV_21_INVOICE
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            SELECT O.ORDER_CODE
+                   || ' - '
+                   || TO_CHAR(O.ORDER_DATE,'DD-MON-YYYY') AS ORDER_CODE,
+            
+                   O.ORDER_NO,
+            
+                   O.CUSTOMER_NO,
+            
+                   C.CUSTOMER_NAME,
+            
+                   C.MOBILE_NO,
+            
+                   C.ADDRESS,
+            
+                   O.ORDER_DATE,
+            
+                   O.REMARKS,
+            
+                   NVL(
+                       (
+                           SELECT SUM(D.TOTAL_AMOUNT)
+                             FROM TRN_SALES_ORDER_DTL D
+                            WHERE D.ORDER_NO = O.ORDER_NO
+                       ),
+                       0
+                   ) TOTAL_AMOUNT
+            
+            FROM TRN_SALES_ORDER_MST O
+            JOIN MST_CUSTOMER C
+              ON C.CUSTOMER_NO = O.CUSTOMER_NO
+            
+            WHERE EXISTS
+            (
+                SELECT 1
+                  FROM TRN_SALES_ORDER_DTL D
+                 WHERE D.ORDER_NO = O.ORDER_NO
+                   AND NVL(D.BALANCE_QTY,0) > 0
+            )
+            OR O.ORDER_NO = :P21_ORDER_NO
+            
+            ORDER BY O.ORDER_NO DESC;
+            ```
+    }
+    columnMapping {
+        return: ORDER_NO
+        display: ORDER_CODE
+    }
+
+    column ADDRESS (
+        show: false
+        heading {
+            heading: Address
+        }
+        layout {
+            sequence: 60
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column CUSTOMER_NAME (
+        heading {
+            heading: Customer Name
+        }
+        layout {
+            sequence: 40
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column CUSTOMER_NO (
+        show: false
+        heading {
+            heading: Customer No
+        }
+        layout {
+            sequence: 30
+        }
+        source {
+            dataType: number
+        }
+    )
+
+    column MOBILE_NO (
+        heading {
+            heading: Mobile No
+        }
+        layout {
+            sequence: 50
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column ORDER_CODE (
+        heading {
+            heading: Order Code
+        }
+        layout {
+            sequence: 20
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column ORDER_DATE (
+        show: false
+        heading {
+            heading: Order Date
+        }
+        layout {
+            sequence: 70
+        }
+        source {
+            dataType: date
+        }
+    )
+
+    column ORDER_NO (
+        show: false
+        layout {
+            sequence: 10
+        }
+        source {
+            dataType: number
+        }
+        advanced {
+            searchable: false
+        }
+    )
+
+    column REMARKS (
+        show: false
+        heading {
+            heading: Remarks
+        }
+        layout {
+            sequence: 80
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column TOTAL_AMOUNT (
+        heading {
+            heading: Total Amount
+        }
+        layout {
+            sequence: 90
+        }
+        source {
+            dataType: number
+        }
+    )
+
+)
+
+lov mst-product-category-category-code (
+    name: MST_PRODUCT_CATEGORY.CATEGORY_CODE
+    source {
+        tableName: MST_PRODUCT_CATEGORY
+    }
+    columnMapping {
+        return: CATEGORY_NO
+        display: CATEGORY_CODE
+        defaultSort: CATEGORY_CODE
+    }
+)
+
+lov mst-uom-uom-code (
+    name: MST_UOM.UOM_CODE
+    source {
+        tableName: MST_UOM
+    }
+    columnMapping {
+        return: UOM_NO
+        display: UOM_CODE
+        defaultSort: UOM_CODE
+    }
+)
+

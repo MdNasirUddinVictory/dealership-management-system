@@ -1,0 +1,2384 @@
+page 304 (
+    name: Transaction Request
+    alias: TRANSACTION-REQUEST
+    title: Transaction Request
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            function populateTransaction() {
+            
+                if (!$v('P304_PARTY_NO')) {
+                    apex.message.alert('Please select party.');
+                    return;
+                }
+            
+                if (!$v('P304_TRANSACTION_TYPE')) {
+                    apex.message.alert('Please select transaction type.');
+                    return;
+                }
+            
+                var model = apex.region("transaction-dtl")
+                    .widget()
+                    .interactiveGrid("getViews", "grid")
+                    .model;
+            
+                // Already populated?
+                if (model.getTotalRecords() > 0) {
+                    apex.message.alert('Transaction details already exist.');
+                    return;
+                }
+            
+                apex.server.process(
+                    'TRANSACTION_POPULATE',
+                    {
+                        x01: $v('P304_PARTY_NO'),
+                        x02: $v('P304_TRANSACTION_TYPE')
+                    },
+                    {
+                        success: function (pData) {
+            
+                            var json = JSON.parse(pData);
+            
+                            if (!json || json.length === 0) {
+            
+                                apex.message.alert(
+                                    'No pending transaction found.'
+                                );
+            
+                                return;
+                            }
+            
+                            for (var key in json) {
+            
+                                if (json.hasOwnProperty(key)) {
+            
+                                    var rec = model.insertNewRecord();
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "REF_TYPE",
+                                        json[key].REF_TYPE.toString()
+                                    );
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "REF_NO",
+                                        json[key].REF_NO.toString()
+                                    );
+            
+                                    // model.setRecordValue(
+                                    //     rec,
+                                    //     "DOC_NO",
+                                    //     json[key].DOC_NO.toString()
+                                    // );
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "DOC_CODE",
+                                        json[key].DOC_CODE.toString()
+                                    );
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "DOC_DATE",
+                                        json[key].DOC_DATE
+                                    );
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "PRODUCT_NO",
+                                        json[key].PRODUCT_NO.toString()
+                                    );
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "PRODUCT_CODE",
+                                        json[key].PRODUCT_CODE
+                                    );
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "PRODUCT_NAME",
+                                        json[key].PRODUCT_NAME
+                                    );
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "INVOICE_AMOUNT",
+                                        json[key].INVOICE_AMOUNT.toString()
+                                    );
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "PREVIOUS_AMOUNT",
+                                        json[key].PREVIOUS_AMOUNT.toString()
+                                    );
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "DUE_AMOUNT",
+                                        json[key].DUE_AMOUNT.toString()
+                                    );
+            
+                                    model.setRecordValue(
+                                        rec,
+                                        "ALLOCATE_AMOUNT",
+                                        json[key].ALLOCATE_AMOUNT.toString()
+                                    );
+            
+                                }
+            
+                            }
+            
+                            apex.message.showPageSuccess(
+                                json.length + ' record(s) loaded successfully.'
+                            );
+            
+                        },
+            
+                        error: function () {
+            
+                            apex.message.alert(
+                                'Error loading transaction details.'
+                            );
+            
+                        },
+            
+                        dataType: "text"
+            
+                    }
+            
+                );
+            
+            }
+            ```
+    }
+    security {
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region trn-dtl (
+        name: TRN DTL
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT * FROM (SELECT
+                    T.TRANSACTION_DTL_NO,
+                    T.TRANSACTION_NO,
+                
+                    T.REF_TYPE,
+                    T.REF_NO,
+                
+                    T.DOC_NO,
+                    T.DOC_CODE,
+                    T.DOC_DATE,
+                
+                    T.PRODUCT_NO,
+                
+                    P.PRODUCT_CODE,
+                    P.PRODUCT_NAME,
+                
+                    T.INVOICE_AMOUNT,
+                    T.PREVIOUS_AMOUNT,
+                    T.DUE_AMOUNT,
+                    T.ALLOCATE_AMOUNT,
+                
+                    T.REMARKS,
+                    T.CREATED_BY,
+                    T.CREATED_DATE
+                
+                FROM TRN_TRANSACTION_DTL T
+                
+                LEFT JOIN MST_PRODUCT P
+                       ON P.PRODUCT_NO = T.PRODUCT_NO
+                
+                WHERE T.TRANSACTION_NO = :P304_TRANSACTION_NO
+                
+                ORDER BY T.TRANSACTION_DTL_NO);
+                ```
+            pageItemsToSubmit: P304_TRANSACTION_NO
+        }
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        advanced {
+            htmlDomId: transaction-dtl
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+            addRowIfEmpty: false
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
+        }
+        componentAdvanced {
+            initJavaScriptFunction:
+                ```javascript-browser
+                function(config) {
+                    var $ = apex.jQuery;
+                    var toolbarData = $.apex.interactiveGrid.copyDefaultToolbar();
+                
+                    // actions2 remove করো
+                    toolbarData.toolbarRemove("actions2");
+                    toolbarData.toolbarRemove("actions3");
+                
+                    // actions1 group খুঁজে button add করো
+                    var toolbarGroup = toolbarData.toolbarFind("actions1");
+                
+                    // Add button লুকাও
+                    // toolbarGroup.controls = toolbarGroup.controls.filter(function(ctrl) {
+                    //     return ctrl.id !== "add";  // Add Row button hide
+                    // });
+                
+                    // Populate button যোগ করো
+                    toolbarGroup.controls.push({
+                        type: "BUTTON",
+                        id: "btn_populate",
+                        label: "Populate",
+                        hot: true,
+                        iconCss: "a-Icon icon-ig-download",
+                        iconBeforeLabel: true,
+                        action: "populate-action"
+                    });
+                
+                    config.toolbarData = toolbarData;
+                
+                    var originalInitActions = config.initActions;
+                    config.initActions = function(actions) {
+                        if (originalInitActions) {
+                            originalInitActions.call(this, actions);
+                        }
+                        actions.add({
+                            name: "populate-action",
+                            label: "Populate",
+                            action: function() {
+                                populateTransaction();
+                            }
+                        });
+                    };
+                
+                    return config;
+                }
+                ```
+        }
+        advanced {
+            savedReportMappingIdentifier: 14788391160123363410
+        }
+
+        savedReport primary (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @TRANSACTION_DTL_NO
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @TRANSACTION_NO
+                layout {
+                    width: 133.125
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @REF_TYPE
+                layout {
+                    width: 77.969
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @REF_NO
+                layout {
+                    width: 79.125
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @REMARKS
+                layout {
+                    sequence: 10
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_BY
+                layout {
+                    sequence: 11
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_DATE
+                layout {
+                    sequence: 12
+                }
+            )
+
+            displayColumn (
+                column: @INVOICE_AMOUNT
+                layout {
+                    width: 105.125
+                    sequence: 13
+                }
+            )
+
+            displayColumn (
+                column: @DUE_AMOUNT
+                layout {
+                    width: 85.969
+                    sequence: 14
+                }
+            )
+
+            displayColumn (
+                column: @DOC_NO
+                layout {
+                    sequence: 15
+                }
+            )
+
+            displayColumn (
+                column: @DOC_CODE
+                layout {
+                    width: 95.9688
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @DOC_DATE
+                layout {
+                    width: 94.969
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_NO
+                layout {
+                    sequence: 16
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_CODE
+                layout {
+                    width: 106.969
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_NAME
+                layout {
+                    width: 159.969
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @PREVIOUS_AMOUNT
+                layout {
+                    width: 113.953
+                    sequence: 17
+                }
+            )
+
+            displayColumn (
+                column: @ALLOCATE_AMOUNT
+                layout {
+                    width: 122.094
+                    sequence: 18
+                }
+            )
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+        )
+
+        column ALLOCATE_AMOUNT (
+            type: numberField
+            heading {
+                heading: Allocate Amount
+                alignment: end
+            }
+            layout {
+                sequence: 190
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: ALLOCATE_AMOUNT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column APEX$ROW_ACTION (
+            type: actionsMenu
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 10
+            }
+        )
+
+        column CREATED_BY (
+            type: hidden
+            heading {
+                heading: Created By
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 220
+            }
+            source {
+                databaseColumn: CREATED_BY
+                dataType: varchar2
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column CREATED_DATE (
+            type: hidden
+            heading {
+                heading: Created Date
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 230
+            }
+            source {
+                databaseColumn: CREATED_DATE
+                dataType: date
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column DOC_CODE (
+            type: textField
+            heading {
+                heading: Doc Code
+            }
+            layout {
+                sequence: 130
+            }
+            validation {
+                maxLength: 50
+            }
+            source {
+                databaseColumn: DOC_CODE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column DOC_DATE (
+            type: datePicker
+            heading {
+                heading: Doc Date
+            }
+            layout {
+                sequence: 140
+            }
+            source {
+                databaseColumn: DOC_DATE
+                dataType: date
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column DOC_NO (
+            type: hidden
+            heading {
+                heading: Doc No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 240
+            }
+            source {
+                databaseColumn: DOC_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column DUE_AMOUNT (
+            type: numberField
+            heading {
+                heading: Due Amount
+                alignment: end
+            }
+            layout {
+                sequence: 110
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: DUE_AMOUNT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column INVOICE_AMOUNT (
+            type: numberField
+            heading {
+                heading: Invoice Amount
+                alignment: end
+            }
+            layout {
+                sequence: 100
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: INVOICE_AMOUNT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column PREVIOUS_AMOUNT (
+            type: numberField
+            heading {
+                heading: Previous Amount
+                alignment: end
+            }
+            layout {
+                sequence: 180
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: PREVIOUS_AMOUNT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column PRODUCT_CODE (
+            type: textField
+            heading {
+                heading: Product Code
+            }
+            layout {
+                sequence: 160
+            }
+            validation {
+                maxLength: 50
+            }
+            source {
+                databaseColumn: PRODUCT_CODE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column PRODUCT_NAME (
+            type: textField
+            heading {
+                heading: Product Name
+            }
+            layout {
+                sequence: 170
+            }
+            validation {
+                maxLength: 300
+            }
+            source {
+                databaseColumn: PRODUCT_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column PRODUCT_NO (
+            type: hidden
+            heading {
+                heading: Product No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 250
+            }
+            source {
+                databaseColumn: PRODUCT_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column REF_NO (
+            type: hidden
+            heading {
+                heading: Ref No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 200
+            }
+            source {
+                databaseColumn: REF_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column REF_TYPE (
+            type: textField
+            heading {
+                heading: Ref Type
+            }
+            layout {
+                sequence: 50
+            }
+            validation {
+                maxLength: 20
+            }
+            source {
+                databaseColumn: REF_TYPE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+            advanced {
+                customAttributes: readonly
+            }
+        )
+
+        column REMARKS (
+            type: hidden
+            heading {
+                heading: Remarks
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 210
+            }
+            source {
+                databaseColumn: REMARKS
+                dataType: varchar2
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column TRANSACTION_DTL_NO (
+            type: hidden
+            layout {
+                sequence: 30
+            }
+            source {
+                databaseColumn: TRANSACTION_DTL_NO
+                dataType: number
+                primaryKey: true
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column TRANSACTION_NO (
+            type: hidden
+            heading {
+                heading: Transaction No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                databaseColumn: TRANSACTION_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    region trn-mst (
+        name: TRN_MST
+        type: form
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select TRANSACTION_NO,
+                       TRANSACTION_CODE,
+                       TRANSACTION_DATE,
+                       TRANSACTION_TYPE,
+                       PARTY_TYPE,
+                       PARTY_NO,
+                       PAY_MODE,
+                       BANK_ACCOUNT_NO,
+                       TOTAL_AMOUNT,
+                       REMARKS,
+                       APPROVAL_STATUS,
+                       DECODE(APPROVAL_STATUS,'A','Approved','Pending') STATUS,
+                       VOUCHER_NO,
+                       CREATED_BY,
+                       CREATED_DATE,
+                       APPROVED_BY,
+                       APPROVED_DATE,
+                       UPDATED_BY,
+                       UPDATED_DATE
+                  from TRN_TRANSACTION_MST
+                ```
+        }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--removeHeader js-removeLandmark
+                t-Region--scrollBody
+                t-Form--slimPadding
+                t-Form--stretchInputs
+            ]
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+    )
+
+    pageItem P304_APPROVAL_STATUS (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 200
+            region: @trn-mst
+            slot: regionBody
+        }
+        source {
+            formRegion: @trn-mst
+            column: APPROVAL_STATUS
+            dataType: varchar2
+        }
+    )
+
+    pageItem P304_APPROVED_BY (
+        type: displayOnly
+        label {
+            label: Approved By
+            alignment: left
+        }
+        layout {
+            sequence: 180
+            region: @trn-mst
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+        }
+        source {
+            formRegion: @trn-mst
+            column: APPROVED_BY
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: item=value
+            item: P304_APPROVAL_STATUS
+            value: A
+        }
+    )
+
+    pageItem P304_APPROVED_DATE (
+        type: displayOnly
+        label {
+            label: Date
+            alignment: left
+        }
+        layout {
+            sequence: 190
+            region: @trn-mst
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+        }
+        source {
+            formRegion: @trn-mst
+            column: APPROVED_DATE
+            dataType: date
+        }
+        serverSideCondition {
+            type: item=value
+            item: P304_APPROVAL_STATUS
+            value: A
+        }
+    )
+
+    pageItem P304_BANK_ACCOUNT_NO (
+        type: numberField
+        label {
+            label: Bank Account No
+            alignment: left
+        }
+        layout {
+            sequence: 120
+            region: @trn-mst
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        source {
+            formRegion: @trn-mst
+            column: BANK_ACCOUNT_NO
+            dataType: number
+        }
+    )
+
+    pageItem P304_CREATED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 210
+            region: @trn-mst
+            slot: regionBody
+        }
+        source {
+            formRegion: @trn-mst
+            column: CREATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P304_CREATED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 220
+            region: @trn-mst
+            slot: regionBody
+        }
+        source {
+            formRegion: @trn-mst
+            column: CREATED_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P304_PARTY_NO (
+        type: selectList
+        label {
+            label: Customer/Supplier
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT PARTY_NAME D,
+                       PARTY_NO   R
+                FROM
+                (
+                    SELECT CUSTOMER_NAME PARTY_NAME,
+                           CUSTOMER_NO   PARTY_NO
+                      FROM MST_CUSTOMER
+                     WHERE :P304_TRANSACTION_TYPE = 'R'
+                
+                    UNION ALL
+                
+                    SELECT SUPPLIER_NAME,
+                           SUPPLIER_NO
+                      FROM MST_SUPPLIER
+                     WHERE :P304_TRANSACTION_TYPE = 'P'
+                )
+                ORDER BY D;
+                ```
+            displayExtraValues: false
+        }
+        cascadingLov {
+            parentItems: P304_TRANSACTION_TYPE
+            itemsToSubmit: P304_TRANSACTION_TYPE
+        }
+        layout {
+            sequence: 100
+            region: @trn-mst
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            height: 1
+        }
+        source {
+            formRegion: @trn-mst
+            column: PARTY_NO
+            dataType: number
+        }
+    )
+
+    pageItem P304_PARTY_TYPE (
+        type: radioGroup
+        label {
+            label: Party Type
+            alignment: left
+        }
+        settings {
+            noOfCols: 2
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:CUSTOMER;C,SUPPLIER;S
+            displayExtraValues: false
+            displayNullValue: false
+        }
+        layout {
+            sequence: 90
+            region: @trn-mst
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
+                t-Form-fieldContainer--slimPadding
+            ]
+        }
+        source {
+            formRegion: @trn-mst
+            column: PARTY_TYPE
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: C
+        }
+    )
+
+    pageItem P304_PAY_MODE (
+        type: radioGroup
+        label {
+            label: Pay Mode
+            alignment: left
+        }
+        settings {
+            noOfCols: 2
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:CASH;C,BANK;B
+            displayExtraValues: false
+            displayNullValue: false
+        }
+        layout {
+            sequence: 110
+            region: @trn-mst
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
+                t-Form-fieldContainer--slimPadding
+            ]
+        }
+        source {
+            formRegion: @trn-mst
+            column: PAY_MODE
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: C
+        }
+    )
+
+    pageItem P304_REMARKS (
+        type: textField
+        label {
+            label: Remarks
+            alignment: left
+        }
+        layout {
+            sequence: 140
+            region: @trn-mst
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 500
+        }
+        source {
+            formRegion: @trn-mst
+            column: REMARKS
+            dataType: varchar2
+        }
+    )
+
+    pageItem P304_STATUS (
+        type: displayOnly
+        label {
+            label: Approval Status
+            alignment: left
+        }
+        layout {
+            sequence: 160
+            region: @trn-mst
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+        }
+        source {
+            formRegion: @trn-mst
+            column: STATUS
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: item=value
+            item: P304_APPROVAL_STATUS
+            value: A
+        }
+    )
+
+    pageItem P304_TOTAL_AMOUNT (
+        type: numberField
+        label {
+            label: Total Amount
+            alignment: left
+        }
+        layout {
+            sequence: 130
+            region: @trn-mst
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            formRegion: @trn-mst
+            column: TOTAL_AMOUNT
+            dataType: number
+        }
+    )
+
+    pageItem P304_TRANSACTION_CODE (
+        type: displayOnly
+        label {
+            label: Transaction Code
+            alignment: left
+        }
+        layout {
+            sequence: 150
+            region: @trn-mst
+            slot: regionBody
+            alignment: left
+            columnSpan: 3
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            formRegion: @trn-mst
+            column: TRANSACTION_CODE
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P304_TRANSACTION_NO
+        }
+    )
+
+    pageItem P304_TRANSACTION_DATE (
+        type: datePicker
+        label {
+            label: Transaction Date
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @trn-mst
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @trn-mst
+            column: TRANSACTION_DATE
+            dataType: date
+        }
+        default {
+            type: expression
+            plsqlExpression: " SYSDATE"
+        }
+    )
+
+    pageItem P304_TRANSACTION_NO (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @trn-mst
+            slot: regionBody
+        }
+        source {
+            formRegion: @trn-mst
+            column: TRANSACTION_NO
+            dataType: number
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P304_TRANSACTION_TYPE (
+        type: radioGroup
+        label {
+            label: Transaction Type
+            alignment: left
+        }
+        settings {
+            noOfCols: 2
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:RECEIVED;R,PAYMENT;P
+            displayExtraValues: false
+            displayNullValue: false
+        }
+        layout {
+            sequence: 70
+            region: @trn-mst
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
+                t-Form-fieldContainer--slimPadding
+            ]
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @trn-mst
+            column: TRANSACTION_TYPE
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: R
+        }
+    )
+
+    pageItem P304_UPDATED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 230
+            region: @trn-mst
+            slot: regionBody
+        }
+        source {
+            formRegion: @trn-mst
+            column: UPDATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P304_UPDATED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 240
+            region: @trn-mst
+            slot: regionBody
+        }
+        source {
+            formRegion: @trn-mst
+            column: UPDATED_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P304_VOUCHER_NUMBER (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 60
+            region: @trn-mst
+            slot: regionBody
+        }
+        source {
+            formRegion: @trn-mst
+            column: VOUCHER_NO
+            dataType: number
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P304_TRANSACTION_NO
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 304
+                clearCache: 17
+                action: clearRegions
+            }
+        }
+        advanced {
+            htmlDomId: pb-reset
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+        }
+    )
+
+    dynamicAction new (
+        name: New
+        execution {
+            sequence: 10
+        }
+        when {
+            selectionType: items
+            items: P304_TRANSACTION_TYPE
+        }
+        clientSideCondition {
+            type: item=value
+            item: P304_TRANSACTION_TYPE
+            value: P
+        }
+
+        action native-set-value (
+            action: setValue
+            settings {
+                value: S
+            }
+            affectedElements {
+                selectionType: items
+                items: P304_PARTY_TYPE
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+        action native-set-value_1 (
+            action: setValue
+            settings {
+                value: C
+            }
+            affectedElements {
+                selectionType: items
+                items: P304_PARTY_TYPE
+            }
+            execution {
+                sequence: 10
+                fireWhenEventResultIs: false
+            }
+        )
+
+    )
+
+    dynamicAction new_1 (
+        name: New
+        execution {
+            sequence: 20
+        }
+        when {
+            selectionType: items
+            items: P304_PAY_MODE
+        }
+        clientSideCondition {
+            type: item=value
+            item: P304_PAY_MODE
+            value: B
+        }
+
+        action native-disable (
+            action: disable
+            affectedElements {
+                selectionType: items
+                items: P304_BANK_ACCOUNT_NO
+            }
+            execution {
+                sequence: 10
+                fireWhenEventResultIs: false
+            }
+        )
+
+        action native-enable (
+            action: enable
+            affectedElements {
+                selectionType: items
+                items: P304_BANK_ACCOUNT_NO
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
+    dynamicAction new_2 (
+        name: New
+        execution {
+            sequence: 30
+        }
+        when {
+            selectionType: items
+            items: P304_MOBILE_NO
+        }
+        clientSideCondition {
+            type: itemIsNull
+            item: P304_CUSTOMER_NO
+        }
+        config {
+            buildOption: @commented-out
+        }
+
+        action native-execute-plsql-code (
+            action: executeServerSideCode
+            settings {
+                plsqlCode:
+                    ```plsql
+                    BEGIN
+                    
+                        SELECT CUSTOMER_NO,
+                               CUSTOMER_NAME,
+                               ADDRESS
+                          INTO :P304_CUSTOMER_NO,
+                               :P304_CUSTOMER_NAME,
+                               :P304_DELIVERY_ADDRESS
+                          FROM (
+                                SELECT *
+                                  FROM MST_CUSTOMER
+                                 WHERE MOBILE_NO = :P304_CONTACT_NO
+                                   AND NVL(ACTIVE_FLAG,1) = 1
+                                 ORDER BY CUSTOMER_NO DESC
+                               )
+                         WHERE ROWNUM = 1;
+                    
+                    EXCEPTION
+                        WHEN NO_DATA_FOUND THEN
+                    
+                            :P304_CUSTOMER_NO      := NULL;
+                            :P304_CUSTOMER_NAME    := NULL;
+                            :P304_DELIVERY_ADDRESS := NULL;
+                    
+                    END;
+                    ```
+                itemsToSubmit: P304_CONTACT_NO
+                itemsToReturn: [
+                    P304_CUSTOMER_NO
+                    P304_CUSTOMER_NAME
+                    P304_ADDRESS
+                ]
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process delete (
+        name: DELETE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    V_CNT NUMBER;
+                
+                BEGIN
+                
+                    -------------------------------------------------
+                    -- Approved Check
+                    -------------------------------------------------
+                
+                    SELECT COUNT(*)
+                      INTO V_CNT
+                      FROM TRN_TRANSACTION_MST
+                     WHERE TRANSACTION_NO = :P304_TRANSACTION_NO
+                       AND APPROVAL_STATUS = 'A';
+                
+                    IF V_CNT > 0 THEN
+                
+                        RAISE_APPLICATION_ERROR
+                        (
+                            -20001,
+                            'Approved transaction cannot be deleted.'
+                        );
+                
+                    END IF;
+                
+                    -------------------------------------------------
+                    -- Voucher Posted Check
+                    -------------------------------------------------
+                
+                    SELECT COUNT(*)
+                      INTO V_CNT
+                      FROM TRN_TRANSACTION_MST
+                     WHERE TRANSACTION_NO = :P304_TRANSACTION_NO
+                       AND VOUCHER_NO IS NOT NULL;
+                
+                    IF V_CNT > 0 THEN
+                
+                        RAISE_APPLICATION_ERROR
+                        (
+                            -20001,
+                            'Voucher already posted. Delete is not allowed.'
+                        );
+                
+                    END IF;
+                
+                    -------------------------------------------------
+                    -- Delete Detail First
+                    -------------------------------------------------
+                
+                    DELETE
+                      FROM TRN_TRANSACTION_DTL
+                     WHERE TRANSACTION_NO = :P304_TRANSACTION_NO;
+                
+                    -------------------------------------------------
+                    -- Delete Master
+                    -------------------------------------------------
+                
+                    DELETE
+                      FROM TRN_TRANSACTION_MST
+                     WHERE TRANSACTION_NO = :P304_TRANSACTION_NO;
+                
+                
+                     :P304_TRANSACTION_NO := NULL;
+                
+                END;
+                
+                ```
+        }
+        execution {
+            sequence: 30
+        }
+        error {
+            errorMessage: #SQLERRM_TEXT#
+        }
+        advanced {
+            executionMappingIdentifier: 14788394320530363442
+        }
+        serverSideCondition {
+            whenButtonPressed: @delete
+        }
+    )
+
+    process initialize-form-transaction-request (
+        name: Initialize form Transaction Request
+        type: formInitialization
+        formRegion: @trn-mst
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+        advanced {
+            executionMappingIdentifier: 14627660159935207234
+        }
+    )
+
+    process populate-invoice (
+        name: TRANSACTION_POPULATE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    V_DATA CLOB;
+                
+                BEGIN
+                
+                    ------------------------------------------------------------------
+                    -- RECEIVE
+                    ------------------------------------------------------------------
+                
+                    IF APEX_APPLICATION.G_X02 = 'R' THEN
+                
+                        SELECT JSON_ARRAYAGG
+                        (
+                            JSON_OBJECT
+                            (
+                                'REF_TYPE' VALUE 'INVOICE',
+                
+                                'REF_NO' VALUE M.INVOICE_NO,
+                
+                                --'DOC_NO' VALUE M.INVOICE_NO,
+                
+                                'DOC_CODE' VALUE M.INVOICE_CODE,
+                
+                                'DOC_DATE' VALUE TO_CHAR(M.INVOICE_DATE,'MM/DD/YYYY'),
+                
+                                'PRODUCT_NO' VALUE D.PRODUCT_NO,
+                
+                                'PRODUCT_NAME' VALUE P.PRODUCT_NAME,
+                
+                                'PRODUCT_CODE' VALUE P.PRODUCT_CODE,
+                
+                                'INVOICE_AMOUNT' VALUE D.TOTAL_AMOUNT,
+                
+                                'PREVIOUS_AMOUNT' VALUE
+                                NVL
+                                (
+                                    (
+                                        SELECT SUM(T.ALLOCATE_AMOUNT)
+                                          FROM TRN_TRANSACTION_DTL T
+                                          JOIN TRN_TRANSACTION_MST H
+                                            ON H.TRANSACTION_NO=T.TRANSACTION_NO
+                                         WHERE T.REF_TYPE='INVOICE'
+                                           AND T.REF_NO=D.INVOICE_DTL_NO
+                                           AND H.APPROVAL_STATUS='A'
+                                    ),
+                                    0
+                                ),
+                
+                                'DUE_AMOUNT' VALUE
+                                D.TOTAL_AMOUNT-
+                                NVL
+                                (
+                                    (
+                                        SELECT SUM(T.ALLOCATE_AMOUNT)
+                                          FROM TRN_TRANSACTION_DTL T
+                                          JOIN TRN_TRANSACTION_MST H
+                                            ON H.TRANSACTION_NO=T.TRANSACTION_NO
+                                         WHERE T.REF_TYPE='INVOICE'
+                                           AND T.REF_NO=D.INVOICE_DTL_NO
+                                           AND H.APPROVAL_STATUS='A'
+                                    ),
+                                    0
+                                ),
+                
+                                'ALLOCATE_AMOUNT' VALUE 0
+                
+                            )
+                            RETURNING CLOB
+                        )
+                
+                        INTO V_DATA
+                
+                        FROM TRN_SALES_INVOICE_MST M
+                        JOIN TRN_SALES_INVOICE_DTL D
+                          ON D.INVOICE_NO=M.INVOICE_NO
+                        JOIN MST_PRODUCT P
+                          ON P.PRODUCT_NO=D.PRODUCT_NO
+                
+                        WHERE M.CUSTOMER_NO=APEX_APPLICATION.G_X01
+                
+                        AND
+                        (
+                            D.TOTAL_AMOUNT-
+                            NVL
+                            (
+                                (
+                                    SELECT SUM(T.ALLOCATE_AMOUNT)
+                                      FROM TRN_TRANSACTION_DTL T
+                                      JOIN TRN_TRANSACTION_MST H
+                                        ON H.TRANSACTION_NO=T.TRANSACTION_NO
+                                     WHERE T.REF_TYPE='INVOICE'
+                                       AND T.REF_NO=D.INVOICE_DTL_NO
+                                       AND H.APPROVAL_STATUS='A'
+                                ),
+                                0
+                            )
+                        )>0;
+                
+                    ------------------------------------------------------------------
+                    -- PAYMENT
+                    ------------------------------------------------------------------
+                
+                    ELSIF APEX_APPLICATION.G_X02='P' THEN
+                
+                        SELECT JSON_ARRAYAGG
+                        (
+                            JSON_OBJECT
+                            (
+                
+                                'REF_TYPE' VALUE 'PURCHASE',
+                
+                                'REF_NO' VALUE D.PURCHASE_NO,
+                
+                               -- 'DOC_NO' VALUE M.PURCHASE_NO,
+                
+                                'DOC_CODE' VALUE M.PURCHASE_CODE,
+                
+                                'DOC_DATE' VALUE TO_CHAR(M.PURCHASE_DATE,'MM/DD/YYYY'),
+                
+                                'PRODUCT_NO' VALUE D.PRODUCT_NO,
+                
+                                'PRODUCT_NAME' VALUE P.PRODUCT_NAME,
+                
+                                'PRODUCT_CODE' VALUE P.PRODUCT_CODE,
+                
+                                'INVOICE_AMOUNT' VALUE D.TOTAL_AMOUNT,
+                
+                                'PREVIOUS_AMOUNT' VALUE
+                                NVL
+                                (
+                                    (
+                                        SELECT SUM(T.ALLOCATE_AMOUNT)
+                                          FROM TRN_TRANSACTION_DTL T
+                                          JOIN TRN_TRANSACTION_MST H
+                                            ON H.TRANSACTION_NO=T.TRANSACTION_NO
+                                         WHERE T.REF_TYPE='PURCHASE'
+                                           AND T.REF_NO=D.PURCHASE_DTL_NO
+                                           AND H.APPROVAL_STATUS='A'
+                                    ),
+                                    0
+                                ),
+                
+                                'DUE_AMOUNT' VALUE
+                                D.TOTAL_AMOUNT-
+                                NVL
+                                (
+                                    (
+                                        SELECT SUM(T.ALLOCATE_AMOUNT)
+                                          FROM TRN_TRANSACTION_DTL T
+                                          JOIN TRN_TRANSACTION_MST H
+                                            ON H.TRANSACTION_NO=T.TRANSACTION_NO
+                                         WHERE T.REF_TYPE='PURCHASE'
+                                           AND T.REF_NO=D.PURCHASE_DTL_NO
+                                           AND H.APPROVAL_STATUS='A'
+                                    ),
+                                    0
+                                ),
+                
+                                'ALLOCATE_AMOUNT' VALUE 0
+                
+                            )
+                            RETURNING CLOB
+                        )
+                
+                        INTO V_DATA
+                
+                        FROM TRN_PURCHASE_MST M
+                        JOIN TRN_PURCHASE_DTL D
+                          ON D.PURCHASE_NO=M.PURCHASE_NO
+                        JOIN MST_PRODUCT P
+                          ON P.PRODUCT_NO=D.PRODUCT_NO
+                
+                        WHERE M.SUPPLIER_NO=APEX_APPLICATION.G_X01
+                
+                        AND
+                        (
+                            D.TOTAL_AMOUNT-
+                            NVL
+                            (
+                                (
+                                    SELECT SUM(T.ALLOCATE_AMOUNT)
+                                      FROM TRN_TRANSACTION_DTL T
+                                      JOIN TRN_TRANSACTION_MST H
+                                        ON H.TRANSACTION_NO=T.TRANSACTION_NO
+                                     WHERE T.REF_TYPE='PURCHASE'
+                                       AND T.REF_NO=D.PURCHASE_DTL_NO
+                                       AND H.APPROVAL_STATUS='A'
+                                ),
+                                0
+                            )
+                        )>0;
+                
+                    END IF;
+                
+                    IF V_DATA IS NULL THEN
+                        V_DATA := '[]';
+                    END IF;
+                
+                    HTP.PRN(V_DATA);
+                
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        HTP.PRN('[]');
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: ajaxCallback
+        }
+        advanced {
+            executionMappingIdentifier: 14788393078656363429
+        }
+    )
+
+    process process-form-trn-mst (
+        name: Process form TRN_MST
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                    -------------------------------------------------
+                    -- Validation
+                    -------------------------------------------------
+                
+                    IF :P304_TRANSACTION_DATE IS NULL THEN
+                        RAISE_APPLICATION_ERROR(-20001,'Transaction date is required.');
+                    END IF;
+                
+                    IF :P304_TRANSACTION_TYPE IS NULL THEN
+                        RAISE_APPLICATION_ERROR(-20001,'Transaction type is required.');
+                    END IF;
+                
+                    IF :P304_PARTY_NO IS NULL THEN
+                        RAISE_APPLICATION_ERROR(-20001,'Please select party.');
+                    END IF;
+                
+                    -- IF NVL(:P304_TOTAL_AMOUNT,0)<=0 THEN
+                    --     RAISE_APPLICATION_ERROR(-20001,'Transaction amount must be greater than zero.');
+                    -- END IF;
+                
+                    IF :P304_PAY_MODE='B'
+                    AND :P304_BANK_ACCOUNT_NO IS NULL THEN
+                
+                        RAISE_APPLICATION_ERROR
+                        (
+                            -20001,
+                            'Please select bank account.'
+                        );
+                
+                    END IF;
+                
+                    -------------------------------------------------
+                    -- Insert
+                    -------------------------------------------------
+                
+                    IF :P304_TRANSACTION_NO IS NULL THEN
+                
+                        :P304_TRANSACTION_NO:=SEQ_TRANSACTION_NO.NEXTVAL;
+                
+                        INSERT INTO TRN_TRANSACTION_MST
+                        (
+                            TRANSACTION_NO,
+                            TRANSACTION_CODE,
+                            TRANSACTION_DATE,
+                            TRANSACTION_TYPE,
+                            PARTY_NO,
+                            PAY_MODE,
+                            BANK_ACCOUNT_NO,
+                            TOTAL_AMOUNT,
+                            REMARKS,
+                            APPROVAL_STATUS,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES
+                        (
+                            :P304_TRANSACTION_NO,
+                            'TRN-'||LPAD(:P304_TRANSACTION_NO,6,'0'),
+                            :P304_TRANSACTION_DATE,
+                            :P304_TRANSACTION_TYPE,
+                            :P304_PARTY_NO,
+                            :P304_PAY_MODE,
+                            :P304_BANK_ACCOUNT_NO,
+                            :P304_TOTAL_AMOUNT,
+                            :P304_REMARKS,
+                            'P',
+                            :APP_USER,
+                            SYSDATE
+                        ) RETURNING TRANSACTION_NO INTO :P304_TRANSACTION_NO;
+                
+                    ELSE
+                
+                        IF :P304_APPROVAL_STATUS='A' THEN
+                
+                            RAISE_APPLICATION_ERROR
+                            (
+                                -20001,
+                                'Approved transaction cannot be modified.'
+                            );
+                
+                        END IF;
+                
+                        UPDATE TRN_TRANSACTION_MST
+                           SET TRANSACTION_DATE=:P304_TRANSACTION_DATE,
+                               PARTY_NO=:P304_PARTY_NO,
+                               PAY_MODE=:P304_PAY_MODE,
+                               BANK_ACCOUNT_NO=:P304_BANK_ACCOUNT_NO,
+                               TOTAL_AMOUNT=:P304_TOTAL_AMOUNT,
+                               REMARKS=:P304_REMARKS,
+                               UPDATED_BY=:APP_USER,
+                               UPDATED_DATE=SYSDATE
+                         WHERE TRANSACTION_NO=:P304_TRANSACTION_NO;
+                
+                    END IF;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+        error {
+            errorMessage: #SQLERRM_TEXT#
+        }
+        advanced {
+            executionMappingIdentifier: 14788394214805363441
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+    process trn-dtl-save-interactive-grid-data (
+        name: TRN DTL - Save Interactive Grid Data
+        type: executeCode
+        editableRegion: @trn-dtl
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                BEGIN
+                
+                    CASE :APEX$ROW_STATUS
+                
+                    -----------------------------------------------------
+                    -- CREATE
+                    -----------------------------------------------------
+                
+                    WHEN 'C' THEN
+                
+                        IF NVL(:ALLOCATE_AMOUNT,0)<=0 THEN
+                
+                            RAISE_APPLICATION_ERROR
+                            (
+                                -20001,
+                                'Allocate amount must be greater than zero.'
+                            );
+                
+                        END IF;
+                
+                        IF TO_NUMBER(:ALLOCATE_AMOUNT)>TO_NUMBER(:DUE_AMOUNT) THEN
+                
+                            RAISE_APPLICATION_ERROR
+                            (
+                                -20001,
+                                'Allocate amount cannot exceed due amount.'
+                            );
+                
+                        END IF;
+                
+                        INSERT INTO TRN_TRANSACTION_DTL
+                        (
+                            TRANSACTION_DTL_NO,
+                            TRANSACTION_NO,
+                            REF_TYPE,
+                            REF_NO,
+                            DOC_NO,
+                            DOC_CODE,
+                            DOC_DATE,
+                            PRODUCT_NO,
+                            INVOICE_AMOUNT,
+                            PREVIOUS_AMOUNT,
+                            DUE_AMOUNT,
+                            ALLOCATE_AMOUNT,
+                            REMARKS,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES
+                        (
+                            SEQ_TRANSACTION_DTL_NO.NEXTVAL,
+                            :P304_TRANSACTION_NO,
+                            :REF_TYPE,
+                            :REF_NO,
+                            :DOC_NO,
+                            :DOC_CODE,
+                            :DOC_DATE,
+                            :PRODUCT_NO,
+                            :INVOICE_AMOUNT,
+                            :PREVIOUS_AMOUNT,
+                            :DUE_AMOUNT,
+                            :ALLOCATE_AMOUNT,
+                            :REMARKS,
+                            :APP_USER,
+                            SYSDATE
+                        ) RETURNING TRANSACTION_DTL_NO INTO :TRANSACTION_DTL_NO ;
+                
+                    -----------------------------------------------------
+                    -- UPDATE
+                    -----------------------------------------------------
+                
+                    WHEN 'U' THEN
+                
+                        IF :P304_APPROVAL_STATUS='A' THEN
+                
+                            RAISE_APPLICATION_ERROR
+                            (
+                                -20001,
+                                'Approved transaction cannot be modified.'
+                            );
+                
+                        END IF;
+                
+                        IF NVL(:ALLOCATE_AMOUNT,0)<=0 THEN
+                
+                            RAISE_APPLICATION_ERROR
+                            (
+                                -20001,
+                                'Allocate amount must be greater than zero.'
+                            );
+                
+                        END IF;
+                
+                        IF :ALLOCATE_AMOUNT>:DUE_AMOUNT THEN
+                
+                            RAISE_APPLICATION_ERROR
+                            (
+                                -20001,
+                                'Allocate amount cannot exceed due amount.'
+                            );
+                
+                        END IF;
+                
+                        UPDATE TRN_TRANSACTION_DTL
+                           SET ALLOCATE_AMOUNT=:ALLOCATE_AMOUNT,
+                               REMARKS=:REMARKS
+                         WHERE TRANSACTION_DTL_NO=:TRANSACTION_DTL_NO;
+                
+                    -----------------------------------------------------
+                    -- DELETE
+                    -----------------------------------------------------
+                
+                    WHEN 'D' THEN
+                
+                        IF :P304_APPROVAL_STATUS='A' THEN
+                
+                            RAISE_APPLICATION_ERROR
+                            (
+                                -20001,
+                                'Approved transaction cannot be deleted.'
+                            );
+                
+                        END IF;
+                
+                        DELETE
+                          FROM TRN_TRANSACTION_DTL
+                         WHERE TRANSACTION_DTL_NO=:TRANSACTION_DTL_NO;
+                
+                    END CASE;
+                
+                    DECLARE
+                    V_TOTAL NUMBER;
+                BEGIN
+                
+                    SELECT NVL(SUM(ALLOCATE_AMOUNT),0)
+                      INTO V_TOTAL
+                      FROM TRN_TRANSACTION_DTL
+                     WHERE TRANSACTION_NO=:P304_TRANSACTION_NO;
+                
+                    UPDATE TRN_TRANSACTION_MST
+                       SET TOTAL_AMOUNT=V_TOTAL
+                     WHERE TRANSACTION_NO=:P304_TRANSACTION_NO;
+                
+                END;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 20
+        }
+        error {
+            errorMessage: #SQLERRM_TEXT#
+        }
+        advanced {
+            executionMappingIdentifier: 14788394199033363440
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+)
+

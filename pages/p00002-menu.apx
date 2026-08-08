@@ -1,0 +1,1116 @@
+page 2 (
+    name: "Menu "
+    alias: MENU
+    title: "Menu "
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    css {
+        inline:
+            ```css
+            div#filter .t-Region-header {
+                height: 35px;
+                /* line-height: 28px; */
+            }
+            
+            #filter_heading{
+                text-align: center;
+                font-weight: 700;
+            }
+            div#menu .t-Region-header {
+                height: 35px;
+                /* line-height: 28px; */
+            }
+            
+            #menu_heading{
+                text-align: center;
+                font-weight: 700;
+            }
+            div#sub-menu .t-Region-header {
+                height: 35px;
+                /* line-height: 28px; */
+            }
+            
+            #sub-menu_heading{
+                text-align: center;
+                font-weight: 700;
+            }
+            #headtext{
+              font-size: x-large;
+                color: #b90b0b;
+                font-weight: 700; 
+                FONT-FAMILY: cursive !important;
+            }
+            ```
+    }
+    security {
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        title: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 20
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-Form--slimPadding
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region div-id-headtext-class-fa-fa-search-sub-menu-entry-div (
+        name: "<div id=\"headtext\"class=\"fa fa-search\">Sub-Menu Entry</div> "
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select SUBMENU_NO,
+                       APEX_PAGE_NO,
+                       SUBMENU_ID,
+                       MENU_NO,
+                       SUBMENU_NAME,
+                       SUBMENU_TYPE,
+                       ACTIVE_FLAG,
+                       HIDE_FROM_MENU,
+                       DESCROPTION,
+                       SUBMENU_ICON,
+                       SL_NO
+                  from SA_SUBMENU
+                  where MENU_NO = :P2_MENU_NO
+                ```
+            pageItemsToSubmit: [
+                P2_MENU_NO
+                P2_MENU_ID
+            ]
+        }
+        layout {
+            sequence: 20
+            parentRegion: @main-container
+            slot: subRegions
+            startNewRow: false
+            newColumn: false
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                js-headingLevel-2
+                t-Form--slimPadding
+            ]
+        }
+        advanced {
+            htmlDomId: sub-menu
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+            addRowIfEmpty: false
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
+        }
+        advanced {
+            savedReportMappingIdentifier: 24034019749952744592
+        }
+
+        savedReport primary (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @APEX_PAGE_NO
+                layout {
+                    width: 100.594
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @SL_NO
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @SUBMENU_NO
+                layout {
+                    width: 62
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @SUBMENU_ID
+                layout {
+                    width: 85
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @MENU_NO
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @SUBMENU_NAME
+                layout {
+                    width: 134.219
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @SUBMENU_TYPE
+                layout {
+                    width: 103.4844
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @ACTIVE_FLAG
+                layout {
+                    width: 97.99719999999999
+                    sequence: 10
+                }
+            )
+
+            displayColumn (
+                column: @HIDE_FROM_MENU
+                layout {
+                    width: 81.125
+                    sequence: 11
+                }
+            )
+
+            displayColumn (
+                column: @DESCROPTION
+                layout {
+                    sequence: 12
+                }
+            )
+
+            displayColumn (
+                column: @SUBMENU_ICON
+                layout {
+                    show: false
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    width: 40
+                    sequence: 1
+                }
+            )
+
+            sort (
+                column: @SL_NO
+                sort {
+                    nulls: last
+                    sequence: 1
+                }
+            )
+
+        )
+
+        column ACTIVE_FLAG (
+            type: selectList
+            heading {
+                heading: Active Flag ?
+            }
+            lov {
+                type: staticValues
+                staticValues: STATIC2:Active;1,Inactive;0
+                displayExtraValues: false
+                displayNullValue: false
+            }
+            layout {
+                sequence: 90
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: ACTIVE_FLAG
+                dataType: number
+            }
+            default {
+                type: static
+                staticValue: 1
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: useLov
+            }
+        )
+
+        column APEX$ROW_ACTION (
+            type: actionsMenu
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 10
+            }
+        )
+
+        column APEX_PAGE_NO (
+            type: numberField
+            heading {
+                heading: Apex Page No
+                alignment: end
+            }
+            layout {
+                sequence: 50
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: APEX_PAGE_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column DESCROPTION (
+            type: textField
+            heading {
+                heading: Descroption
+                alignment: center
+            }
+            layout {
+                sequence: 110
+            }
+            validation {
+                maxLength: 4000
+            }
+            source {
+                databaseColumn: DESCROPTION
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+        )
+
+        column HIDE_FROM_MENU (
+            type: checkbox
+            heading {
+                heading: Hide Menu
+                alignment: center
+            }
+            settings {
+                useDefaults: false
+                checkedValue: 1
+                uncheckedValue: 0
+            }
+            layout {
+                sequence: 100
+                columnAlignment: center
+            }
+            source {
+                databaseColumn: HIDE_FROM_MENU
+                dataType: number
+            }
+            default {
+                type: static
+                staticValue: 0
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column MENU_NO (
+            type: hidden
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                databaseColumn: MENU_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column SL_NO (
+            type: numberField
+            heading {
+                heading: Sl No
+                alignment: end
+            }
+            layout {
+                sequence: 130
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: SL_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column SUBMENU_ICON (
+            type: textField
+            heading {
+                heading: Submenu Icon
+                alignment: center
+            }
+            layout {
+                sequence: 120
+            }
+            validation {
+                maxLength: 200
+            }
+            source {
+                databaseColumn: SUBMENU_ICON
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column SUBMENU_ID (
+            type: textField
+            heading {
+                heading: Submenu ID
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                databaseColumn: SUBMENU_ID
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column SUBMENU_NAME (
+            type: textField
+            heading {
+                heading: Submenu Name
+                alignment: center
+            }
+            layout {
+                sequence: 70
+            }
+            validation {
+                valueRequired: true
+                maxLength: 50
+            }
+            source {
+                databaseColumn: SUBMENU_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column SUBMENU_NO (
+            type: hidden
+            heading {
+                heading: Sub-Menu No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                databaseColumn: SUBMENU_NO
+                dataType: number
+                primaryKey: true
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column SUBMENU_TYPE (
+            type: selectList
+            heading {
+                heading: Submenu Type
+            }
+            lov {
+                type: staticValues
+                staticValues: STATIC2:From;F,Report;R
+                displayExtraValues: false
+                displayNullValue: false
+            }
+            layout {
+                sequence: 80
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: SUBMENU_TYPE
+                dataType: varchar2
+            }
+            default {
+                type: static
+                staticValue: F
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: useLov
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    region div-id-headtext-filter-menu-div (
+        name: "<div id=\"headtext\">Filter Menu</div> "
+        type: listView
+        source {
+            location: localDatabase
+            tableName: SA_MENU
+        }
+        layout {
+            sequence: 9
+            parentRegion: @main-container
+            slot: subRegions
+            columnSpan: 3
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                i-h480
+                t-Region--scrollBody
+            ]
+        }
+        advanced {
+            htmlDomId: filter
+        }
+        settings {
+            features: advancedFormatting
+            textFormatting: "<div id=\"filter-formation\" style=\"color:blue;FONT-FAMILY: cursive;\">&MENU_NAME.[&MENU_ID.]</div>"
+            linkTarget: {
+                page: 2
+                items: {
+                    P2_MENU_NO: &MENU_NO.
+                }
+                action: clearRegions
+            }
+        }
+    )
+
+    region div-id-headtext-msater-menu-entry-div (
+        name: "<div id=\"headtext\">Msater Menu Entry</div> "
+        type: form
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select MENU_NO,
+                       MENU_ID,
+                       MENU_NAME,
+                       DESCRIPTION,
+                       PARENT_MENU_NO,
+                       SL_NO,
+                       ACTIVE_FLAG,
+                       COMPANY_NO,
+                       APP_ID
+                  from SA_MENU
+                ```
+        }
+        layout {
+            sequence: 10
+            parentRegion: @main-container
+            slot: subRegions
+            startNewRow: false
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--scrollBody
+                t-Form--slimPadding
+            ]
+        }
+        advanced {
+            htmlDomId: menu
+        }
+    )
+
+    region main-container (
+        name: MAIN_CONTAINER
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: [
+                #DEFAULT#
+                t-Form--slimPadding
+                t-Form--stretchInputs
+                t-Form--leftLabels
+            ]
+        }
+    )
+
+    pageItem P2_ACTIVE_FLAG (
+        type: radioGroup
+        label {
+            label: Active Flag
+            alignment: left
+        }
+        settings {
+            noOfCols: 2
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:Yes;1,No ;0
+            displayExtraValues: false
+            displayNullValue: false
+        }
+        layout {
+            sequence: 80
+            region: @div-id-headtext-msater-menu-entry-div
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            column: 11
+            columnSpan: 2
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @div-id-headtext-msater-menu-entry-div
+            column: ACTIVE_FLAG
+            dataType: number
+        }
+        default {
+            type: static
+            staticValue: 1
+        }
+    )
+
+    pageItem P2_APP_ID (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 120
+            region: @div-id-headtext-msater-menu-entry-div
+            slot: regionBody
+        }
+        source {
+            formRegion: @div-id-headtext-msater-menu-entry-div
+            column: APP_ID
+            dataType: varchar2
+        }
+    )
+
+    pageItem P2_COMPANY_NO (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 90
+            region: @div-id-headtext-msater-menu-entry-div
+            slot: regionBody
+        }
+        source {
+            formRegion: @div-id-headtext-msater-menu-entry-div
+            column: COMPANY_NO
+            dataType: number
+        }
+    )
+
+    pageItem P2_DESCRIPTION (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 130
+            region: @div-id-headtext-msater-menu-entry-div
+            slot: regionBody
+        }
+        source {
+            formRegion: @div-id-headtext-msater-menu-entry-div
+            column: DESCRIPTION
+            dataType: varchar2
+        }
+    )
+
+    pageItem P2_MENU_ID (
+        type: textField
+        label {
+            label: Menu ID
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @div-id-headtext-msater-menu-entry-div
+            slot: regionBody
+            alignment: left
+            columnSpan: 1
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 2
+        }
+        source {
+            formRegion: @div-id-headtext-msater-menu-entry-div
+            column: MENU_ID
+            dataType: varchar2
+        }
+    )
+
+    pageItem P2_MENU_NAME (
+        type: textField
+        label {
+            label: Menu Name
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @div-id-headtext-msater-menu-entry-div
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 4
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+            maxLength: 50
+        }
+        source {
+            formRegion: @div-id-headtext-msater-menu-entry-div
+            column: MENU_NAME
+            dataType: varchar2
+        }
+    )
+
+    pageItem P2_MENU_NO (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @div-id-headtext-msater-menu-entry-div
+            slot: regionBody
+        }
+        source {
+            formRegion: @div-id-headtext-msater-menu-entry-div
+            column: MENU_NO
+            dataType: number
+            primaryKey: true
+        }
+    )
+
+    pageItem P2_PARENT_MENU_NO (
+        type: popupLov
+        label {
+            label: Parent Menu Name
+            alignment: left
+        }
+        settings {
+            fetchOnSearch: true
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery: select MENU_NAME,MENU_NO FROM SA_MENU
+            displayExtraValues: false
+            nullDisplayValue: --Select--
+        }
+        layout {
+            sequence: 40
+            region: @div-id-headtext-msater-menu-entry-div
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 3
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        source {
+            formRegion: @div-id-headtext-msater-menu-entry-div
+            column: PARENT_MENU_NO
+            dataType: number
+        }
+    )
+
+    pageItem P2_SL_NO (
+        type: numberField
+        label {
+            label: SL Number
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @div-id-headtext-msater-menu-entry-div
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        source {
+            formRegion: @div-id-headtext-msater-menu-entry-div
+            column: SL_NO
+            dataType: number
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-table-new
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 2
+                clearCache: 1000
+                action: clearRegions
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-new
+        }
+    )
+
+    button save (
+        buttonName: Save
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+        }
+    )
+
+    process initialize-form-bl-menu (
+        name: Initialize form Bl_MENU
+        type: formInitialization
+        formRegion: @div-id-headtext-msater-menu-entry-div
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+        advanced {
+            executionMappingIdentifier: 8034951639923538120
+        }
+    )
+
+    process p-save-menu (
+        name: P_SAVE_MENU
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                 BEGIN
+                
+                    IF :P2_MENU_NO IS NULL
+                    THEN
+                        INSERT INTO SA_MENU (MENU_NO,
+                                                    MENU_ID,
+                                                    MENU_NAME,
+                                                    DESCRIPTION,
+                                                    PARENT_MENU_NO,
+                                                    SL_NO,
+                                                    APP_ID,
+                                                    SS_CREATOR,
+                                                    SS_CREATED_ON)
+                             VALUES ( S_SA_MENU.NEXTVAL,
+                                     :P2_MENU_ID,
+                                     :P2_MENU_NAME,
+                                     :P2_DESCRIPTION,
+                                     :P2_PARENT_MENU_NO,
+                                     :P2_SL_NO,
+                                     :P2_APP_ID,
+                                     :G_USER_NO,
+                                     --to_date(TO_CHAR (SYSDATE, 'DD-MON-YYYY HH24:MI:SS'))
+                                     SYSDATE
+                                    )
+                                      RETURNING MENU_NO into :P2_MENU_NO;
+                                --   :P1011_GREYFABSEND_NO := V_GREYFABSEND_NO;
+                    ELSE
+                        UPDATE SA_MENU
+                           SET MENU_ID = :P2_MENU_ID,
+                               MENU_NAME = :P2_MENU_NAME,
+                               DESCRIPTION = :P2_DESCRIPTION,
+                               PARENT_MENU_NO =:P2_PARENT_MENU_NO,
+                               SL_NO =:P2_SL_NO,
+                               SS_MODIFIER = :G_USER_NO
+                               WHERE MENU_NO =:P2_MENU_NO;
+                              -- SS_UPLOADED_ON = TO_CHAR (SYSDATE, 'DD-MON-YYYY HH24:MI:SS');
+                    END IF;
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+        successMessage {
+            successMessage: &MENU_ID. Is Created !
+        }
+        advanced {
+            executionMappingIdentifier: 8034953009540538123
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+    process sub-menu-entry-save-interactive-grid-data (
+        name: SUB-MENU-ENTRY - Save Interactive Grid Data
+        type: executeCode
+        editableRegion: @div-id-headtext-class-fa-fa-search-sub-menu-entry-div
+        source {
+            plsqlCode:
+                ```plsql
+                /* Formatted on 7/3/2024 10:40:52 AM (QP5 v5.326) */
+                DECLARE 
+                V_PK_NO NUMBER ;
+                
+                BEGIN
+                    CASE :APEX$ROW_STATUS
+                        WHEN 'C'
+                        THEN
+                        SELECT MAX(NVL(SUBMENU_NO,0))+1 INTO V_PK_NO FROM SA_SUBMENU;
+                            INSERT INTO SA_SUBMENU (SUBMENU_NO,
+                                                    APEX_PAGE_NO,
+                                                    SUBMENU_ID,
+                                                    MENU_NO,
+                                                    SUBMENU_NAME,
+                                                    SUBMENU_TYPE,
+                                                    ACTIVE_FLAG,
+                                                    HIDE_FROM_MENU,
+                                                    DESCROPTION,
+                                                    SUBMENU_ICON,
+                                                    SL_NO)
+                                 VALUES (V_PK_NO,
+                                         :APEX_PAGE_NO,
+                                         :P2_MENU_ID ||'-'||:SUBMENU_TYPE || LPAD(:APEX_PAGE_NO, 4, '0'),
+                                         :P2_MENU_NO,
+                                         :SUBMENU_NAME,
+                                         :SUBMENU_TYPE,
+                                         :ACTIVE_FLAG,
+                                         :HIDE_FROM_MENU,
+                                         :DESCROPTION,
+                                         :SUBMENU_ICON,
+                                         :SL_NO)
+                              RETURNING SUBMENU_NO
+                                   INTO :SUBMENU_NO;
+                        WHEN 'U'
+                        THEN
+                            UPDATE SA_SUBMENU
+                               SET APEX_PAGE_NO = :APEX_PAGE_NO,
+                                   SUBMENU_ID   = :P2_MENU_ID ||'-'||:SUBMENU_TYPE || LPAD(:APEX_PAGE_NO, 4, '0'),
+                                   SUBMENU_NAME = :SUBMENU_NAME,
+                                   SUBMENU_TYPE = :SUBMENU_TYPE,
+                                   ACTIVE_FLAG = :ACTIVE_FLAG,
+                                   HIDE_FROM_MENU = :HIDE_FROM_MENU,
+                                   DESCROPTION = :DESCROPTION,
+                                   SUBMENU_ICON = :SUBMENU_ICON,
+                                   SL_NO        = :SL_NO
+                             WHERE SUBMENU_NO = :SUBMENU_NO;
+                        WHEN 'D'
+                        THEN
+                            DELETE SA_SUBMENU
+                             WHERE SUBMENU_NO = :SUBMENU_NO;
+                    END CASE;
+                END;
+                ```
+        }
+        execution {
+            sequence: 30
+        }
+        advanced {
+            executionMappingIdentifier: 8034944816752538105
+        }
+    )
+
+)
+

@@ -1,0 +1,142 @@
+list database-menu-access (
+    name: DATABASE_MENU_ACCESS
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            SELECT LEVEL,
+                   OBJECT_NAME              LABEL,
+                   CASE
+                       WHEN CONNECT_BY_ISLEAF = 1
+                       THEN
+                              'f?p=&APP_ID.:'
+                           || RAW_PAGE_NO          -- actual page number for URL
+                           || ':&APP_SESSION.:::'
+                           || RAW_CHILD_ITEM       -- original child item
+                   END                      TARGET,
+                   (DECODE (LEVEL,
+                            1, DECODE (PARENT_ITEM, '0', CHILD_ITEM, PARENT_ITEM),
+                            2, CHILD_ITEM,
+                            CHILD_ITEM))    VALUE,
+                   'fa fa-cube'             IMAGE,
+                   OBJECT_ID,
+                   PARENT_ITEM,
+                   CHILD_ITEM
+              FROM (
+                    -- SUBMENU rows
+                    SELECT TO_CHAR (UDT.MENU_NO)                        PARENT_ITEM,
+                           'P_' || TO_CHAR (UDT.APEX_PAGE_NO)          CHILD_ITEM,   -- prefix P_
+                           TO_CHAR (UDT.APEX_PAGE_NO)                  RAW_PAGE_NO,
+                           'P_' || TO_CHAR (UDT.APEX_PAGE_NO)          RAW_CHILD_ITEM,
+                           UDT.SUBMENU_NAME                             OBJECT_NAME,
+                           (F_MODULE_SL (UDT.MENU_NO) + (NVL (UDT.SL_NO, 0.01) / 100))
+                                                                        DISPLAY_ORDER,
+                           SUBMENU_ID                                   OBJECT_ID,
+                           SL_NO
+                      FROM SA_USER_ACCESS_CTRL_V UDT
+                     WHERE     UDT.USER_NO    = :G_USER_NO
+                           AND UDT.HIDE_FROM_MENU = 0
+                           AND UDT.SUBMENU_TYPE IN ('F', 'R')
+                    UNION ALL
+                    -- MENU rows
+                    SELECT TO_CHAR (DECODE (M.PARENT_MENU_NO, NULL, 0, M.PARENT_MENU_NO))
+                                                                        PARENT_ITEM,
+                           TO_CHAR (M.MENU_NO)                         CHILD_ITEM,   -- no prefix (M_ optional)
+                           NULL                                        RAW_PAGE_NO,
+                           TO_CHAR (M.MENU_NO)                         RAW_CHILD_ITEM,
+                           M.MENU_NAME                                 OBJECT_NAME,
+                           F_MODULE_SL (M.MENU_NO)                     DISPLAY_ORDER,
+                           MENU_ID                                     OBJECT_ID,
+                           SL_NO
+                      FROM SA_MENU M
+                     WHERE     M.ACTIVE_FLAG = 1
+                           AND F_SHOW_MODULE (M.MENU_NO, :G_USER_NO, NULL) = 'Y'
+                   )
+             START WITH PARENT_ITEM = '0'
+             CONNECT BY PRIOR CHILD_ITEM = PARENT_ITEM
+             ORDER SIBLINGS BY SL_NO;
+            ```
+    }
+)
+
+list navigation-bar (
+    name: Navigation Bar
+
+    entry app-user (
+        label: &APP_USER.
+        icon {
+            imageIconCssClasses: fa-user
+        }
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                type: url
+                url: #
+            }
+        }
+        userDefinedAttributes {
+            2: has-username
+        }
+    )
+
+    entry list_item (
+        label: ---
+        layout {
+            sequence: 20
+            parentEntry: @app-user
+        }
+        link {
+            target: {
+                type: url
+                url: separator
+            }
+        }
+        serverSideCondition {
+            type: userIsAuthenticated
+        }
+    )
+
+    entry sign-out (
+        label: Sign Out
+        icon {
+            imageIconCssClasses: fa-sign-out
+        }
+        layout {
+            sequence: 30
+            parentEntry: @app-user
+        }
+        link {
+            target: {
+                type: url
+                url: &LOGOUT_URL.
+            }
+        }
+        serverSideCondition {
+            type: userIsAuthenticated
+        }
+    )
+
+)
+
+list navigation-menu (
+    name: Navigation Menu
+
+    entry home (
+        label: Home
+        icon {
+            imageIconCssClasses: fa-home
+        }
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 1
+            }
+        }
+    )
+
+)
+

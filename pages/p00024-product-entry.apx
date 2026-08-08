@@ -1,0 +1,1357 @@
+page 24 (
+    name: Product Entry
+    alias: PRODUCT-ENTRY
+    title: Product Entry
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/modal-dialog
+        templateOptions: [
+            #DEFAULT#
+            ui-dialog--stretch
+        ]
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        formAutoComplete: false
+    }
+
+    region breadcrumb-2 (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 50
+            slot: dialogHeader
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region new (
+        name: PRODUCT ENTRY
+        type: form
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select PRODUCT_NO,
+                       CATEGORY_NO,
+                       PRODUCT_CODE,
+                       PRODUCT_NAME,
+                       PURCHASE_RATE,
+                       SALES_RATE,
+                       MIN_STOCK_QTY,
+                       ACTIVE_FLAG,
+                       CREATED_BY,
+                       CREATED_DATE,
+                       UPDATED_BY,
+                       UPDATED_DATE,
+                       UOM_NO,
+                       DESCRIPTION,
+                       BRAND_NO
+                  from MST_PRODUCT
+                ```
+        }
+        layout {
+            sequence: 10
+            parentRegion: @product-entrey
+            slot: regionBody
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--removeHeader js-removeLandmark
+                t-Region--scrollBody
+            ]
+        }
+    )
+
+    region product-entrey (
+        name: PRODUCT ENTREY
+        type: staticContent
+        layout {
+            sequence: 40
+            slot: contentBody
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+    )
+
+    region uom-conversion (
+        name: UOM Conversion
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select CONVERSION_NO,
+                       PRODUCT_NO,
+                       BASE_UOM_NO,
+                       CONVERT_UOM_NO,
+                       CONVERSION_FACTOR,
+                       ACTIVE_FLAG,
+                       CREATED_BY,
+                       CREATED_DATE,
+                       UPDATED_BY,
+                       UPDATED_DATE
+                  from MST_UOM_CONVERSION
+                  where  PRODUCT_NO = :P24_PRODUCT_NO
+                ```
+        }
+        layout {
+            sequence: 30
+            parentRegion: @product-entrey
+            slot: regionBody
+            startNewRow: false
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+            addRowIfEmpty: false
+        }
+        componentAppearance {
+            selectFirstRow: false
+        }
+        toolbar {
+            controls: [
+                searchField
+                saveButton
+            ]
+        }
+        download {
+            formats: [
+                pdf
+                excel
+            ]
+        }
+        advanced {
+            savedReportMappingIdentifier: 15523753670308431210
+        }
+
+        savedReport primary (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @CONVERSION_NO
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_NO
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @BASE_UOM_NO
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @CONVERT_UOM_NO
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @CONVERSION_FACTOR
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @ACTIVE_FLAG
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_BY
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_DATE
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @UPDATED_BY
+                layout {
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @UPDATED_DATE
+                layout {
+                    sequence: 10
+                }
+            )
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    sequence: 0
+                }
+            )
+
+        )
+
+        column ACTIVE_FLAG (
+            type: textField
+            heading {
+                heading: Active Flag
+            }
+            layout {
+                sequence: 80
+            }
+            validation {
+                maxLength: 1
+            }
+            source {
+                databaseColumn: ACTIVE_FLAG
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column APEX$ROW_ACTION (
+            type: actionsMenu
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 10
+            }
+        )
+
+        column BASE_UOM_NO (
+            type: numberField
+            heading {
+                heading: Base Uom No
+                alignment: end
+            }
+            layout {
+                sequence: 50
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: BASE_UOM_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column CONVERSION_FACTOR (
+            type: numberField
+            heading {
+                heading: Conversion Factor
+                alignment: end
+            }
+            layout {
+                sequence: 70
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: CONVERSION_FACTOR
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column CONVERSION_NO (
+            type: hidden
+            layout {
+                sequence: 30
+            }
+            source {
+                databaseColumn: CONVERSION_NO
+                dataType: number
+                primaryKey: true
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column CONVERT_UOM_NO (
+            type: selectList
+            heading {
+                heading: Convert Uom No
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    SELECT U.UOM_NAME D,
+                           U.UOM_NO   R
+                    FROM MST_UOM U
+                    WHERE U.ACTIVE_FLAG = 'Y'
+                      AND U.UOM_NO <>
+                          (
+                              SELECT P.UOM_NO
+                                FROM MST_PRODUCT P
+                               WHERE P.PRODUCT_NO = :P24_PRODUCT_NO
+                          )
+                      AND NOT EXISTS
+                          (
+                              SELECT 1
+                                FROM MST_UOM_CONVERSION C
+                               WHERE C.PRODUCT_NO = :P24_PRODUCT_NO
+                                 AND C.CONVERT_UOM_NO = U.UOM_NO
+                                 AND C.CONVERSION_NO <> NVL(:CONVERSION_NO,0)
+                          )
+                    ORDER BY U.UOM_NAME;
+                    ```
+                displayExtraValues: false
+                nullDisplayValue: --Select--
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                databaseColumn: CONVERT_UOM_NO
+                dataType: number
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CREATED_BY (
+            type: hidden
+            heading {
+                heading: Created By
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                databaseColumn: CREATED_BY
+                dataType: varchar2
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column CREATED_DATE (
+            type: hidden
+            heading {
+                heading: Created Date
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                databaseColumn: CREATED_DATE
+                dataType: date
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column PRODUCT_NO (
+            type: hidden
+            heading {
+                heading: Product No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                databaseColumn: PRODUCT_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column UPDATED_BY (
+            type: hidden
+            heading {
+                heading: Updated By
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                databaseColumn: UPDATED_BY
+                dataType: varchar2
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column UPDATED_DATE (
+            type: hidden
+            heading {
+                heading: Updated Date
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                databaseColumn: UPDATED_DATE
+                dataType: date
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    pageItem P24_ACTIVE_FLAG (
+        type: checkbox
+        label {
+            label: Active Flag
+            alignment: left
+        }
+        settings {
+            useDefaults: false
+            checkedValue: 1
+            uncheckedValue: 0
+        }
+        layout {
+            sequence: 120
+            region: @new
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+        }
+        source {
+            formRegion: @new
+            column: ACTIVE_FLAG
+            dataType: varchar2
+        }
+    )
+
+    pageItem P24_BRAND_NO (
+        type: numberField
+        label {
+            label: Brand No
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @new
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        source {
+            formRegion: @new
+            column: BRAND_NO
+            dataType: number
+        }
+    )
+
+    pageItem P24_CATEGORY_NO (
+        type: popupLov
+        label {
+            label: Category Name
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery: SELECT CATEGORY_CODE ||'-' || CATEGORY_NAME    ,CATEGORY_NO      FROM MST_PRODUCT_CATEGORY
+            displayExtraValues: false
+            nullDisplayValue: --Select--
+        }
+        layout {
+            sequence: 30
+            region: @new
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @new
+            column: CATEGORY_NO
+            dataType: number
+        }
+    )
+
+    pageItem P24_CREATED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 130
+            region: @new
+            slot: regionBody
+        }
+        source {
+            formRegion: @new
+            column: CREATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P24_CREATED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 140
+            region: @new
+            slot: regionBody
+        }
+        source {
+            formRegion: @new
+            column: CREATED_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P24_DESCRIPTION (
+        type: textField
+        label {
+            label: Description
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @new
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 500
+        }
+        source {
+            formRegion: @new
+            column: DESCRIPTION
+            dataType: varchar2
+        }
+    )
+
+    pageItem P24_MIN_STOCK_QTY (
+        type: numberField
+        label {
+            label: Min Stock Qty
+            alignment: left
+        }
+        layout {
+            sequence: 110
+            region: @new
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        source {
+            formRegion: @new
+            column: MIN_STOCK_QTY
+            dataType: number
+        }
+    )
+
+    pageItem P24_PRODUCT_CODE (
+        type: displayOnly
+        label {
+            label: Product Code
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @new
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional
+            templateOptions: #DEFAULT#
+        }
+        source {
+            formRegion: @new
+            column: PRODUCT_CODE
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P24_PRODUCT_NO
+        }
+    )
+
+    pageItem P24_PRODUCT_NAME (
+        type: textField
+        label {
+            label: Product Name
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @new
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+            maxLength: 300
+        }
+        source {
+            formRegion: @new
+            column: PRODUCT_NAME
+            dataType: varchar2
+        }
+    )
+
+    pageItem P24_PRODUCT_NO (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 10
+            region: @new
+            slot: regionBody
+        }
+        source {
+            formRegion: @new
+            column: PRODUCT_NO
+            dataType: number
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P24_PURCHASE_RATE (
+        type: numberField
+        label {
+            label: Purchase Rate
+            alignment: left
+        }
+        layout {
+            sequence: 90
+            region: @new
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        source {
+            formRegion: @new
+            column: PURCHASE_RATE
+            dataType: number
+        }
+    )
+
+    pageItem P24_SALES_RATE (
+        type: numberField
+        label {
+            label: Sales Rate
+            alignment: left
+        }
+        layout {
+            sequence: 100
+            region: @new
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        source {
+            formRegion: @new
+            column: SALES_RATE
+            dataType: number
+        }
+    )
+
+    pageItem P24_UOM_NO (
+        type: selectList
+        label {
+            label: UOM
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT UOM_NAME,
+                       UOM_NO
+                FROM MST_UOM
+                WHERE ACTIVE_FLAG = 'Y'
+                ORDER BY UOM_NAME
+                ```
+            displayExtraValues: false
+            nullDisplayValue: --Select--
+        }
+        layout {
+            sequence: 80
+            region: @new
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            height: 1
+        }
+        source {
+            formRegion: @new
+            column: UOM_NO
+            dataType: number
+        }
+    )
+
+    pageItem P24_UPDATED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 150
+            region: @new
+            slot: regionBody
+        }
+        source {
+            formRegion: @new
+            column: UPDATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P24_UPDATED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 160
+            region: @new
+            slot: regionBody
+        }
+        source {
+            formRegion: @new
+            column: UPDATED_DATE
+            dataType: date
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+        }
+    )
+
+    button new-3 (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-reset
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+        }
+    )
+
+    validation minimum-stock-quantity-cannot-be-negative (
+        name: Minimum Stock Quantity cannot be negative.
+        execution {
+            sequence: 40
+        }
+        validation {
+            plsqlExpression: :P24_MIN_STOCK_QTY >= 0
+        }
+        error {
+            errorMessage: Minimum Stock Quantity cannot be negative.
+            associatedItem: @P24_MIN_STOCK_QTY
+        }
+    )
+
+    validation new (
+        name: RATE VALIDATION
+        execution {
+            sequence: 20
+        }
+        validation {
+            plsqlExpression: :P24_SALES_RATE >= :P24_PURCHASE_RATE
+        }
+        error {
+            errorMessage: Sales Rate cannot be less than Purchase Rate.
+            associatedItem: @P24_SALES_RATE
+        }
+    )
+
+    validation product-name-duplicate-check (
+        name: PRODUCT_NAME_DUPLICATE_CHECK
+        execution {
+            sequence: 10
+        }
+        validation {
+            type: noRowsReturned
+            sqlQuery:
+                ```sql
+                SELECT 1
+                FROM MST_PRODUCT
+                WHERE UPPER(PRODUCT_NAME) = UPPER(:P24_PRODUCT_NAME)
+                  AND NVL(PRODUCT_NO,0) <> NVL(:P24_PRODUCT_NO,0)
+                ```
+        }
+        error {
+            errorMessage: Product Name already exists.
+            associatedItem: @P24_PRODUCT_NAME
+        }
+    )
+
+    validation purchase-rate-must-be-greater-than-zero (
+        name: Purchase Rate must be greater than zero.
+        execution {
+            sequence: 30
+        }
+        validation {
+            plsqlExpression: :P24_PURCHASE_RATE > 0
+        }
+        error {
+            errorMessage: Purchase Rate must be greater than zero.
+            associatedItem: @P24_PURCHASE_RATE
+        }
+    )
+
+    process delete (
+        name: DELETE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                    DELETE FROM MST_PRODUCT_CATEGORY
+                     WHERE CATEGORY_NO = :P24_CATEGORY_NO;
+                
+                    apex_application.g_print_success_message :=
+                        'Product Category has been deleted successfully.';
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 30
+        }
+        error {
+            errorMessage: #SQLERRM_TEXT#
+        }
+        advanced {
+            executionMappingIdentifier: 15523475822929392655
+        }
+        serverSideCondition {
+            whenButtonPressed: @delete
+        }
+    )
+
+    process initialize-form-product-entry (
+        name: Initialize form Product Entry
+        type: formInitialization
+        formRegion: @new
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+        advanced {
+            executionMappingIdentifier: 15523757229384431246
+        }
+    )
+
+    process process-form-entry (
+        name: Process form Entry
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                    IF :P24_PRODUCT_NO IS NULL THEN
+                        INSERT INTO MST_PRODUCT (
+                            PRODUCT_NO,
+                            CATEGORY_NO,
+                            PRODUCT_CODE,
+                            PRODUCT_NAME,
+                            PURCHASE_RATE,
+                            SALES_RATE,
+                            MIN_STOCK_QTY,
+                            ACTIVE_FLAG,
+                            UOM_NO,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES (
+                            SEQ_PRODUCT_NO.NEXTVAL,
+                            :P24_CATEGORY_NO,
+                           'PRD' || LPAD(SEQ_PRODUCT_NO.NEXTVAL,4,'0'),
+                            :P24_PRODUCT_NAME,
+                            :P24_PURCHASE_RATE,
+                            :P24_SALES_RATE,
+                            :P24_MIN_STOCK_QTY,
+                            :P24_ACTIVE_FLAG,
+                            :P24_UOM_NO,
+                            :APP_USER,
+                            SYSDATE
+                        );
+                
+                          APEX_APPLICATION.g_print_success_message :=
+                            'Product has been saved successfully.';
+                    ELSE
+                        UPDATE MST_PRODUCT
+                           SET CATEGORY_NO   = :P24_CATEGORY_NO,
+                               PRODUCT_NAME  = :P24_PRODUCT_NAME,
+                               PURCHASE_RATE = :P24_PURCHASE_RATE,
+                               SALES_RATE    = :P24_SALES_RATE,
+                               MIN_STOCK_QTY = :P24_MIN_STOCK_QTY,
+                               ACTIVE_FLAG   = :P24_ACTIVE_FLAG,
+                               UOM_NO        = :P24_UOM_NO,
+                               UPDATED_BY    = :APP_USER,
+                               UPDATED_DATE  = SYSDATE
+                         WHERE PRODUCT_NO    = :P24_PRODUCT_NO;
+                
+                         
+                        APEX_APPLICATION.g_print_success_message :=
+                            'Product has been updated successfully.';
+                    END IF;
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+        error {
+            errorMessage: #SQLERRM_TEXT#
+        }
+        advanced {
+            executionMappingIdentifier: 15523475483239392654
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+    process uom-conversion-save-interactive-grid-data (
+        name: UOM Conversion - Save Interactive Grid Data
+        type: executeCode
+        editableRegion: @uom-conversion
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                    ---------------------------------------------------
+                    -- Product Saved?
+                    ---------------------------------------------------
+                
+                    IF :P24_PRODUCT_NO IS NULL THEN
+                
+                        RAISE_APPLICATION_ERROR
+                        (
+                            -20001,
+                            'Please save product information first.'
+                        );
+                
+                    END IF;
+                
+                    ---------------------------------------------------
+                    -- Validation
+                    ---------------------------------------------------
+                
+                    IF :CONVERT_UOM_NO IS NULL THEN
+                
+                        RAISE_APPLICATION_ERROR
+                        (
+                            -20001,
+                            'Please select UOM.'
+                        );
+                
+                    END IF;
+                
+                    IF NVL(:CONVERSION_FACTOR,0) <= 0 THEN
+                
+                        RAISE_APPLICATION_ERROR
+                        (
+                            -20001,
+                            'Conversion factor must be greater than zero.'
+                        );
+                
+                    END IF;
+                
+                    ---------------------------------------------------
+                    -- Base UOM Not Allowed
+                    ---------------------------------------------------
+                
+                    DECLARE
+                        V_BASE_UOM NUMBER;
+                    BEGIN
+                
+                        SELECT UOM_NO
+                          INTO V_BASE_UOM
+                          FROM MST_PRODUCT
+                         WHERE PRODUCT_NO = :P24_PRODUCT_NO;
+                
+                        IF :CONVERT_UOM_NO = V_BASE_UOM THEN
+                
+                            RAISE_APPLICATION_ERROR
+                            (
+                                -20001,
+                                'Base UOM cannot be added as conversion UOM.'
+                            );
+                
+                        END IF;
+                
+                    END;
+                
+                    ---------------------------------------------------
+                    -- INSERT
+                    ---------------------------------------------------
+                
+                    IF :APEX$ROW_STATUS = 'C' THEN
+                
+                        DECLARE
+                            V_CNT NUMBER;
+                        BEGIN
+                
+                            SELECT COUNT(*)
+                              INTO V_CNT
+                              FROM MST_UOM_CONVERSION
+                             WHERE PRODUCT_NO      = :P24_PRODUCT_NO
+                               AND CONVERT_UOM_NO  = :CONVERT_UOM_NO;
+                
+                            IF V_CNT > 0 THEN
+                
+                                RAISE_APPLICATION_ERROR
+                                (
+                                    -20001,
+                                    'This UOM already exists for the selected product.'
+                                );
+                
+                            END IF;
+                
+                        END;
+                
+                        INSERT INTO MST_UOM_CONVERSION
+                        (
+                            CONVERSION_NO,
+                            PRODUCT_NO,
+                            BASE_UOM_NO,
+                            CONVERT_UOM_NO,
+                            CONVERSION_FACTOR,
+                            ACTIVE_FLAG,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        SELECT
+                            SEQ_UOM_CONVERSION_NO.NEXTVAL,
+                            :P24_PRODUCT_NO,
+                            UOM_NO,
+                            :CONVERT_UOM_NO,
+                            :CONVERSION_FACTOR,
+                            'Y',
+                            :APP_USER,
+                            SYSDATE
+                        FROM MST_PRODUCT
+                        WHERE PRODUCT_NO = :P24_PRODUCT_NO;
+                
+                        -- RETURNING CONVERSION_NO
+                        -- INTO :CONVERSION_NO;
+                
+                    ---------------------------------------------------
+                    -- UPDATE
+                    ---------------------------------------------------
+                
+                    ELSIF :APEX$ROW_STATUS = 'U' THEN
+                
+                        UPDATE MST_UOM_CONVERSION
+                           SET CONVERT_UOM_NO   = :CONVERT_UOM_NO,
+                               CONVERSION_FACTOR= :CONVERSION_FACTOR,
+                               UPDATED_BY       = :APP_USER,
+                               UPDATED_DATE     = SYSDATE
+                         WHERE CONVERSION_NO = :CONVERSION_NO;
+                
+                    ---------------------------------------------------
+                    -- DELETE
+                    ---------------------------------------------------
+                
+                    ELSIF :APEX$ROW_STATUS = 'D' THEN
+                
+                        DELETE
+                          FROM MST_UOM_CONVERSION
+                         WHERE CONVERSION_NO = :CONVERSION_NO;
+                
+                    END IF;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 20
+        }
+        error {
+            errorMessage: #SQLERRM_TEXT#
+        }
+        advanced {
+            executionMappingIdentifier: 15523754958297431223
+        }
+    )
+
+)
+

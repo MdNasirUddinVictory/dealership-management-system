@@ -1,0 +1,1058 @@
+page 8 (
+    name: Customer Setup
+    alias: CUSTOMER-SETUP
+    title: Customer Setup
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb-2 (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 40
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region entry (
+        name: Entry
+        type: form
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select CUSTOMER_NO,
+                       CUSTOMER_CODE,
+                       CUSTOMER_NAME,
+                       CONTACT_PERSON,
+                       MOBILE_NO,
+                       EMAIL_ADDRESS,
+                       ADDRESS,
+                       ACTIVE_FLAG      
+                  from MST_CUSTOMER
+                ```
+        }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--removeHeader js-removeLandmark
+                t-Region--noBorder
+                t-Region--hiddenOverflow
+                t-Form--slimPadding
+                t-Form--large
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+    )
+
+    region register (
+        name: Register
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select CUSTOMER_NO,
+                       CUSTOMER_CODE,
+                       CUSTOMER_NAME,
+                       CONTACT_PERSON,
+                       MOBILE_NO,
+                       EMAIL_ADDRESS,
+                       ADDRESS,
+                       DECODE(ACTIVE_FLAG,1,'Active',0,'Inactive')Status,
+                       CREATED_BY,
+                       CREATED_DATE,
+                       UPDATED_BY,
+                       UPDATED_DATE
+                  from MST_CUSTOMER
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
+        }
+        advanced {
+            savedReportMappingIdentifier: 16175475553064530064
+        }
+
+        savedReport primary (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @CUSTOMER_NO
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @CUSTOMER_CODE
+                layout {
+                    width: 115
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @CUSTOMER_NAME
+                layout {
+                    width: 144.375
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_BY
+                layout {
+                    width: 81
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_DATE
+                layout {
+                    width: 90
+                    sequence: 11
+                }
+            )
+
+            displayColumn (
+                column: @UPDATED_BY
+                layout {
+                    sequence: 12
+                }
+            )
+
+            displayColumn (
+                column: @UPDATED_DATE
+                layout {
+                    width: 104
+                    sequence: 10
+                }
+            )
+
+            displayColumn (
+                column: @STATUS
+                layout {
+                    sequence: 13
+                }
+            )
+
+            displayColumn (
+                column: @CONTACT_PERSON
+                layout {
+                    width: 141.641
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @MOBILE_NO
+                layout {
+                    width: 136.375
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @EMAIL_ADDRESS
+                layout {
+                    width: 181.625
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @ADDRESS
+                layout {
+                    width: 209.625
+                    sequence: 6
+                }
+            )
+
+        )
+
+        column ADDRESS (
+            type: textarea
+            heading {
+                heading: Address
+            }
+            layout {
+                sequence: 60
+            }
+            validation {
+                maxLength: 500
+            }
+            source {
+                databaseColumn: ADDRESS
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+        )
+
+        column CONTACT_PERSON (
+            type: textField
+            heading {
+                heading: Contact Person
+            }
+            layout {
+                sequence: 30
+            }
+            validation {
+                maxLength: 200
+            }
+            source {
+                databaseColumn: CONTACT_PERSON
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CREATED_BY (
+            type: textField
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 100
+            }
+            validation {
+                maxLength: 30
+            }
+            source {
+                databaseColumn: CREATED_BY
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CREATED_DATE (
+            type: datePicker
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                databaseColumn: CREATED_DATE
+                dataType: date
+            }
+        )
+
+        column CUSTOMER_CODE (
+            type: link
+            heading {
+                heading: Customer Code
+                alignment: center
+            }
+            layout {
+                sequence: 20
+                columnAlignment: center
+            }
+            link {
+                target: {
+                    page: 8
+                    items: {
+                        P8_CUSTOMER_NO: &CUSTOMER_NO.
+                    }
+                }
+                linkText: &CUSTOMER_CODE.
+            }
+            source {
+                databaseColumn: CUSTOMER_CODE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CUSTOMER_NAME (
+            type: textarea
+            heading {
+                heading: Customer Name
+            }
+            layout {
+                sequence: 80
+            }
+            validation {
+                valueRequired: true
+                maxLength: 300
+            }
+            source {
+                databaseColumn: CUSTOMER_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+        )
+
+        column CUSTOMER_NO (
+            type: hidden
+            heading {
+                heading: Customer No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                databaseColumn: CUSTOMER_NO
+                dataType: number
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column EMAIL_ADDRESS (
+            type: textField
+            heading {
+                heading: Email Address
+            }
+            layout {
+                sequence: 50
+            }
+            validation {
+                maxLength: 200
+            }
+            source {
+                databaseColumn: EMAIL_ADDRESS
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column MOBILE_NO (
+            type: textField
+            heading {
+                heading: Mobile No
+            }
+            layout {
+                sequence: 40
+            }
+            validation {
+                maxLength: 30
+            }
+            source {
+                databaseColumn: MOBILE_NO
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column STATUS (
+            type: textField
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 140
+            }
+            validation {
+                maxLength: 8
+            }
+            source {
+                databaseColumn: STATUS
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column UPDATED_BY (
+            type: textField
+            heading {
+                heading: Updated By
+            }
+            layout {
+                sequence: 120
+            }
+            validation {
+                maxLength: 30
+            }
+            source {
+                databaseColumn: UPDATED_BY
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column UPDATED_DATE (
+            type: datePicker
+            heading {
+                heading: Updated Date
+            }
+            layout {
+                sequence: 130
+            }
+            source {
+                databaseColumn: UPDATED_DATE
+                dataType: date
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    pageItem P8_ACTIVE_FLAG (
+        type: checkbox
+        label {
+            label: Active Flag
+            alignment: left
+        }
+        settings {
+            useDefaults: false
+            checkedValue: 1
+            uncheckedValue: 0
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+        }
+        source {
+            formRegion: @entry
+            column: ACTIVE_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: 1
+        }
+    )
+
+    pageItem P8_ADDRESS (
+        type: textField
+        label {
+            label: Address
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 500
+        }
+        source {
+            formRegion: @entry
+            column: ADDRESS
+            dataType: varchar2
+        }
+    )
+
+    pageItem P8_CONTACT_PERSON (
+        type: textField
+        label {
+            label: Contact Person
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 200
+        }
+        source {
+            formRegion: @entry
+            column: CONTACT_PERSON
+            dataType: varchar2
+        }
+    )
+
+    pageItem P8_CUSTOMER_CODE (
+        type: textField
+        label {
+            label: Customer Code
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 30
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            formRegion: @entry
+            column: CUSTOMER_CODE
+            dataType: varchar2
+        }
+    )
+
+    pageItem P8_CUSTOMER_NAME (
+        type: textField
+        label {
+            label: Customer Name
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+            maxLength: 300
+        }
+        source {
+            formRegion: @entry
+            column: CUSTOMER_NAME
+            dataType: varchar2
+        }
+    )
+
+    pageItem P8_CUSTOMER_NO (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: CUSTOMER_NO
+            dataType: number
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P8_EMAIL_ADDRESS (
+        type: textField
+        label {
+            label: Email Address
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 200
+        }
+        source {
+            formRegion: @entry
+            column: EMAIL_ADDRESS
+            dataType: varchar2
+        }
+    )
+
+    pageItem P8_MOBILE_NO (
+        type: textField
+        label {
+            label: Mobile No
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+            maxLength: 30
+        }
+        source {
+            formRegion: @entry
+            column: MOBILE_NO
+            dataType: varchar2
+        }
+    )
+
+    button add-supplier (
+        buttonName: Add_Customer
+        label: Add Customer
+        layout {
+            sequence: 10
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-user-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 24
+                clearCache: 24
+                action: clearRegions
+            }
+        }
+        advanced {
+            htmlDomId: pb-reset
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    validation duplicate-mobile-number-check (
+        name: DUPLICATE MOBILE NUMBER CHECK
+        execution {
+            sequence: 20
+        }
+        validation {
+            type: noRowsReturned
+            sqlQuery:
+                ```sql
+                SELECT 1
+                FROM MST_CUSTOMER
+                WHERE MOBILE_NO = :P8_MOBILE_NO
+                  AND NVL(CUSTOMER_NO,0) <> NVL(:P8_CUSTOMER_NO,0)
+                ```
+        }
+        error {
+            errorMessage: Mobile Number already exists.
+            associatedItem: @P8_MOBILE_NO
+        }
+    )
+
+    validation validation-mobile-number (
+        name: VALIDATION MOBILE NUMBER
+        execution {
+            sequence: 10
+        }
+        validation {
+            plsqlExpression: "REGEXP_LIKE(:P8_MOBILE_NO,'^01[3-9][0-9]{8}$')"
+        }
+        error {
+            errorMessage: Please enter a valid mobile number.
+            associatedItem: @P8_MOBILE_NO
+        }
+    )
+
+    process delete (
+        name: DELETE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                    DELETE FROM MST_CUSTOMER
+                     WHERE CUSTOMER_NO = :P8_CUSTOMER_NO;
+                
+                    apex_application.g_print_success_message :=
+                        'Customer information has been deleted successfully.';
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 20
+        }
+        advanced {
+            executionMappingIdentifier: 8106662397174274161
+        }
+    )
+
+    process initialize-form-supplier-setup (
+        name: Initialize form Supplier Setup
+        type: formInitialization
+        formRegion: @entry
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+        advanced {
+            executionMappingIdentifier: 8106653134229274133
+        }
+    )
+
+    process process-form-entry (
+        name: Process form Entry
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                    IF :P8_CUSTOMER_NO IS NULL THEN
+                
+                        INSERT INTO MST_CUSTOMER
+                        (
+                            CUSTOMER_NO,
+                            CUSTOMER_CODE,
+                            CUSTOMER_NAME,
+                            CONTACT_PERSON,
+                            MOBILE_NO,
+                            EMAIL_ADDRESS,
+                            ADDRESS,
+                            ACTIVE_FLAG,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES
+                        (
+                            SEQ_CUSTOMER_NO.NEXTVAL,
+                               'CUS' || LPAD(SEQ_CUSTOMER_NO.NEXTVAL,4,'0'),
+                            :P8_CUSTOMER_NAME,
+                            :P8_CONTACT_PERSON,
+                            :P8_MOBILE_NO,
+                            :P8_EMAIL_ADDRESS,
+                            :P8_ADDRESS,
+                            NVL(:P8_ACTIVE_FLAG,'Y'),
+                            :APP_USER,
+                            SYSDATE
+                        );
+                
+                        apex_application.g_print_success_message :=
+                            'Customer information has been saved successfully.';
+                
+                    ELSE
+                
+                        UPDATE MST_CUSTOMER
+                           SET 
+                               CUSTOMER_NAME  = :P8_CUSTOMER_NAME,
+                               CONTACT_PERSON = :P8_CONTACT_PERSON,
+                               MOBILE_NO      = :P8_MOBILE_NO,
+                               EMAIL_ADDRESS  = :P8_EMAIL_ADDRESS,
+                               ADDRESS        = :P8_ADDRESS,
+                               ACTIVE_FLAG    = :P8_ACTIVE_FLAG,
+                               UPDATED_BY     = :APP_USER,
+                               UPDATED_DATE   = SYSDATE
+                         WHERE CUSTOMER_NO = :P8_CUSTOMER_NO;
+                
+                        apex_application.g_print_success_message :=
+                            'Customer information has been updated successfully.';
+                
+                    END IF;
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+        advanced {
+            executionMappingIdentifier: 8106661993832274161
+        }
+    )
+
+)
+

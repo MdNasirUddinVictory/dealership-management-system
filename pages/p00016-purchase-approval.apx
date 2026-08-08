@@ -1,0 +1,1124 @@
+page 16 (
+    name: Purchase Approval
+    alias: PURCHASE-APPROVAL
+    title: Purchase Approval
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            function f_openModal(purchaseNo){
+            
+                apex.item("P16_PURCHASE_NO").setValue(purchaseNo);
+            
+                openModal('purchase_approve');
+            
+                apex.region('purchase-detail').refresh();
+            
+            }
+            
+            
+            function approvePurchase(pPurchaseNo){
+            
+                if(!confirm('Are you sure you want to approve this purchase?')){
+                    return;
+                }
+            
+                apex.server.process(
+                    "APPROVE_PURCHASE",
+                    {
+                        x01: pPurchaseNo
+                    },
+                    {
+                        dataType: "text",
+                        success: function(pData){
+            
+                            if(pData === "SUCCESS"){
+            
+                                apex.message.showPageSuccess(
+                                    "Purchase approved successfully."
+                                );
+            
+                                apex.region('purchase-detail').refresh();
+                                apex.region('purchase-register').refresh();
+            
+                            }else{
+            
+                                apex.message.alert(pData);
+            
+                            }
+                        },
+                        error: function(){
+            
+                            apex.message.alert(
+                                "Unable to process request."
+                            );
+            
+                        }
+                    }
+                );
+            
+            }
+            
+            
+            function rejectPurchase(pPurchaseNo){
+            
+                if(!confirm('Are you sure you want to reject this purchase?')){
+                    return;
+                }
+            
+                apex.server.process(
+                    "REJECT_PURCHASE",
+                    {
+                        x01: pPurchaseNo
+                    },
+                    {
+                        dataType: "text",
+                        success: function(pData){
+            
+                            if(pData === "SUCCESS"){
+            
+                                apex.message.showPageSuccess(
+                                    "Purchase rejected successfully."
+                                );
+            
+                                 apex.region('purchase-detail').refresh();
+                                apex.region('purchase-register').refresh();
+            
+                            }else{
+            
+                                apex.message.alert(pData);
+            
+                            }
+                        },
+                        error: function(){
+            
+                            apex.message.alert(
+                                "Unable to process request."
+                            );
+            
+                        }
+                    }
+                );
+            
+            }
+            ```
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region approval-process (
+        name: Approval Process
+        type: staticContent
+        layout {
+            sequence: 40
+            slot: body
+        }
+        appearance {
+            template: @/inline-drawer
+            templateOptions: [
+                #DEFAULT#
+                js-dialog-class-t-Drawer--pullOutEnd
+                js-dialog-class-t-Drawer--md
+            ]
+        }
+        advanced {
+            htmlDomId: purchase_approve
+        }
+    )
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region purchase-details (
+        name: PURCHASE DETAILS
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT D.PURCHASE_DTL_NO,
+                       P.PRODUCT_CODE,
+                       P.PRODUCT_NAME,
+                       D.PURCHASE_QTY,
+                       D.PURCHASE_RATE,
+                       D.TOTAL_AMOUNT
+                FROM TRN_PURCHASE_DTL D
+                JOIN MST_PRODUCT P
+                ON P.PRODUCT_NO = D.PRODUCT_NO
+                WHERE D.PURCHASE_NO = :P16_PURCHASE_NO
+                ```
+            pageItemsToSubmit: P16_PURCHASE_NO
+        }
+        layout {
+            sequence: 30
+            parentRegion: @approval-process
+            slot: regionBody
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        advanced {
+            htmlDomId: purchase-detail
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
+        }
+        advanced {
+            savedReportMappingIdentifier: 8427740194470207832
+        }
+
+        savedReport primary (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @PURCHASE_DTL_NO
+                layout {
+                    show: false
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_CODE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_NAME
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @PURCHASE_QTY
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @PURCHASE_RATE
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @TOTAL_AMOUNT
+                layout {
+                    sequence: 6
+                }
+            )
+
+        )
+
+        column PRODUCT_CODE (
+            type: textField
+            heading {
+                heading: Product Code
+            }
+            layout {
+                sequence: 20
+            }
+            validation {
+                valueRequired: true
+                maxLength: 50
+            }
+            source {
+                databaseColumn: PRODUCT_CODE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column PRODUCT_NAME (
+            type: textarea
+            heading {
+                heading: Product Name
+            }
+            layout {
+                sequence: 30
+            }
+            validation {
+                valueRequired: true
+                maxLength: 300
+            }
+            source {
+                databaseColumn: PRODUCT_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+        )
+
+        column PURCHASE_DTL_NO (
+            type: numberField
+            heading {
+                heading: Purchase Dtl No
+                alignment: end
+            }
+            layout {
+                sequence: 10
+                columnAlignment: end
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: PURCHASE_DTL_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column PURCHASE_QTY (
+            type: numberField
+            heading {
+                heading: Purchase Qty
+                alignment: end
+            }
+            layout {
+                sequence: 40
+                columnAlignment: end
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: PURCHASE_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column PURCHASE_RATE (
+            type: numberField
+            heading {
+                heading: Purchase Rate
+                alignment: end
+            }
+            layout {
+                sequence: 50
+                columnAlignment: end
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: PURCHASE_RATE
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column TOTAL_AMOUNT (
+            type: numberField
+            heading {
+                heading: Total Amount
+                alignment: end
+            }
+            layout {
+                sequence: 60
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: TOTAL_AMOUNT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    region register (
+        name: PURCHASE-REGISTER
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT * FROM (SELECT M.PURCHASE_NO,
+                       M.PURCHASE_CODE,
+                       M.PURCHASE_DATE,
+                       S.SUPPLIER_NAME,
+                       (
+                           SELECT SUM(D.TOTAL_AMOUNT)
+                             FROM TRN_PURCHASE_DTL D
+                            WHERE D.PURCHASE_NO = M.PURCHASE_NO
+                       ) TOTAL_AMOUNT,
+                       CASE M.APPROVAL_STATUS
+                            WHEN 'P' THEN 'Pending'
+                            WHEN 'A' THEN 'Approved'
+                            WHEN 'R' THEN 'Rejected'
+                       END APPROVAL_STATUS,
+                       M.CREATED_BY,
+                       M.CREATED_DATE
+                FROM TRN_PURCHASE_MST M
+                JOIN MST_SUPPLIER S
+                  ON S.SUPPLIER_NO = M.SUPPLIER_NO
+                  WHERE APPROVAL_STATUS  = 'P'
+                ORDER BY M.PURCHASE_NO DESC);
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--removeHeader js-removeLandmark
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        advanced {
+            htmlDomId: purchase-register
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
+        }
+        advanced {
+            savedReportMappingIdentifier: 16705328056974162306
+        }
+
+        savedReport primary (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @PURCHASE_NO
+                layout {
+                    show: false
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @PURCHASE_CODE
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @PURCHASE_DATE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @SUPPLIER_NAME
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @TOTAL_AMOUNT
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @APPROVAL_STATUS
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @APPROVE
+                layout {
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_BY
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_DATE
+                layout {
+                    sequence: 7
+                }
+            )
+
+        )
+
+        column APPROVAL_STATUS (
+            type: textField
+            heading {
+                heading: Approval Status
+            }
+            layout {
+                sequence: 120
+            }
+            validation {
+                maxLength: 8
+            }
+            source {
+                databaseColumn: APPROVAL_STATUS
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column APPROVE (
+            type: link
+            layout {
+                sequence: 130
+            }
+            link {
+                target: {
+                    type: url
+                    url: javascript:f_openModal('&PURCHASE_NO.')
+                }
+                linkText: <span class="t-Button-label">Details</span>
+                linkAttributes: class="t-Button t-Button--hot t-Button--small t-Button--primary t-Button--stretch"
+            }
+            source {
+                type: none
+            }
+        )
+
+        column CREATED_BY (
+            type: textField
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 50
+            }
+            validation {
+                maxLength: 30
+            }
+            source {
+                databaseColumn: CREATED_BY
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CREATED_DATE (
+            type: datePicker
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                databaseColumn: CREATED_DATE
+                dataType: date
+            }
+        )
+
+        column PURCHASE_CODE (
+            type: textField
+            heading {
+                heading: Purchase Code
+            }
+            layout {
+                sequence: 80
+            }
+            validation {
+                maxLength: 20
+            }
+            source {
+                databaseColumn: PURCHASE_CODE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column PURCHASE_DATE (
+            type: datePicker
+            heading {
+                heading: Purchase Date
+            }
+            layout {
+                sequence: 90
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: PURCHASE_DATE
+                dataType: date
+            }
+        )
+
+        column PURCHASE_NO (
+            type: numberField
+            heading {
+                heading: Purchase No
+                alignment: end
+            }
+            layout {
+                sequence: 70
+                columnAlignment: end
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: PURCHASE_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column SUPPLIER_NAME (
+            type: textarea
+            heading {
+                heading: Supplier Name
+            }
+            layout {
+                sequence: 100
+            }
+            validation {
+                valueRequired: true
+                maxLength: 300
+            }
+            source {
+                databaseColumn: SUPPLIER_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+                lovType: none
+            }
+            enableUsersTo {
+                sort: false
+            }
+        )
+
+        column TOTAL_AMOUNT (
+            type: numberField
+            heading {
+                heading: Total Amount
+                alignment: end
+            }
+            layout {
+                sequence: 110
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: TOTAL_AMOUNT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    pageItem P16_PURCHASE_NO (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 40
+            region: @approval-process
+            slot: regionBody
+        }
+    )
+
+    button approve (
+        buttonName: APPROVE
+        label: Approve
+        layout {
+            sequence: 10
+            region: @approval-process
+            slot: top
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--success
+                t-Button--iconLeft
+            ]
+        }
+        behavior {
+            action: triggerAction
+        }
+
+        triggerAction native-dialog-close (
+            action: closeDialog
+            execution {
+                sequence: 20
+            }
+        )
+
+        triggerAction native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode: approvePurchase($v('P16_PURCHASE_NO'))
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-reset
+            customAttributes: disabled
+        }
+    )
+
+    button reject (
+        buttonName: REJECT
+        label: Reject
+        layout {
+            sequence: 20
+            region: @approval-process
+            slot: top
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--danger
+                t-Button--iconLeft
+            ]
+        }
+        behavior {
+            action: triggerAction
+        }
+
+        triggerAction native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode: rejectPurchase($v('P16_PURCHASE_NO'))
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    process approve-purchase (
+        name: APPROVE_PURCHASE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    v_status NUMBER;
+                    v_exists NUMBER;
+                
+                BEGIN
+                
+                    ------------------------------------------------
+                    -- Already Approved
+                    ------------------------------------------------
+                    SELECT COUNT(*)
+                      INTO v_status
+                      FROM TRN_PURCHASE_MST
+                     WHERE PURCHASE_NO = APEX_APPLICATION.G_X01
+                       AND APPROVAL_STATUS = 'A';
+                
+                    IF v_status > 0 THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Purchase already approved.'
+                        );
+                    END IF;
+                
+                    ------------------------------------------------
+                    -- Detail Exists
+                    ------------------------------------------------
+                    SELECT COUNT(*)
+                      INTO v_exists
+                      FROM TRN_PURCHASE_DTL
+                     WHERE PURCHASE_NO = APEX_APPLICATION.G_X01;
+                
+                    IF v_exists = 0 THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Purchase details not found.'
+                        );
+                    END IF;
+                
+                    ------------------------------------------------
+                    -- Stock Already Posted
+                    ------------------------------------------------
+                    SELECT COUNT(*)
+                      INTO v_exists
+                      FROM TRN_STOCK_LEDGER
+                     WHERE TRAN_TYPE = 'PURCHASE'
+                       AND REF_NO = APEX_APPLICATION.G_X01;
+                
+                    IF v_exists > 0 THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Stock already posted.'
+                        );
+                    END IF;
+                
+                    ------------------------------------------------
+                    -- Approve Purchase
+                    ------------------------------------------------
+                    UPDATE TRN_PURCHASE_MST
+                       SET APPROVAL_STATUS = 'A',
+                           PURCHASE_STATUS = 'R',
+                           APPROVED_BY     = :APP_USER,
+                           APPROVED_DATE   = SYSDATE
+                     WHERE PURCHASE_NO = APEX_APPLICATION.G_X01;
+                
+                    ------------------------------------------------
+                    -- Stock Ledger Posting
+                    ------------------------------------------------
+                    INSERT INTO TRN_STOCK_LEDGER
+                    (
+                        LEDGER_NO,
+                        TRAN_DATE,
+                        TRAN_TYPE,
+                        REF_NO,
+                        PRODUCT_NO,
+                        QTY_IN,
+                        QTY_OUT,
+                        CREATED_BY,
+                        CREATED_DATE
+                    )
+                    SELECT
+                        SEQ_LEDGER_NO.NEXTVAL,
+                        M.PURCHASE_DATE,
+                        'PURCHASE',
+                        D.PURCHASE_NO,
+                        D.PRODUCT_NO,
+                        D.BASE_QTY,
+                        0,
+                        :APP_USER,
+                        SYSDATE
+                    FROM TRN_PURCHASE_DTL D
+                    JOIN TRN_PURCHASE_MST M
+                      ON M.PURCHASE_NO = D.PURCHASE_NO
+                    WHERE D.PURCHASE_NO = APEX_APPLICATION.G_X01;
+                
+                    ------------------------------------------------
+                    -- Finance Voucher Posting
+                    ------------------------------------------------
+                    PKG_FINANCE.POST_PURCHASE
+                    (
+                        P_PURCHASE_NO => APEX_APPLICATION.G_X01
+                    );
+                
+                    COMMIT;
+                
+                    HTP.P('Purchase approved successfully.');
+                
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        ROLLBACK;
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            SQLERRM
+                        );
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: ajaxCallback
+        }
+        advanced {
+            executionMappingIdentifier: 8427741593348207846
+        }
+    )
+
+    process reject-purchase (
+        name: REJECT_PURCHASE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                    UPDATE TRN_PURCHASE_MST
+                       SET APPROVAL_STATUS = 'R',
+                           APPROVED_BY     = :APP_USER,
+                           APPROVED_DATE   = SYSDATE
+                     WHERE PURCHASE_NO = APEX_APPLICATION.G_X01;
+                
+                    COMMIT;
+                
+                    HTP.P('SUCCESS');
+                
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        HTP.P(SQLERRM);
+                END;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: ajaxCallback
+        }
+        advanced {
+            executionMappingIdentifier: 8427741704912207848
+        }
+    )
+
+)
+

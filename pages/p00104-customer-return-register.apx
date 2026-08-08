@@ -1,0 +1,886 @@
+page 104 (
+    name: Customer Return Register
+    alias: CUSTOMER-RETURN-REGISTER
+    title: Customer Return Register
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            function deliverInvoice(invoiceNo){
+            
+                if(confirm('Confirm Delivery?')){
+            
+                    apex.server.process(
+                        'DELIVER_INVOICE',
+                        {
+                            x01: invoiceNo
+                        },
+                        {
+                            success:function(pData){
+            
+                                apex.message.showPageSuccess(pData);
+            
+                                apex.region('invoice_list').refresh();
+            
+                            }
+                        }
+                    );
+            
+                }
+            }
+            
+            
+            function printInvoice(invoiceNo){
+            
+                window.open(
+                    'f?p=&APP_ID.:20:&SESSION.::NO::P20_INVOICE_NO:' + invoiceNo,
+                    '_blank'
+                );
+            
+            }
+            
+            // function printInvoice(invoiceNo){
+            
+            //     apex.navigation.dialog(
+            //         'f?p=&APP_ID.:20:&SESSION.::NO::P20_INVOICE_NO:' + invoiceNo,
+            //         {
+            //             title: 'Sales Invoice',
+            //             height: '700',
+            //             width: '1000',
+            //             modal: true
+            //         }
+            //     );
+            
+            // }
+            ```
+    }
+    security {
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region customer-return-detail (
+        name: CUSTOMER RETURN REGISTER
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT
+                       M.RETURN_NO,
+                
+                       M.RETURN_CODE,
+                
+                       M.RETURN_DATE,
+                
+                       I.INVOICE_CODE,
+                
+                       I.INVOICE_DATE,
+                
+                       C.CUSTOMER_NAME,
+                
+                       C.MOBILE_NO,
+                
+                       M.RETURN_REASON,
+                
+                       (
+                           SELECT NVL(SUM(D.RETURN_QTY),0)
+                             FROM TRN_CUSTOMER_RETURN_DTL D
+                            WHERE D.RETURN_NO = M.RETURN_NO
+                       ) TOTAL_QTY,
+                
+                       (
+                           SELECT NVL(SUM(D.TOTAL_AMOUNT),0)
+                             FROM TRN_CUSTOMER_RETURN_DTL D
+                            WHERE D.RETURN_NO = M.RETURN_NO
+                       ) TOTAL_AMOUNT,
+                
+                       CASE M.APPROVAL_STATUS
+                
+                           WHEN 'P' THEN
+                               '<span class="t-Badge t-Badge--warning">
+                                Pending
+                                </span>'
+                
+                           WHEN 'A' THEN
+                               '<span class="t-Badge t-Badge--success">
+                                Approved
+                                </span>'
+                
+                           WHEN 'R' THEN
+                               '<span class="t-Badge t-Badge--danger">
+                                Rejected
+                                </span>'
+                
+                       END APPROVAL_STATUS,
+                       null PRINT,
+                
+                       M.CREATED_BY,
+                
+                       M.CREATED_DATE,
+                
+                       M.APPROVED_BY,
+                
+                       M.APPROVED_DATE
+                
+                FROM TRN_CUSTOMER_RETURN_MST M
+                
+                JOIN TRN_SALES_INVOICE_MST I
+                  ON I.INVOICE_NO = M.INVOICE_NO
+                
+                JOIN MST_CUSTOMER C
+                  ON C.CUSTOMER_NO = M.CUSTOMER_NO
+                
+                WHERE (:P104_STATUS IS NULL
+                       OR M.APPROVAL_STATUS = :P104_STATUS)
+                
+                AND (:P104_CUSTOMER_NO IS NULL
+                     OR M.CUSTOMER_NO = :P104_CUSTOMER_NO)
+                
+                AND (:P104_DATE_FROM IS NULL
+                     OR M.RETURN_DATE >= :P104_DATE_FROM)
+                
+                AND (:P104_DATE_TO IS NULL
+                     OR M.RETURN_DATE <= :P104_DATE_TO)
+                
+                ORDER BY M.RETURN_NO DESC;
+                ```
+            pageItemsToSubmit: [
+                P104_STATUS
+                P104_CUSTOMER_NO
+                P104_DATE_FROM
+                P104_DATE_TO
+            ]
+        }
+        layout {
+            sequence: 60
+            parentRegion: @new
+            slot: regionBody
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 11193742508106922902
+        }
+
+        column APPROVAL_STATUS (
+            type: plainText
+            heading {
+                heading: Approval Status
+            }
+            layout {
+                sequence: 150
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: H
+            }
+            security {
+                escapeSpecialChars: false
+            }
+        )
+
+        column APPROVED_BY (
+            type: plainText
+            heading {
+                heading: Approved By
+            }
+            layout {
+                sequence: 210
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: N
+            }
+        )
+
+        column APPROVED_DATE (
+            type: plainText
+            heading {
+                heading: Approved Date
+            }
+            layout {
+                sequence: 220
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: O
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 190
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: L
+            }
+        )
+
+        column CREATED_DATE (
+            type: plainText
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 200
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: M
+            }
+        )
+
+        column CUSTOMER_NAME (
+            type: plainText
+            heading {
+                heading: Customer Name
+            }
+            layout {
+                sequence: 130
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: F
+            }
+        )
+
+        column INVOICE_CODE (
+            type: plainText
+            heading {
+                heading: Invoice Code
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: E
+            }
+        )
+
+        column INVOICE_DATE (
+            type: plainText
+            heading {
+                heading: Invoice Date
+            }
+            layout {
+                sequence: 160
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: I
+            }
+        )
+
+        column MOBILE_NO (
+            type: plainText
+            heading {
+                heading: Mobile No
+            }
+            layout {
+                sequence: 170
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: J
+            }
+        )
+
+        column PRINT (
+            type: link
+            heading {
+                heading: Print
+            }
+            layout {
+                sequence: 230
+            }
+            link {
+                target: {
+                    page: 23
+                    items: {
+                        P23_RETURN_NO: #RETURN_NO#
+                    }
+                }
+                linkText: <span class="t-Icon fa fa-print" aria-hidden="true"></span><span class="t-Button-label">Print Return</span>
+                linkAttributes: class="t-Button t-Button--icon t-Button--hot t-Button--small t-Button--primary t-Button--stretch t-Button--iconLeft"
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: P
+            }
+        )
+
+        column RETURN_CODE (
+            type: link
+            heading {
+                heading: Return Code
+            }
+            layout {
+                sequence: 100
+            }
+            link {
+                target: {
+                    page: 102
+                    items: {
+                        P102_RETURN_NO: #RETURN_NO#
+                    }
+                }
+                linkText: #RETURN_CODE#
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: C
+            }
+        )
+
+        column RETURN_DATE (
+            type: plainText
+            heading {
+                heading: Return Date
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: D
+            }
+        )
+
+        column RETURN_NO (
+            type: hidden
+            heading {
+                heading: Return No
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: A
+            }
+        )
+
+        column RETURN_REASON (
+            type: plainText
+            heading {
+                heading: Return Reason
+            }
+            layout {
+                sequence: 180
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: K
+            }
+        )
+
+        column TOTAL_AMOUNT (
+            type: plainText
+            heading {
+                heading: Total Amount
+                alignment: end
+            }
+            layout {
+                sequence: 90
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: B
+            }
+        )
+
+        column TOTAL_QTY (
+            type: plainText
+            heading {
+                heading: Total Qty
+                alignment: end
+            }
+            layout {
+                sequence: 140
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: G
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn APPROVAL_STATUS (
+                sequence: 12
+            )
+
+            displayColumn APPROVED_BY (
+                sequence: 13
+            )
+
+            displayColumn APPROVED_DATE (
+                sequence: 14
+            )
+
+            displayColumn CREATED_BY (
+                sequence: 9
+            )
+
+            displayColumn CREATED_DATE (
+                sequence: 10
+            )
+
+            displayColumn CUSTOMER_NAME (
+                sequence: 5
+            )
+
+            displayColumn INVOICE_CODE (
+                sequence: 3
+            )
+
+            displayColumn INVOICE_DATE (
+                sequence: 4
+            )
+
+            displayColumn MOBILE_NO (
+                sequence: 6
+            )
+
+            displayColumn PRINT (
+                sequence: 15
+            )
+
+            displayColumn RETURN_CODE (
+                sequence: 1
+            )
+
+            displayColumn RETURN_DATE (
+                sequence: 2
+            )
+
+            displayColumn RETURN_REASON (
+                sequence: 11
+            )
+
+            displayColumn TOTAL_AMOUNT (
+                sequence: 8
+            )
+
+            displayColumn TOTAL_QTY (
+                sequence: 7
+            )
+
+        )
+
+    )
+
+    region new (
+        name: MAIN_CONTAINER
+        type: staticContent
+        layout {
+            sequence: 30
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+    )
+
+    pageItem P104_CUSTOMER_NO (
+        type: popupLov
+        label {
+            label: Customer Name
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT CUSTOMER_NAME,
+                       CUSTOMER_NO
+                FROM MST_CUSTOMER
+                ORDER BY CUSTOMER_NAME;
+                ```
+            displayExtraValues: false
+        }
+        layout {
+            sequence: 20
+            region: @new
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+    )
+
+    pageItem P104_DATE_FROM (
+        type: datePicker
+        label {
+            label: From Date
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @new
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+    )
+
+    pageItem P104_DATE_TO (
+        type: datePicker
+        label {
+            label: To Date
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @new
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+    )
+
+    pageItem P104_STATUS (
+        type: selectList
+        label {
+            label: Status
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT 'Pending' DISPLAY_VALUE,
+                       'P' RETURN_VALUE
+                FROM DUAL
+                
+                UNION ALL
+                
+                SELECT 'Approved',
+                       'A'
+                FROM DUAL
+                
+                UNION ALL
+                
+                SELECT 'Rejected',
+                       'R'
+                FROM DUAL
+                ```
+            displayExtraValues: false
+            nullDisplayValue: --Select--
+        }
+        layout {
+            sequence: 10
+            region: @new
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            height: 1
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-reset
+            customAttributes: disabled
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    dynamicAction new (
+        name: New
+        execution {
+            sequence: 10
+        }
+        when {
+            selectionType: items
+            items: P104_INVOICE_NO
+        }
+
+        action native-set-value (
+            action: executeServerSideCode
+            settings {
+                plsqlCode:
+                    ```plsql
+                    SELECT I.CUSTOMER_NO ,
+                           C.CUSTOMER_NAME,
+                           C.MOBILE_NO,
+                           I.INVOICE_DATE,
+                           I.CREATED_DATE,
+                           I.TOTAL_AMOUNT into :P104_CUSTOMER_NO,:P104_CUSTOMER_NAME,:P104_MOBILE_NO,:P104_DELIVERY_DATE,:P104_INVOICE_DATE,:P104_INVOICE_AMOUNT
+                    FROM TRN_SALES_INVOICE_MST I
+                    JOIN MST_CUSTOMER C
+                      ON C.CUSTOMER_NO = I.CUSTOMER_NO
+                    WHERE I.INVOICE_NO = :P104_INVOICE_NO;
+                    ```
+                itemsToSubmit: P104_INVOICE_NO
+                itemsToReturn: [
+                    P104_CUSTOMER_NAME
+                    P104_MOBILE_NO
+                    P104_INVOICE_DATE
+                    P104_INVOICE_AMOUNT
+                    P104_CUSTOMER_NO
+                    P104_DELIVERY_DATE
+                ]
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction new_1 (
+        name: New
+        execution {
+            sequence: 20
+        }
+        when {
+            selectionType: items
+            items: [
+                P104_STATUS
+                P104_CUSTOMER_NO
+                P104_DATE_FROM
+                P104_DATE_TO
+            ]
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @customer-return-detail
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)
+

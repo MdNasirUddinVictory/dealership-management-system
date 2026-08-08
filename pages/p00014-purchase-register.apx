@@ -1,0 +1,974 @@
+page 14 (
+    name: Purchase Register
+    alias: PURCHASE-REGISTER
+    title: Purchase Register
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            function printPurchase(purchaseNo) {
+                $s('P200_PURCHASE_NO', purchaseNo);
+                openModal('purchase-print');
+                apex.region('purchase-print').refresh();
+            }
+            ```
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region purchase-print-report (
+        name: PURCHASE PRINT REPORT
+        type: plSqlDynamicContent
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    v_total NUMBER := 0;
+                
+                BEGIN
+                
+                    FOR h IN
+                    (
+                        SELECT P.PURCHASE_CODE,
+                               TO_CHAR(P.PURCHASE_DATE,'DD-MON-YYYY') PURCHASE_DATE,
+                               S.SUPPLIER_NAME,
+                               S.MOBILE_NO,
+                               S.ADDRESS,
+                               P.REMARKS
+                        FROM TRN_PURCHASE_MST P
+                        JOIN MST_SUPPLIER S
+                          ON S.SUPPLIER_NO = P.SUPPLIER_NO
+                        WHERE P.PURCHASE_NO = :P200_PURCHASE_NO
+                    )
+                    LOOP
+                
+                        HTP.P('
+                
+                <style>
+                
+                body{
+                    font-family:Segoe UI,Arial,sans-serif;
+                    font-size:13px;
+                    margin:25px;
+                    color:#222;
+                }
+                
+                .toolbar{
+                    text-align:right;
+                    margin-bottom:20px;
+                }
+                
+                .btn{
+                    border:none;
+                    padding:10px 20px;
+                    border-radius:5px;
+                    cursor:pointer;
+                    color:#fff;
+                    font-size:14px;
+                    font-weight:600;
+                    margin-left:5px;
+                }
+                
+                .print-btn{
+                    background:#1f4e79;
+                }
+                
+                .close-btn{
+                    background:#6b7280;
+                }
+                
+                .company{
+                    text-align:center;
+                    border-bottom:3px solid #1f4e79;
+                    padding-bottom:10px;
+                }
+                
+                .company h1{
+                    margin:0;
+                    color:#1f4e79;
+                    font-size:30px;
+                }
+                
+                .company p{
+                    margin:3px;
+                }
+                
+                .title{
+                    text-align:center;
+                    margin:20px 0;
+                }
+                
+                .title span{
+                    border:2px solid #1f4e79;
+                    padding:8px 30px;
+                    color:#1f4e79;
+                    font-size:22px;
+                    font-weight:bold;
+                }
+                
+                .info{
+                    width:100%;
+                    border-collapse:collapse;
+                    margin-bottom:20px;
+                }
+                
+                .info td{
+                    border:1px solid #ddd;
+                    padding:8px;
+                }
+                
+                .detail{
+                    width:100%;
+                    border-collapse:collapse;
+                }
+                
+                .detail th{
+                    background:#1f4e79;
+                    color:#fff;
+                    padding:10px;
+                    border:1px solid #ddd;
+                }
+                
+                .detail td{
+                    border:1px solid #ddd;
+                    padding:8px;
+                }
+                
+                .totalbox{
+                    width:300px;
+                    float:right;
+                    margin-top:20px;
+                    border-collapse:collapse;
+                }
+                
+                .totalbox td{
+                    border:1px solid #ccc;
+                    padding:10px;
+                }
+                
+                .footer{
+                    margin-top:100px;
+                }
+                
+                .sign{
+                    width:30%;
+                    display:inline-block;
+                    text-align:center;
+                }
+                
+                .sign hr{
+                    border:1px solid black;
+                }
+                
+                .watermark{
+                    position:fixed;
+                    top:45%;
+                    left:20%;
+                    font-size:90px;
+                    color:#f3f3f3;
+                    transform:rotate(-30deg);
+                    z-index:-1;
+                }
+                
+                @media print{
+                
+                    .toolbar{
+                        display:none;
+                    }
+                
+                    body{
+                        margin:0;
+                    }
+                
+                }
+                
+                </style>
+                
+                <div class="toolbar">
+                
+                    <button class="btn print-btn"
+                            onclick="window.print();">
+                        🖨 Print
+                    </button>
+                
+                    <button class="btn close-btn"
+                            onclick="apex.navigation.dialog.close(true);">
+                        ✖ Close
+                    </button>
+                
+                </div>
+                
+                <div class="watermark">
+                    PURCHASE
+                </div>
+                
+                <div class="company">
+                    <h1>YOUR COMPANY NAME</h1>
+                    <p>Dhaka, Bangladesh</p>
+                    <p>Phone: 017XXXXXXXX</p>
+                </div>
+                
+                <div class="title">
+                    <span>PURCHASE VOUCHER</span>
+                </div>
+                
+                <table class="info">
+                
+                <tr>
+                    <td><b>Purchase No</b></td>
+                    <td>'
+                    || h.PURCHASE_CODE ||
+                    '</td>
+                
+                    <td><b>Date</b></td>
+                    <td>'
+                    || h.PURCHASE_DATE ||
+                    '</td>
+                </tr>
+                
+                <tr>
+                    <td><b>Supplier</b></td>
+                    <td>'
+                    || h.SUPPLIER_NAME ||
+                    '</td>
+                
+                    <td><b>Mobile</b></td>
+                    <td>'
+                    || h.MOBILE_NO ||
+                    '</td>
+                </tr>
+                
+                <tr>
+                    <td><b>Address</b></td>
+                    <td colspan="3">'
+                    || NVL(h.ADDRESS,'') ||
+                    '</td>
+                </tr>
+                
+                </table>
+                
+                <table class="detail">
+                
+                <tr>
+                    <th>SL</th>
+                    <th>Code</th>
+                    <th>Product Name</th>
+                    <th>Qty</th>
+                    <th>Rate</th>
+                    <th>Amount</th>
+                </tr>
+                
+                ');
+                
+                    END LOOP;
+                
+                
+                    FOR d IN
+                    (
+                        SELECT ROW_NUMBER() OVER
+                               (
+                                   ORDER BY D.PURCHASE_DTL_NO
+                               ) SL,
+                
+                               P.PRODUCT_CODE,
+                               P.PRODUCT_NAME,
+                               D.PURCHASE_QTY,
+                               D.PURCHASE_RATE,
+                               D.TOTAL_AMOUNT
+                
+                        FROM TRN_PURCHASE_DTL D
+                        JOIN MST_PRODUCT P
+                          ON P.PRODUCT_NO = D.PRODUCT_NO
+                        WHERE D.PURCHASE_NO = :P200_PURCHASE_NO
+                    )
+                    LOOP
+                
+                        v_total := v_total + NVL(d.TOTAL_AMOUNT,0);
+                
+                        HTP.P('
+                
+                <tr>
+                
+                    <td align="center">'
+                    || d.SL ||
+                    '</td>
+                
+                    <td>'
+                    || d.PRODUCT_CODE ||
+                    '</td>
+                
+                    <td>'
+                    || d.PRODUCT_NAME ||
+                    '</td>
+                
+                    <td align="right">'
+                    || d.PURCHASE_QTY ||
+                    '</td>
+                
+                    <td align="right">'
+                    || d.PURCHASE_RATE ||
+                    '</td>
+                
+                    <td align="right">'
+                    || TO_CHAR(d.TOTAL_AMOUNT,
+                              '999G999G999D99')
+                    || '</td>
+                
+                </tr>
+                
+                ');
+                
+                    END LOOP;
+                
+                
+                    HTP.P('
+                
+                </table>
+                
+                <table class="totalbox">
+                
+                <tr>
+                    <td>
+                        <b>Grand Total</b>
+                    </td>
+                
+                    <td align="right">
+                        <b>'
+                        || TO_CHAR(v_total,
+                                   '999G999G999D99')
+                        || '</b>
+                    </td>
+                
+                </tr>
+                
+                </table>
+                
+                <div style="clear:both"></div>
+                
+                <br><br>
+                
+                <div>
+                    <b>Remarks :</b>
+                    Goods received in good condition.
+                </div>
+                
+                <div class="footer">
+                
+                    <div class="sign">
+                        <hr>
+                        Prepared By
+                    </div>
+                
+                    <div class="sign">
+                        <hr>
+                        Checked By
+                    </div>
+                
+                    <div class="sign">
+                        <hr>
+                        Approved By
+                    </div>
+                
+                </div>
+                
+                ');
+                
+                END;
+                
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: body
+        }
+        appearance {
+            template: @/inline-dialog
+            templateOptions: [
+                #DEFAULT#
+                js-dialog-size600x400
+            ]
+        }
+        advanced {
+            htmlDomId: purchase-print
+        }
+        config {
+            buildOption: @commented-out
+        }
+    )
+
+    region register (
+        name: Delivery Challan Report
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT
+                       P.PURCHASE_NO,
+                
+                       P.PURCHASE_CODE,
+                
+                       P.PURCHASE_DATE,
+                
+                       S.SUPPLIER_CODE,
+                
+                       S.SUPPLIER_NAME,
+                
+                       S.MOBILE_NO,
+                
+                       NVL(
+                           (
+                               SELECT SUM(D.PURCHASE_QTY)
+                               FROM TRN_PURCHASE_DTL D
+                               WHERE D.PURCHASE_NO = P.PURCHASE_NO
+                           ),
+                           0
+                       ) TOTAL_QTY,
+                
+                       NVL(
+                           (
+                               SELECT SUM(D.TOTAL_AMOUNT)
+                               FROM TRN_PURCHASE_DTL D
+                               WHERE D.PURCHASE_NO = P.PURCHASE_NO
+                           ),
+                           0
+                       ) TOTAL_AMOUNT,
+                
+                       CASE P.APPROVAL_STATUS
+                           WHEN 'P' THEN
+                               '<span style="
+                                    background:#f59e0b;
+                                    color:white;
+                                    padding:3px 8px;
+                                    border-radius:10px;">
+                                    Pending
+                                </span>'
+                
+                           WHEN 'A' THEN
+                               '<span style="
+                                    background:#22c55e;
+                                    color:white;
+                                    padding:3px 8px;
+                                    border-radius:10px;">
+                                    Approved
+                                </span>'
+                       END APPROVAL_STATUS,
+                
+                       P.CREATED_BY,
+                       P.CREATED_DATE,
+                
+                       P.APPROVED_BY,
+                       P.APPROVED_DATE,
+                
+                    --    '<button class="t-Button t-Button--primary t-Button--small"
+                    --         onclick="printPurchase('||P.PURCHASE_NO||')">
+                    --         <span class="fa fa-print"></span>
+                    --      </button>' 
+                         NULL PRINT_BTN
+                
+                FROM TRN_PURCHASE_MST P
+                JOIN MST_SUPPLIER S
+                  ON S.SUPPLIER_NO = P.SUPPLIER_NO
+                
+                ORDER BY P.PURCHASE_NO DESC;
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--removeHeader js-removeLandmark
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 23387565586569172735
+        }
+
+        column APPROVAL_STATUS (
+            type: plainText
+            heading {
+                heading: Approval Status
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: L
+            }
+            security {
+                escapeSpecialChars: false
+            }
+        )
+
+        column APPROVED_BY (
+            type: plainText
+            heading {
+                heading: Approved By
+            }
+            layout {
+                sequence: 240
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: X
+            }
+        )
+
+        column APPROVED_DATE (
+            type: plainText
+            heading {
+                heading: Approved Date
+            }
+            layout {
+                sequence: 250
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: Y
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 160
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: P
+            }
+        )
+
+        column CREATED_DATE (
+            type: plainText
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 170
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: Q
+            }
+        )
+
+        column MOBILE_NO (
+            type: plainText
+            heading {
+                heading: Mobile No
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: G
+            }
+        )
+
+        column PRINT_BTN (
+            type: link
+            heading {
+                heading: Print Btn
+            }
+            layout {
+                sequence: 230
+            }
+            link {
+                target: {
+                    page: 3
+                    items: {
+                        P3_PURCHASE_NO: #PURCHASE_NO#
+                    }
+                }
+                linkText: <span class="t-Icon fa fa-print" aria-hidden="true"></span><span class="t-Button-label">Print Purchase</span>
+                linkAttributes: class="t-Button t-Button--icon t-Button--hot t-Button--small t-Button--primary t-Button--stretch t-Button--iconLeft"
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: W
+            }
+            security {
+                escapeSpecialChars: false
+            }
+        )
+
+        column PURCHASE_CODE (
+            type: plainText
+            heading {
+                heading: Purchase Code
+            }
+            layout {
+                sequence: 190
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: S
+            }
+        )
+
+        column PURCHASE_DATE (
+            type: plainText
+            heading {
+                heading: Purchase Date
+            }
+            layout {
+                sequence: 200
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: T
+            }
+        )
+
+        column PURCHASE_NO (
+            type: plainText
+            heading {
+                heading: Purchase No
+                alignment: end
+            }
+            layout {
+                sequence: 180
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: R
+            }
+        )
+
+        column SUPPLIER_CODE (
+            type: plainText
+            heading {
+                heading: Supplier Code
+            }
+            layout {
+                sequence: 210
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: U
+            }
+        )
+
+        column SUPPLIER_NAME (
+            type: plainText
+            heading {
+                heading: Supplier Name
+            }
+            layout {
+                sequence: 220
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: V
+            }
+        )
+
+        column TOTAL_AMOUNT (
+            type: plainText
+            heading {
+                heading: Total Amount
+                alignment: end
+            }
+            layout {
+                sequence: 110
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: K
+            }
+        )
+
+        column TOTAL_QTY (
+            type: plainText
+            heading {
+                heading: Total Qty
+                alignment: end
+            }
+            layout {
+                sequence: 100
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: J
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn APPROVAL_STATUS (
+                sequence: 9
+            )
+
+            displayColumn APPROVED_BY (
+                sequence: 12
+            )
+
+            displayColumn APPROVED_DATE (
+                sequence: 13
+            )
+
+            displayColumn CREATED_BY (
+                sequence: 10
+            )
+
+            displayColumn CREATED_DATE (
+                sequence: 11
+            )
+
+            displayColumn MOBILE_NO (
+                sequence: 6
+            )
+
+            displayColumn PRINT_BTN (
+                sequence: 14
+            )
+
+            displayColumn PURCHASE_CODE (
+                sequence: 2
+            )
+
+            displayColumn PURCHASE_DATE (
+                sequence: 3
+            )
+
+            displayColumn PURCHASE_NO (
+                sequence: 1
+            )
+
+            displayColumn SUPPLIER_CODE (
+                sequence: 4
+            )
+
+            displayColumn SUPPLIER_NAME (
+                sequence: 5
+            )
+
+            displayColumn TOTAL_AMOUNT (
+                sequence: 8
+            )
+
+            displayColumn TOTAL_QTY (
+                sequence: 7
+            )
+
+        )
+
+    )
+
+    pageItem P200_PURCHASE_NO (
+        type: textField
+        label {
+            label: New
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @purchase-print-report
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-reset
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+        }
+    )
+
+)
+
