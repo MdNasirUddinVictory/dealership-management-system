@@ -1,7 +1,7 @@
 page 9999 (
-    name: Login Page
+    name: Secure Access
     alias: LOGIN
-    title: Dealer Inventory & Sales Management System - Log In
+    title: Dealer Inventory & Sales Management System - Secure Sign In
     appearance {
         pageTemplate: @/login
         templateOptions: #DEFAULT#
@@ -16,7 +16,7 @@ page 9999 (
     }
 
     region dealer-inventory-sales-management-system (
-        name: Dealer Inventory & Sales Management System
+        name: Secure Access Portal
         type: staticContent
         layout {
             sequence: 10
