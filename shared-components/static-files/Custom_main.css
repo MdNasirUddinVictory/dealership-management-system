@@ -486,9 +486,12 @@ body .t-Login-body::before {
 body .t-Form-fieldContainer {
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 18px;
-    padding: 0.8rem 1rem;
-    margin-bottom: 1rem;
+    border-radius: 16px;
+    padding: 0.55rem 0.95rem;
+    margin-bottom: 0.9rem;
+    min-height: 54px;
+    display: flex;
+    align-items: center;
 }
 
 body .t-Form-fieldContainer .apex-item-text,
@@ -497,13 +500,22 @@ body .t-Form-fieldContainer .apex-item-password {
     border: none;
     color: #f8fafc;
     width: 100%;
-    font-size: 1rem;
-    line-height: 2.1rem;
+    font-size: 0.97rem;
+    line-height: 1.7rem;
+    padding: 0.45rem 0;
+    min-height: 2.2rem;
 }
 
 body .t-Form-fieldContainer .apex-item-text::placeholder,
 body .t-Form-fieldContainer .apex-item-password::placeholder {
     color: rgba(255, 255, 255, 0.68);
+    font-size: 0.95rem;
+}
+
+body .t-Form-fieldContainer .apex-item-icon {
+    margin-right: 0.75rem;
+    color: rgba(255,255,255,0.72);
+    font-size: 1rem;
 }
 
 body .t-Form-fieldContainer input:focus {
