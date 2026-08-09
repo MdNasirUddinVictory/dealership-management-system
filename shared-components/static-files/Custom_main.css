@@ -186,6 +186,11 @@ body .t-Login-region {
     position: relative;
     isolation: isolate;
     animation: loginCardEnter 0.8s cubic-bezier(.2,.8,.2,1) both;
+    display: grid;
+    grid-template-columns: 1.1fr 0.95fr;
+    gap: 28px;
+    align-items: center;
+    min-height: 560px;
 }
 
 body .t-Login-region::before,
@@ -225,6 +230,37 @@ body .t-Login-region .t-Login-title span {
     text-shadow: 0 6px 20px rgba(0,0,0,0.2);
 }
 
+body .t-Login-region .t-Login-title {
+    position: relative;
+    padding: 8px 8px 8px 0;
+}
+
+body .t-Login-region .t-Login-title::before {
+    content: "Dealer Operations • Inventory • Sales • Purchases";
+    display: inline-block;
+    margin-bottom: 12px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.16);
+    color: #e0f2fe;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    backdrop-filter: blur(8px);
+}
+
+body .t-Login-region .t-Login-title::after {
+    content: "Manage stock, invoices, approvals, and customer activity from one secure portal.";
+    display: block;
+    margin-top: 14px;
+    max-width: 440px;
+    color: rgba(240,249,255,0.9);
+    font-size: 16px;
+    line-height: 1.7;
+    font-weight: 500;
+}
+
 body .t-Login-region img {
     width: 88px;
     height: 88px;
@@ -235,6 +271,11 @@ body .t-Login-region img {
 
 body .t-Login-region .t-Login-body {
     padding-top: 8px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 22px;
+    padding: 24px;
+    backdrop-filter: blur(12px);
 }
 
 body .t-Login-region .apex-item-text,
@@ -292,6 +333,12 @@ body .t-Login-region button[type="submit"]:hover {
 
 body .t-Login-region .apex-item-checkbox {
     color: #f8fafc;
+}
+
+body .t-Login-region .t-Login-title h1,
+body .t-Login-region .t-Login-title h2 {
+    font-size: 30px;
+    margin-bottom: 8px;
 }
 
 @keyframes loginCardEnter {
