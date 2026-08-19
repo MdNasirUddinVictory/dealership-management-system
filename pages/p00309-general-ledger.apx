@@ -1,0 +1,902 @@
+page 309 (
+    name: General Ledger
+    alias: GENERAL-LEDGER
+    title: General Ledger
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            function openVoucher(pVoucherNo, pvoucherCode, pVoucherType, pVoucherDate, pNarattion) {
+                $s('P304_VOUCHER_NO', pVoucherNo);
+                $s('P309_VOUCHER_CODE_DISPLAY', pvoucherCode);
+                $s('P309_VOUCHER_TYPE_DISPLAY', pVoucherType);
+                $s('P309_VOUCHER_DATE_DISPLAY', pVoucherDate);
+                $s('P309_NARRATION_DISPLAY', pNarattion);
+                apex.region('vioucherViewDtl').refresh();
+                openModal('vioucherView');
+            
+            
+            }
+            ```
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region voucher-mst (
+        name: General Ledger
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                WITH OPENING AS
+                (
+                    SELECT
+                           ACCOUNT_NO,
+                           NVL(SUM(OPENING_DEBIT),0)  OPENING_DEBIT,
+                           NVL(SUM(OPENING_CREDIT),0) OPENING_CREDIT
+                    FROM ACC_OPENING_BALANCE
+                    WHERE APPROVAL_STATUS = 'A'
+                    GROUP BY ACCOUNT_NO
+                ),
+                PERIOD AS
+                (
+                    SELECT
+                           D.ACCOUNT_NO,
+                           NVL(SUM(D.DEBIT_AMOUNT),0)  PERIOD_DEBIT,
+                           NVL(SUM(D.CREDIT_AMOUNT),0) PERIOD_CREDIT
+                    FROM ACC_VOUCHER_MST M
+                         JOIN ACC_VOUCHER_DTL D
+                           ON D.VOUCHER_NO = M.VOUCHER_NO
+                    WHERE M.APPROVAL_STATUS = 'A'
+                      AND M.VOUCHER_DATE BETWEEN :P309_FROM_DATE
+                                             AND :P309_TO_DATE
+                    GROUP BY D.ACCOUNT_NO
+                ),
+                TB AS
+                (
+                    SELECT
+                           H.ACCOUNT_NO,
+                           H.ACCOUNT_CODE,
+                           H.ACCOUNT_NAME,
+                           H.ACCOUNT_TYPE,
+                
+                           NVL(O.OPENING_DEBIT,0)  OPENING_DEBIT,
+                           NVL(O.OPENING_CREDIT,0) OPENING_CREDIT,
+                
+                           NVL(P.PERIOD_DEBIT,0)   PERIOD_DEBIT,
+                           NVL(P.PERIOD_CREDIT,0)  PERIOD_CREDIT
+                
+                    FROM MST_ACCOUNT_HEAD H
+                
+                         LEFT JOIN OPENING O
+                           ON O.ACCOUNT_NO = H.ACCOUNT_NO
+                
+                         LEFT JOIN PERIOD P
+                           ON P.ACCOUNT_NO = H.ACCOUNT_NO
+                
+                    WHERE H.IS_POSTING = 'Y'
+                      AND H.ACTIVE_STATUS = 'Y'
+                )
+                SELECT
+                       ACCOUNT_NO,
+                       ACCOUNT_CODE,
+                       ACCOUNT_NAME,
+                
+                       OPENING_DEBIT,
+                       OPENING_CREDIT,
+                
+                       PERIOD_DEBIT,
+                       PERIOD_CREDIT,
+                
+                       CASE
+                           WHEN
+                               (OPENING_DEBIT - OPENING_CREDIT)
+                             + (PERIOD_DEBIT - PERIOD_CREDIT) >= 0
+                           THEN
+                               (OPENING_DEBIT - OPENING_CREDIT)
+                             + (PERIOD_DEBIT - PERIOD_CREDIT)
+                
+                           ELSE 0
+                       END CLOSING_DEBIT,
+                
+                       CASE
+                           WHEN
+                               (OPENING_DEBIT - OPENING_CREDIT)
+                             + (PERIOD_DEBIT - PERIOD_CREDIT) < 0
+                           THEN
+                               ABS(
+                                   (OPENING_DEBIT - OPENING_CREDIT)
+                                 + (PERIOD_DEBIT - PERIOD_CREDIT)
+                               )
+                
+                           ELSE 0
+                       END CLOSING_CREDIT,
+                
+                       CASE
+                           WHEN
+                               (OPENING_DEBIT - OPENING_CREDIT)
+                             + (PERIOD_DEBIT - PERIOD_CREDIT) >= 0
+                           THEN 'DR'
+                           ELSE 'CR'
+                       END BALANCE_TYPE
+                
+                FROM TB
+                
+                WHERE
+                       OPENING_DEBIT  <> 0
+                    OR OPENING_CREDIT <> 0
+                    OR PERIOD_DEBIT   <> 0
+                    OR PERIOD_CREDIT  <> 0
+                
+                ORDER BY ACCOUNT_CODE;
+                ```
+            pageItemsToSubmit: [
+                P309_FROM_DATE
+                P309_TO_DATE
+            ]
+        }
+        layout {
+            sequence: 60
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 13156578117880014338
+        }
+
+        column ACCOUNT_CODE (
+            type: plainText
+            heading {
+                heading: Account Code
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: M
+            }
+        )
+
+        column ACCOUNT_NAME (
+            type: plainText
+            heading {
+                heading: Account Name
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: N
+            }
+        )
+
+        column ACCOUNT_NO (
+            type: plainText
+            heading {
+                heading: Account No
+                alignment: end
+            }
+            layout {
+                sequence: 10
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: L
+            }
+        )
+
+        column BALANCE_TYPE (
+            type: plainText
+            heading {
+                heading: Balance Type
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: U
+            }
+        )
+
+        column CLOSING_CREDIT (
+            type: plainText
+            heading {
+                heading: Closing Credit
+                alignment: end
+            }
+            layout {
+                sequence: 90
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: T
+            }
+        )
+
+        column CLOSING_DEBIT (
+            type: plainText
+            heading {
+                heading: Closing Debit
+                alignment: end
+            }
+            layout {
+                sequence: 80
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: S
+            }
+        )
+
+        column OPENING_CREDIT (
+            type: plainText
+            heading {
+                heading: Opening Credit
+                alignment: end
+            }
+            layout {
+                sequence: 50
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: P
+            }
+        )
+
+        column OPENING_DEBIT (
+            type: plainText
+            heading {
+                heading: Opening Debit
+                alignment: end
+            }
+            layout {
+                sequence: 40
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: O
+            }
+        )
+
+        column PERIOD_CREDIT (
+            type: plainText
+            heading {
+                heading: Period Credit
+                alignment: end
+            }
+            layout {
+                sequence: 70
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: R
+            }
+        )
+
+        column PERIOD_DEBIT (
+            type: plainText
+            heading {
+                heading: Period Debit
+                alignment: end
+            }
+            layout {
+                sequence: 60
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: Q
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn ACCOUNT_CODE (
+                sequence: 1
+            )
+
+            displayColumn ACCOUNT_NAME (
+                sequence: 2
+            )
+
+            displayColumn BALANCE_TYPE (
+                sequence: 3
+            )
+
+            displayColumn CLOSING_CREDIT (
+                sequence: 4
+            )
+
+            displayColumn CLOSING_DEBIT (
+                sequence: 5
+            )
+
+            displayColumn OPENING_CREDIT (
+                sequence: 6
+            )
+
+            displayColumn OPENING_DEBIT (
+                sequence: 7
+            )
+
+            displayColumn PERIOD_CREDIT (
+                sequence: 8
+            )
+
+            displayColumn PERIOD_DEBIT (
+                sequence: 9
+            )
+
+        )
+
+    )
+
+    region voucher-mst_1 (
+        name: General Ledger
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                WITH TB AS
+                (
+                    SELECT
+                        H.ACCOUNT_NO,
+                
+                        NVL(O.OPENING_DEBIT,0)  OPENING_DEBIT,
+                        NVL(O.OPENING_CREDIT,0) OPENING_CREDIT,
+                
+                        NVL(P.PERIOD_DEBIT,0)   PERIOD_DEBIT,
+                        NVL(P.PERIOD_CREDIT,0)  PERIOD_CREDIT
+                
+                    FROM MST_ACCOUNT_HEAD H
+                
+                    LEFT JOIN
+                    (
+                        SELECT
+                            ACCOUNT_NO,
+                            SUM(OPENING_DEBIT)  OPENING_DEBIT,
+                            SUM(OPENING_CREDIT) OPENING_CREDIT
+                        FROM ACC_OPENING_BALANCE
+                        WHERE APPROVAL_STATUS = 'A'
+                        GROUP BY ACCOUNT_NO
+                    ) O
+                        ON O.ACCOUNT_NO = H.ACCOUNT_NO
+                
+                    LEFT JOIN
+                    (
+                        SELECT
+                            D.ACCOUNT_NO,
+                            SUM(NVL(D.DEBIT_AMOUNT,0))  PERIOD_DEBIT,
+                            SUM(NVL(D.CREDIT_AMOUNT,0)) PERIOD_CREDIT
+                        FROM ACC_VOUCHER_MST M
+                        JOIN ACC_VOUCHER_DTL D
+                          ON D.VOUCHER_NO = M.VOUCHER_NO
+                        WHERE M.APPROVAL_STATUS = 'A'
+                          AND M.VOUCHER_DATE BETWEEN :P309_FROM_DATE
+                                                 AND :P309_TO_DATE
+                        GROUP BY D.ACCOUNT_NO
+                    ) P
+                        ON P.ACCOUNT_NO = H.ACCOUNT_NO
+                
+                    WHERE H.IS_POSTING = 'Y'
+                      AND H.ACTIVE_STATUS = 'Y'
+                )
+                SELECT
+                    SUM(OPENING_DEBIT)  TOTAL_OPENING_DEBIT,
+                    SUM(OPENING_CREDIT) TOTAL_OPENING_CREDIT,
+                
+                    SUM(PERIOD_DEBIT)   TOTAL_PERIOD_DEBIT,
+                    SUM(PERIOD_CREDIT)  TOTAL_PERIOD_CREDIT,
+                
+                    SUM(
+                        CASE
+                            WHEN (OPENING_DEBIT - OPENING_CREDIT)
+                               + (PERIOD_DEBIT - PERIOD_CREDIT) >= 0
+                            THEN
+                                (OPENING_DEBIT - OPENING_CREDIT)
+                               + (PERIOD_DEBIT - PERIOD_CREDIT)
+                            ELSE 0
+                        END
+                    ) TOTAL_CLOSING_DEBIT,
+                
+                    SUM(
+                        CASE
+                            WHEN (OPENING_DEBIT - OPENING_CREDIT)
+                               + (PERIOD_DEBIT - PERIOD_CREDIT) < 0
+                            THEN
+                                ABS(
+                                    (OPENING_DEBIT - OPENING_CREDIT)
+                                   + (PERIOD_DEBIT - PERIOD_CREDIT)
+                                )
+                            ELSE 0
+                        END
+                    ) TOTAL_CLOSING_CREDIT
+                
+                FROM TB;
+                ```
+            pageItemsToSubmit: [
+                P309_FROM_DATE
+                P309_TO_DATE
+            ]
+        }
+        layout {
+            sequence: 70
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--altRowsDefault
+                t-Report--rowHighlight
+            ]
+        }
+
+        column TOTAL_CLOSING_CREDIT (
+            reportColumnQueryId: 6
+            derivedColumn: N
+            heading {
+                heading: Total Closing Credit
+                alignment: end
+            }
+            layout {
+                sequence: 60
+                columnAlignment: end
+            }
+        )
+
+        column TOTAL_CLOSING_DEBIT (
+            reportColumnQueryId: 5
+            derivedColumn: N
+            heading {
+                heading: Total Closing Debit
+                alignment: end
+            }
+            layout {
+                sequence: 50
+                columnAlignment: end
+            }
+        )
+
+        column TOTAL_OPENING_CREDIT (
+            reportColumnQueryId: 2
+            derivedColumn: N
+            heading {
+                heading: Total Opening Credit
+                alignment: end
+            }
+            layout {
+                sequence: 20
+                columnAlignment: end
+            }
+        )
+
+        column TOTAL_OPENING_DEBIT (
+            reportColumnQueryId: 1
+            derivedColumn: N
+            heading {
+                heading: Total Opening Debit
+                alignment: end
+            }
+            layout {
+                sequence: 10
+                columnAlignment: end
+            }
+        )
+
+        column TOTAL_PERIOD_CREDIT (
+            reportColumnQueryId: 4
+            derivedColumn: N
+            heading {
+                heading: Total Period Credit
+                alignment: end
+            }
+            layout {
+                sequence: 40
+                columnAlignment: end
+            }
+        )
+
+        column TOTAL_PERIOD_DEBIT (
+            reportColumnQueryId: 3
+            derivedColumn: N
+            heading {
+                heading: Total Period Debit
+                alignment: end
+            }
+            layout {
+                sequence: 30
+                columnAlignment: end
+            }
+        )
+
+    )
+
+    pageItem P309_FROM_DATE (
+        type: datePicker
+        label {
+            label: From Date
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            slot: body
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+    )
+
+    pageItem P309_TO_DATE (
+        type: datePicker
+        label {
+            label: From Date
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-reset
+            customAttributes: disabled
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    process debit-and-credit-amount-must-be-equal (
+        name: Debit and Credit amount must be equal.
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    v_dr NUMBER;
+                    v_cr NUMBER;
+                
+                BEGIN
+                
+                    SELECT NVL(SUM(DEBIT_AMOUNT),0),
+                           NVL(SUM(CREDIT_AMOUNT),0)
+                      INTO v_dr,
+                           v_cr
+                      FROM ACC_VOUCHER_DTL
+                     WHERE VOUCHER_NO =
+                           :P309_VOUCHER_NO;
+                
+                    IF v_dr <> v_cr THEN
+                
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Debit and Credit amount must be equal.'
+                        );
+                
+                    END IF;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: afterSubmit
+        }
+        advanced {
+            executionMappingIdentifier: 10761208826316239
+        }
+    )
+
+    process process-form-voucher-mst (
+        name: Process form VOUCHER MST
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    v_code VARCHAR2(30);
+                
+                BEGIN
+                
+                    IF :P309_VOUCHER_DATE IS NULL THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Please enter voucher date.'
+                        );
+                    END IF;
+                
+                    IF :P309_VOUCHER_TYPE IS NULL THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Please select voucher type.'
+                        );
+                    END IF;
+                
+                    --------------------------------------------------
+                    -- INSERT
+                    --------------------------------------------------
+                
+                    IF :P309_VOUCHER_NO IS NULL THEN
+                
+                        :P309_VOUCHER_NO :=
+                            SEQ_VOUCHER_NO.NEXTVAL;
+                
+                        v_code :=
+                            :P309_VOUCHER_TYPE
+                            || '-'
+                            || LPAD(:P309_VOUCHER_NO,6,'0');
+                
+                        INSERT INTO ACC_VOUCHER_MST
+                        (
+                            VOUCHER_NO,
+                            VOUCHER_CODE,
+                            VOUCHER_DATE,
+                            VOUCHER_TYPE,
+                            NARRATION,
+                            APPROVAL_STATUS,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES
+                        (
+                            :P309_VOUCHER_NO,
+                            v_code,
+                            :P309_VOUCHER_DATE,
+                            :P309_VOUCHER_TYPE,
+                            :P309_NARRATION,
+                            'P',
+                            :APP_USER,
+                            SYSDATE
+                        ) RETURNING VOUCHER_NO INTO :P309_VOUCHER_NO ;
+                
+                    --------------------------------------------------
+                    -- UPDATE
+                    --------------------------------------------------
+                
+                    ELSE
+                
+                        UPDATE ACC_VOUCHER_MST
+                           SET VOUCHER_DATE = :P309_VOUCHER_DATE,
+                               VOUCHER_TYPE = :P309_VOUCHER_TYPE,
+                               NARRATION    = :P309_NARRATION,
+                               UPDATED_BY   = :APP_USER,
+                               UPDATED_DATE = SYSDATE
+                         WHERE VOUCHER_NO = :P309_VOUCHER_NO;
+                
+                    END IF;
+                
+                    apex_application.g_print_success_message :=
+                        'Voucher saved successfully.';
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+        advanced {
+            executionMappingIdentifier: 10760877501316239
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+)
+

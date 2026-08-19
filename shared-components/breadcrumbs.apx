@@ -79,6 +79,32 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry general-ledger (
+        name: General Ledger
+        pageNumber: 303
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 303
+            }
+        }
+    )
+
+    entry general-ledger-2 (
+        name: General Ledger
+        pageNumber: 309
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 309
+            }
+        }
+    )
+
     entry home (
         name: Home
         pageNumber: 1
