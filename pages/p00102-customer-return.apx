@@ -6,6 +6,7 @@ page 102 (
         pageTemplate: @/standard
         templateOptions: #DEFAULT#
     }
+    /TEST
     navigation {
         cursorFocus: doNotFocusCursor
     }
