@@ -11,7 +11,7 @@ page 1 (
     }
     security {
         pageAccessProtection: argumentsMustHaveChecksum
-        formAutoComplete: false
+        // formAutoComplete: false
     }
 
     region dealer-inventory-sales-management-system (
