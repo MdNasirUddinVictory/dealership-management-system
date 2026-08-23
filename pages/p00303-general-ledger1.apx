@@ -1,0 +1,1033 @@
+page 303 (
+    name: General Ledger
+    alias: GENERAL-LEDGER1
+    title: General Ledger
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            function openVoucher(pVoucherNo, pvoucherCode, pVoucherType, pVoucherDate, pNarattion) {
+                $s('P304_VOUCHER_NO', pVoucherNo);
+                $s('P303_VOUCHER_CODE_DISPLAY', pvoucherCode);
+                $s('P303_VOUCHER_TYPE_DISPLAY', pVoucherType);
+                $s('P303_VOUCHER_DATE_DISPLAY', pVoucherDate);
+                $s('P303_NARRATION_DISPLAY', pNarattion);
+                apex.region('vioucherViewDtl').refresh();
+                openModal('vioucherView');
+            
+            
+            }
+            ```
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region voucher-mst (
+        name: General Ledger
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                WITH TXN AS
+                (
+                    SELECT
+                           D.VOUCHER_DTL_NO,
+                           D.ACCOUNT_NO,
+                           H.ACCOUNT_CODE,
+                           H.ACCOUNT_NAME,
+                           H.ACCOUNT_TYPE,
+                
+                           M.VOUCHER_NO,
+                           M.VOUCHER_DATE,
+                           M.VOUCHER_CODE,
+                           M.VOUCHER_TYPE,
+                
+                           D.REF_TYPE,
+                           D.REF_NO,
+                           D.PARTICULARS,
+                
+                           NVL(D.DEBIT_AMOUNT, 0)  AS DEBIT_AMOUNT,
+                           NVL(D.CREDIT_AMOUNT, 0) AS CREDIT_AMOUNT
+                
+                      FROM ACC_VOUCHER_MST M
+                
+                      JOIN ACC_VOUCHER_DTL D
+                        ON D.VOUCHER_NO = M.VOUCHER_NO
+                
+                      JOIN MST_ACCOUNT_HEAD H
+                        ON H.ACCOUNT_NO = D.ACCOUNT_NO
+                
+                     WHERE M.APPROVAL_STATUS = 'A'
+                
+                       /* ACCOUNT */
+                       AND (
+                              :P303_ACCOUNT_NO IS NULL
+                              OR D.ACCOUNT_NO = :P303_ACCOUNT_NO
+                           )
+                
+                       /* FROM DATE */
+                       AND (
+                              :P303_FROM_DATE IS NULL
+                              OR M.VOUCHER_DATE >=
+                                 TO_DATE(:P303_FROM_DATE, 'DD-MON-YYYY')
+                           )
+                
+                       /* TO DATE */
+                       AND (
+                              :P303_TO_DATE IS NULL
+                              OR M.VOUCHER_DATE <
+                                 TO_DATE(:P303_TO_DATE, 'DD-MON-YYYY') + 1
+                           )
+                
+                       /* VOUCHER TYPE */
+                       AND (
+                              :P303_VOUCHER_TYPE IS NULL
+                              OR M.VOUCHER_TYPE = :P303_VOUCHER_TYPE
+                           )
+                ),
+                
+                /* =========================================================
+                   OPENING BALANCE
+                   ONLY TRANSACTIONS BEFORE FROM DATE
+                   ========================================================= */
+                OPENING AS
+                (
+                    SELECT
+                           H.ACCOUNT_NO,
+                           H.ACCOUNT_TYPE,
+                
+                           CASE
+                               /* ASSET / EXPENSE */
+                               WHEN H.ACCOUNT_TYPE IN ('A', 'E')
+                               THEN
+                                   NVL
+                                   (
+                                       SUM
+                                       (
+                                           CASE
+                                               WHEN M.VOUCHER_NO IS NOT NULL
+                                               THEN
+                                                   NVL(D.DEBIT_AMOUNT, 0)
+                                                 - NVL(D.CREDIT_AMOUNT, 0)
+                                               ELSE
+                                                   0
+                                           END
+                                       ),
+                                       0
+                                   )
+                
+                               /* LIABILITY / CAPITAL / INCOME */
+                               WHEN H.ACCOUNT_TYPE IN ('L', 'C', 'I')
+                               THEN
+                                   NVL
+                                   (
+                                       SUM
+                                       (
+                                           CASE
+                                               WHEN M.VOUCHER_NO IS NOT NULL
+                                               THEN
+                                                   NVL(D.CREDIT_AMOUNT, 0)
+                                                 - NVL(D.DEBIT_AMOUNT, 0)
+                                               ELSE
+                                                   0
+                                           END
+                                       ),
+                                       0
+                                   )
+                
+                               ELSE
+                                   0
+                           END AS OPENING_BALANCE
+                
+                      FROM MST_ACCOUNT_HEAD H
+                
+                      LEFT JOIN ACC_VOUCHER_DTL D
+                        ON D.ACCOUNT_NO = H.ACCOUNT_NO
+                
+                      LEFT JOIN ACC_VOUCHER_MST M
+                        ON M.VOUCHER_NO = D.VOUCHER_NO
+                       AND M.APPROVAL_STATUS = 'A'
+                       AND (
+                              :P303_FROM_DATE IS NOT NULL
+                              AND M.VOUCHER_DATE <
+                                  TO_DATE(:P303_FROM_DATE, 'DD-MON-YYYY')
+                           )
+                
+                     WHERE (
+                              :P303_ACCOUNT_NO IS NULL
+                              OR H.ACCOUNT_NO = :P303_ACCOUNT_NO
+                           )
+                
+                     GROUP BY
+                           H.ACCOUNT_NO,
+                           H.ACCOUNT_TYPE
+                ),
+                
+                /* =========================================================
+                   RUNNING BALANCE
+                   ========================================================= */
+                RUNNING AS
+                (
+                    SELECT
+                           T.*,
+                
+                           NVL(O.OPENING_BALANCE, 0) AS OPENING_BALANCE,
+                
+                           SUM
+                           (
+                               CASE
+                                   /* ASSET / EXPENSE */
+                                   WHEN T.ACCOUNT_TYPE IN ('A', 'E')
+                                   THEN
+                                       T.DEBIT_AMOUNT - T.CREDIT_AMOUNT
+                
+                                   /* LIABILITY / CAPITAL / INCOME */
+                                   WHEN T.ACCOUNT_TYPE IN ('L', 'C', 'I')
+                                   THEN
+                                       T.CREDIT_AMOUNT - T.DEBIT_AMOUNT
+                
+                                   ELSE
+                                       0
+                               END
+                           )
+                           OVER
+                           (
+                               PARTITION BY T.ACCOUNT_NO
+                
+                               ORDER BY
+                                   T.VOUCHER_DATE,
+                                   T.VOUCHER_NO,
+                                   T.VOUCHER_DTL_NO
+                
+                               ROWS BETWEEN UNBOUNDED PRECEDING
+                                        AND CURRENT ROW
+                           ) AS MOVEMENT_BALANCE
+                
+                      FROM TXN T
+                
+                      LEFT JOIN OPENING O
+                        ON O.ACCOUNT_NO = T.ACCOUNT_NO
+                )
+                
+                /* =========================================================
+                   FINAL RESULT
+                   ========================================================= */
+                SELECT
+                       ROW_NUMBER()
+                       OVER
+                       (
+                           ORDER BY
+                               VOUCHER_DATE,
+                               VOUCHER_NO,
+                               VOUCHER_DTL_NO
+                       ) AS SL,
+                
+                       VOUCHER_NO,
+                       VOUCHER_DATE,
+                
+                       ACCOUNT_NO,
+                       ACCOUNT_CODE,
+                       ACCOUNT_NAME,
+                       ACCOUNT_TYPE,
+                
+                       REF_TYPE,
+                       REF_NO,
+                       PARTICULARS,
+                
+                       DEBIT_AMOUNT,
+                       CREDIT_AMOUNT,
+                
+                       OPENING_BALANCE,
+                
+                       OPENING_BALANCE + MOVEMENT_BALANCE
+                           AS RUNNING_BALANCE,
+                
+                       CASE
+                    WHEN OPENING_BALANCE + MOVEMENT_BALANCE >= 0 THEN
+                        CASE
+                            WHEN ACCOUNT_TYPE IN ('A', 'E') THEN 'DR'
+                            ELSE 'CR'
+                        END
+                    ELSE
+                        CASE
+                            WHEN ACCOUNT_TYPE IN ('A', 'E') THEN 'CR'
+                            ELSE 'DR'
+                        END
+                END AS BALANCE_TYPE
+                
+                  FROM RUNNING
+                
+                 ORDER BY
+                       VOUCHER_DATE,
+                       VOUCHER_NO,
+                       VOUCHER_DTL_NO;
+                ```
+            pageItemsToSubmit: [
+                P303_FROM_DATE
+                P303_TO_DATE
+                P303_ACCOUNT_NO
+                P303_VOUCHER_TYPE
+            ]
+        }
+        layout {
+            sequence: 50
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 13167429816648358778
+        }
+
+        column ACCOUNT_CODE (
+            type: plainText
+            heading {
+                heading: Account Code
+            }
+            layout {
+                sequence: 220
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: AG
+            }
+        )
+
+        column ACCOUNT_NAME (
+            type: plainText
+            heading {
+                heading: Account Name
+            }
+            layout {
+                sequence: 230
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: AH
+            }
+        )
+
+        column ACCOUNT_NO (
+            type: plainText
+            heading {
+                heading: Account No
+                alignment: end
+            }
+            layout {
+                sequence: 210
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AF
+            }
+        )
+
+        column ACCOUNT_TYPE (
+            type: plainText
+            heading {
+                heading: Account Type
+            }
+            layout {
+                sequence: 250
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: AJ
+            }
+        )
+
+        column BALANCE_TYPE (
+            type: plainText
+            heading {
+                heading: Balance Type
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: U
+            }
+        )
+
+        column CREDIT_AMOUNT (
+            type: plainText
+            heading {
+                heading: Credit Amount
+                alignment: end
+            }
+            layout {
+                sequence: 190
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AD
+            }
+        )
+
+        column DEBIT_AMOUNT (
+            type: plainText
+            heading {
+                heading: Debit Amount
+                alignment: end
+            }
+            layout {
+                sequence: 180
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AC
+            }
+        )
+
+        column OPENING_BALANCE (
+            type: plainText
+            heading {
+                heading: Opening Balance
+                alignment: end
+            }
+            layout {
+                sequence: 240
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AI
+            }
+        )
+
+        column PARTICULARS (
+            type: plainText
+            heading {
+                heading: Particulars
+            }
+            layout {
+                sequence: 170
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: AB
+            }
+        )
+
+        column REF_NO (
+            type: plainText
+            heading {
+                heading: Ref No
+                alignment: end
+            }
+            layout {
+                sequence: 160
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AA
+            }
+        )
+
+        column REF_TYPE (
+            type: plainText
+            heading {
+                heading: Ref Type
+            }
+            layout {
+                sequence: 150
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: Z
+            }
+        )
+
+        column RUNNING_BALANCE (
+            type: plainText
+            heading {
+                heading: Running Balance
+                alignment: end
+            }
+            layout {
+                sequence: 200
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AE
+            }
+        )
+
+        column SL (
+            type: plainText
+            heading {
+                heading: Sl
+                alignment: end
+            }
+            layout {
+                sequence: 110
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: V
+            }
+        )
+
+        column VOUCHER_DATE (
+            type: plainText
+            heading {
+                heading: Voucher Date
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: W
+            }
+        )
+
+        column VOUCHER_NO (
+            type: plainText
+            heading {
+                heading: Voucher No
+                alignment: end
+            }
+            layout {
+                sequence: 260
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AK
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn ACCOUNT_CODE (
+                sequence: 4
+            )
+
+            displayColumn ACCOUNT_TYPE (
+                sequence: 5
+            )
+
+            displayColumn BALANCE_TYPE (
+                sequence: 3
+            )
+
+            displayColumn CREDIT_AMOUNT (
+                sequence: 8
+            )
+
+            displayColumn DEBIT_AMOUNT (
+                sequence: 7
+            )
+
+            displayColumn PARTICULARS (
+                sequence: 10
+            )
+
+            displayColumn REF_TYPE (
+                sequence: 6
+            )
+
+            displayColumn RUNNING_BALANCE (
+                sequence: 9
+            )
+
+            displayColumn SL (
+                sequence: 1
+            )
+
+            displayColumn VOUCHER_DATE (
+                sequence: 2
+            )
+
+        )
+
+    )
+
+    pageItem P303_ACCOUNT_NO (
+        type: popupLov
+        label {
+            label: Account No
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT
+                       ACCOUNT_NAME || ' - ' || ACCOUNT_CODE AS DISPLAY_VALUE,
+                       ACCOUNT_NO AS RETURN_VALUE
+                FROM MST_ACCOUNT_HEAD
+                WHERE IS_POSTING = 'Y'
+                  AND ACTIVE_STATUS = 'Y'
+                ORDER BY ACCOUNT_CODE
+                ```
+            displayExtraValues: false
+            nullDisplayValue: --Select--
+        }
+        layout {
+            sequence: 30
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+    )
+
+    pageItem P303_FROM_DATE (
+        type: datePicker
+        label {
+            label: From Date
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            slot: body
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+    )
+
+    pageItem P303_TO_DATE (
+        type: datePicker
+        label {
+            label: From Date
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+    )
+
+    pageItem P303_VOUCHER_TYPE (
+        type: popupLov
+        label {
+            label: Voucher Type
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT DISTINCT
+                       VOUCHER_TYPE AS DISPLAY_VALUE,
+                       VOUCHER_TYPE AS RETURN_VALUE
+                FROM ACC_VOUCHER_MST
+                WHERE VOUCHER_TYPE IS NOT NULL
+                ORDER BY VOUCHER_TYPE
+                ```
+            displayExtraValues: false
+            nullDisplayValue: --Select--
+        }
+        layout {
+            sequence: 40
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-reset
+            customAttributes: disabled
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    dynamicAction new (
+        name: New
+        execution {
+            sequence: 10
+        }
+        when {
+            selectionType: items
+            items: [
+                P303_FROM_DATE
+                P303_TO_DATE
+                P303_ACCOUNT_NO
+                P303_VOUCHER_TYPE
+            ]
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @voucher-mst
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process debit-and-credit-amount-must-be-equal (
+        name: Debit and Credit amount must be equal.
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    v_dr NUMBER;
+                    v_cr NUMBER;
+                
+                BEGIN
+                
+                    SELECT NVL(SUM(DEBIT_AMOUNT),0),
+                           NVL(SUM(CREDIT_AMOUNT),0)
+                      INTO v_dr,
+                           v_cr
+                      FROM ACC_VOUCHER_DTL
+                     WHERE VOUCHER_NO =
+                           :P303_VOUCHER_NO;
+                
+                    IF v_dr <> v_cr THEN
+                
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Debit and Credit amount must be equal.'
+                        );
+                
+                    END IF;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: afterSubmit
+        }
+        advanced {
+            executionMappingIdentifier: 10862668650344540
+        }
+    )
+
+    process process-form-voucher-mst (
+        name: Process form VOUCHER MST
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    v_code VARCHAR2(30);
+                
+                BEGIN
+                
+                    IF :P303_VOUCHER_DATE IS NULL THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Please enter voucher date.'
+                        );
+                    END IF;
+                
+                    IF :P303_VOUCHER_TYPE IS NULL THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Please select voucher type.'
+                        );
+                    END IF;
+                
+                    --------------------------------------------------
+                    -- INSERT
+                    --------------------------------------------------
+                
+                    IF :P303_VOUCHER_NO IS NULL THEN
+                
+                        :P303_VOUCHER_NO :=
+                            SEQ_VOUCHER_NO.NEXTVAL;
+                
+                        v_code :=
+                            :P303_VOUCHER_TYPE
+                            || '-'
+                            || LPAD(:P303_VOUCHER_NO,6,'0');
+                
+                        INSERT INTO ACC_VOUCHER_MST
+                        (
+                            VOUCHER_NO,
+                            VOUCHER_CODE,
+                            VOUCHER_DATE,
+                            VOUCHER_TYPE,
+                            NARRATION,
+                            APPROVAL_STATUS,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES
+                        (
+                            :P303_VOUCHER_NO,
+                            v_code,
+                            :P303_VOUCHER_DATE,
+                            :P303_VOUCHER_TYPE,
+                            :P303_NARRATION,
+                            'P',
+                            :APP_USER,
+                            SYSDATE
+                        ) RETURNING VOUCHER_NO INTO :P303_VOUCHER_NO ;
+                
+                    --------------------------------------------------
+                    -- UPDATE
+                    --------------------------------------------------
+                
+                    ELSE
+                
+                        UPDATE ACC_VOUCHER_MST
+                           SET VOUCHER_DATE = :P303_VOUCHER_DATE,
+                               VOUCHER_TYPE = :P303_VOUCHER_TYPE,
+                               NARRATION    = :P303_NARRATION,
+                               UPDATED_BY   = :APP_USER,
+                               UPDATED_DATE = SYSDATE
+                         WHERE VOUCHER_NO = :P303_VOUCHER_NO;
+                
+                    END IF;
+                
+                    apex_application.g_print_success_message :=
+                        'Voucher saved successfully.';
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+        advanced {
+            executionMappingIdentifier: 10862214866344537
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+)
+

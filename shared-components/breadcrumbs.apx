@@ -1,6 +1,19 @@
 breadcrumb breadcrumb (
     name: Breadcrumb
 
+    entry balance-sheet (
+        name: Balance Sheet
+        pageNumber: 306
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 306
+            }
+        }
+    )
+
     entry current-stock (
         name: "Current Stock "
         pageNumber: 10
@@ -101,6 +114,19 @@ breadcrumb breadcrumb (
         link {
             target: {
                 page: 309
+            }
+        }
+    )
+
+    entry general-ledger-3 (
+        name: General Ledger
+        pageNumber: 303
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 303
             }
         }
     )
@@ -235,6 +261,19 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry profit-amp-amp-loss (
+        name: Profit &amp;amp; Loss
+        pageNumber: 310
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 310
+            }
+        }
+    )
+
     entry purchase-approval (
         name: Purchase Approval
         pageNumber: 16
@@ -348,6 +387,19 @@ breadcrumb breadcrumb (
         link {
             target: {
                 page: 18
+            }
+        }
+    )
+
+    entry sales-report (
+        name: Sales Report
+        pageNumber: 100
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 100
             }
         }
     )

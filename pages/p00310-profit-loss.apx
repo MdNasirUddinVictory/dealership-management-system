@@ -1,0 +1,575 @@
+page 310 (
+    name: Profit & Loss
+    alias: PROFIT-LOSS
+    title: Profit & Loss
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            function openVoucher(pVoucherNo, pvoucherCode, pVoucherType, pVoucherDate, pNarattion) {
+                $s('P304_VOUCHER_NO', pVoucherNo);
+                $s('P310_VOUCHER_CODE_DISPLAY', pvoucherCode);
+                $s('P310_VOUCHER_TYPE_DISPLAY', pVoucherType);
+                $s('P310_VOUCHER_DATE_DISPLAY', pVoucherDate);
+                $s('P310_NARRATION_DISPLAY', pNarattion);
+                apex.region('vioucherViewDtl').refresh();
+                openModal('vioucherView');
+            
+            
+            }
+            ```
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region voucher-mst (
+        name: Profit & Loss
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                WITH PL AS
+                (
+                    SELECT
+                           H.ACCOUNT_NO,
+                           H.ACCOUNT_CODE,
+                           H.ACCOUNT_NAME,
+                           H.ACCOUNT_TYPE,
+                
+                           NVL(SUM(D.DEBIT_AMOUNT),0)  DEBIT_AMOUNT,
+                           NVL(SUM(D.CREDIT_AMOUNT),0) CREDIT_AMOUNT
+                
+                    FROM MST_ACCOUNT_HEAD H
+                
+                    JOIN ACC_VOUCHER_DTL D
+                      ON D.ACCOUNT_NO = H.ACCOUNT_NO
+                
+                    JOIN ACC_VOUCHER_MST M
+                      ON M.VOUCHER_NO = D.VOUCHER_NO
+                
+                    WHERE H.IS_POSTING = 'Y'
+                      AND H.ACTIVE_STATUS = 'Y'
+                      AND H.ACCOUNT_TYPE IN ('I','E')
+                      AND M.APPROVAL_STATUS = 'A'
+                
+                    --  AND M.VOUCHER_DATE BETWEEN :P310_FROM_DATE
+                    --                         AND :P310_TO_DATE
+                
+                    GROUP BY
+                           H.ACCOUNT_NO,
+                           H.ACCOUNT_CODE,
+                           H.ACCOUNT_NAME,
+                           H.ACCOUNT_TYPE
+                )
+                SELECT
+                       ACCOUNT_CODE,
+                       ACCOUNT_NAME,
+                
+                       CASE
+                           WHEN ACCOUNT_TYPE = 'I'
+                           THEN CREDIT_AMOUNT - DEBIT_AMOUNT
+                
+                           WHEN ACCOUNT_TYPE = 'E'
+                           THEN DEBIT_AMOUNT - CREDIT_AMOUNT
+                       END AMOUNT,
+                
+                       CASE
+                           WHEN ACCOUNT_TYPE = 'I'
+                           THEN 'Income'
+                
+                           WHEN ACCOUNT_TYPE = 'E'
+                           THEN 'Expense'
+                       END ACCOUNT_GROUP
+                
+                FROM PL
+                
+                ORDER BY
+                       ACCOUNT_TYPE DESC,
+                       ACCOUNT_CODE;
+                ```
+            pageItemsToSubmit: [
+                P310_FROM_DATE
+                P310_TO_DATE
+            ]
+        }
+        layout {
+            sequence: 60
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 13167483331276548236
+        }
+
+        column ACCOUNT_CODE (
+            type: plainText
+            heading {
+                heading: Account Code
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: M
+            }
+        )
+
+        column ACCOUNT_GROUP (
+            type: plainText
+            heading {
+                heading: Account Group
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: W
+            }
+        )
+
+        column ACCOUNT_NAME (
+            type: plainText
+            heading {
+                heading: Account Name
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: N
+            }
+        )
+
+        column AMOUNT (
+            type: plainText
+            heading {
+                heading: Amount
+                alignment: end
+            }
+            layout {
+                sequence: 40
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: V
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn ACCOUNT_CODE (
+                sequence: 1
+            )
+
+            displayColumn ACCOUNT_GROUP (
+                sequence: 3
+            )
+
+            displayColumn ACCOUNT_NAME (
+                sequence: 2
+            )
+
+            displayColumn AMOUNT (
+                sequence: 4
+            )
+
+        )
+
+    )
+
+    pageItem P310_FROM_DATE (
+        type: datePicker
+        label {
+            label: From Date
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            slot: body
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        default {
+            type: expression
+            plsqlExpression: sysdate - 60
+        }
+    )
+
+    pageItem P310_TO_DATE (
+        type: datePicker
+        label {
+            label: From Date
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        default {
+            type: expression
+            plsqlExpression: sysdate
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-reset
+            customAttributes: disabled
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    dynamicAction new (
+        name: New
+        execution {
+            sequence: 10
+        }
+        when {
+            selectionType: items
+            items: [
+                P310_FROM_DATE
+                P310_TO_DATE
+            ]
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @voucher-mst
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process debit-and-credit-amount-must-be-equal (
+        name: Debit and Credit amount must be equal.
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    v_dr NUMBER;
+                    v_cr NUMBER;
+                
+                BEGIN
+                
+                    SELECT NVL(SUM(DEBIT_AMOUNT),0),
+                           NVL(SUM(CREDIT_AMOUNT),0)
+                      INTO v_dr,
+                           v_cr
+                      FROM ACC_VOUCHER_DTL
+                     WHERE VOUCHER_NO =
+                           :P310_VOUCHER_NO;
+                
+                    IF v_dr <> v_cr THEN
+                
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Debit and Credit amount must be equal.'
+                        );
+                
+                    END IF;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: afterSubmit
+        }
+        advanced {
+            executionMappingIdentifier: 10916176172533987
+        }
+    )
+
+    process process-form-voucher-mst (
+        name: Process form VOUCHER MST
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    v_code VARCHAR2(30);
+                
+                BEGIN
+                
+                    IF :P310_VOUCHER_DATE IS NULL THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Please enter voucher date.'
+                        );
+                    END IF;
+                
+                    IF :P310_VOUCHER_TYPE IS NULL THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Please select voucher type.'
+                        );
+                    END IF;
+                
+                    --------------------------------------------------
+                    -- INSERT
+                    --------------------------------------------------
+                
+                    IF :P310_VOUCHER_NO IS NULL THEN
+                
+                        :P310_VOUCHER_NO :=
+                            SEQ_VOUCHER_NO.NEXTVAL;
+                
+                        v_code :=
+                            :P310_VOUCHER_TYPE
+                            || '-'
+                            || LPAD(:P310_VOUCHER_NO,6,'0');
+                
+                        INSERT INTO ACC_VOUCHER_MST
+                        (
+                            VOUCHER_NO,
+                            VOUCHER_CODE,
+                            VOUCHER_DATE,
+                            VOUCHER_TYPE,
+                            NARRATION,
+                            APPROVAL_STATUS,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES
+                        (
+                            :P310_VOUCHER_NO,
+                            v_code,
+                            :P310_VOUCHER_DATE,
+                            :P310_VOUCHER_TYPE,
+                            :P310_NARRATION,
+                            'P',
+                            :APP_USER,
+                            SYSDATE
+                        ) RETURNING VOUCHER_NO INTO :P310_VOUCHER_NO ;
+                
+                    --------------------------------------------------
+                    -- UPDATE
+                    --------------------------------------------------
+                
+                    ELSE
+                
+                        UPDATE ACC_VOUCHER_MST
+                           SET VOUCHER_DATE = :P310_VOUCHER_DATE,
+                               VOUCHER_TYPE = :P310_VOUCHER_TYPE,
+                               NARRATION    = :P310_NARRATION,
+                               UPDATED_BY   = :APP_USER,
+                               UPDATED_DATE = SYSDATE
+                         WHERE VOUCHER_NO = :P310_VOUCHER_NO;
+                
+                    END IF;
+                
+                    apex_application.g_print_success_message :=
+                        'Voucher saved successfully.';
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+        advanced {
+            executionMappingIdentifier: 10915767451533985
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+)
+

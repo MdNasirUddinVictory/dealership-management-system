@@ -1,0 +1,845 @@
+page 306 (
+    name: Balance Sheet
+    alias: BALANCE-SHEET
+    title: Balance Sheet
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            function openVoucher(pVoucherNo, pvoucherCode, pVoucherType, pVoucherDate, pNarattion) {
+                $s('P304_VOUCHER_NO', pVoucherNo);
+                $s('P306_VOUCHER_CODE_DISPLAY', pvoucherCode);
+                $s('P306_VOUCHER_TYPE_DISPLAY', pVoucherType);
+                $s('P306_VOUCHER_DATE_DISPLAY', pVoucherDate);
+                $s('P306_NARRATION_DISPLAY', pNarattion);
+                apex.region('vioucherViewDtl').refresh();
+                openModal('vioucherView');
+            
+            
+            }
+            ```
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region voucher-mst (
+        name: Balance Sheet
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                WITH ACCOUNT_BALANCE AS
+                (
+                    SELECT
+                           H.ACCOUNT_NO,
+                           H.ACCOUNT_CODE,
+                           H.ACCOUNT_NAME,
+                           H.ACCOUNT_TYPE,
+                
+                           NVL(SUM(D.DEBIT_AMOUNT), 0)  AS DEBIT_AMOUNT,
+                           NVL(SUM(D.CREDIT_AMOUNT), 0) AS CREDIT_AMOUNT
+                
+                    FROM MST_ACCOUNT_HEAD H
+                
+                    JOIN ACC_VOUCHER_DTL D
+                      ON D.ACCOUNT_NO = H.ACCOUNT_NO
+                
+                    JOIN ACC_VOUCHER_MST M
+                      ON M.VOUCHER_NO = D.VOUCHER_NO
+                
+                    WHERE H.IS_POSTING = 'Y'
+                      AND H.ACTIVE_STATUS = 'Y'
+                      AND M.APPROVAL_STATUS = 'A'
+                      AND M.VOUCHER_DATE <= :P311_AS_OF_DATE
+                
+                    GROUP BY
+                           H.ACCOUNT_NO,
+                           H.ACCOUNT_CODE,
+                           H.ACCOUNT_NAME,
+                           H.ACCOUNT_TYPE
+                ),
+                
+                BALANCE_SHEET AS
+                (
+                    SELECT
+                           ACCOUNT_NO,
+                           ACCOUNT_CODE,
+                           ACCOUNT_NAME,
+                           ACCOUNT_TYPE,
+                
+                           CASE
+                               WHEN ACCOUNT_TYPE = 'A'
+                               THEN DEBIT_AMOUNT - CREDIT_AMOUNT
+                
+                               WHEN ACCOUNT_TYPE IN ('L','C')
+                               THEN CREDIT_AMOUNT - DEBIT_AMOUNT
+                           END AS AMOUNT,
+                
+                           CASE
+                               WHEN ACCOUNT_TYPE = 'A'
+                               THEN 'Assets'
+                
+                               WHEN ACCOUNT_TYPE = 'L'
+                               THEN 'Liabilities'
+                
+                               WHEN ACCOUNT_TYPE = 'C'
+                               THEN 'Equity'
+                           END AS ACCOUNT_GROUP
+                
+                    FROM ACCOUNT_BALANCE
+                
+                    WHERE ACCOUNT_TYPE IN ('A','L','C')
+                ),
+                
+                PROFIT_LOSS AS
+                (
+                    SELECT
+                           NVL(
+                               SUM(
+                                   CASE
+                                       WHEN ACCOUNT_TYPE = 'I'
+                                       THEN CREDIT_AMOUNT - DEBIT_AMOUNT
+                
+                                       WHEN ACCOUNT_TYPE = 'E'
+                                       THEN -(DEBIT_AMOUNT - CREDIT_AMOUNT)
+                
+                                       ELSE 0
+                                   END
+                               ),
+                               0
+                           ) AS NET_PROFIT
+                
+                    FROM ACCOUNT_BALANCE
+                
+                    WHERE ACCOUNT_TYPE IN ('I','E')
+                )
+                
+                SELECT
+                       ACCOUNT_GROUP,
+                       ACCOUNT_CODE,
+                       ACCOUNT_NAME,
+                       AMOUNT
+                
+                FROM
+                (
+                    --------------------------------------------------
+                    -- Assets / Liabilities / Equity Accounts
+                    --------------------------------------------------
+                
+                    SELECT
+                           ACCOUNT_GROUP,
+                           ACCOUNT_CODE,
+                           ACCOUNT_NAME,
+                           AMOUNT
+                
+                    FROM BALANCE_SHEET
+                
+                    WHERE NVL(AMOUNT,0) <> 0
+                
+                    UNION ALL
+                
+                    --------------------------------------------------
+                    -- Current Period Profit
+                    --------------------------------------------------
+                
+                    SELECT
+                           'Equity'        AS ACCOUNT_GROUP,
+                           NULL            AS ACCOUNT_CODE,
+                           'Current Period Profit' AS ACCOUNT_NAME,
+                           NET_PROFIT      AS AMOUNT
+                
+                    FROM PROFIT_LOSS
+                
+                    WHERE NET_PROFIT > 0
+                
+                    UNION ALL
+                
+                    --------------------------------------------------
+                    -- Current Period Loss
+                    --------------------------------------------------
+                
+                    SELECT
+                           'Equity',
+                           NULL,
+                           'Current Period Loss',
+                           ABS(NET_PROFIT)
+                
+                    FROM PROFIT_LOSS
+                
+                    WHERE NET_PROFIT < 0
+                )
+                
+                ORDER BY
+                       CASE ACCOUNT_GROUP
+                           WHEN 'Assets'      THEN 1
+                           WHEN 'Liabilities' THEN 2
+                           WHEN 'Equity'      THEN 3
+                       END,
+                       ACCOUNT_CODE;
+                ```
+            pageItemsToSubmit: P311_AS_OF_DATE
+        }
+        layout {
+            sequence: 60
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 13178408834389097314
+        }
+
+        column ACCOUNT_CODE (
+            type: plainText
+            heading {
+                heading: Account Code
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: M
+            }
+        )
+
+        column ACCOUNT_GROUP (
+            type: plainText
+            heading {
+                heading: Account Group
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: W
+            }
+        )
+
+        column ACCOUNT_NAME (
+            type: plainText
+            heading {
+                heading: Account Name
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: N
+            }
+        )
+
+        column AMOUNT (
+            type: plainText
+            heading {
+                heading: Amount
+                alignment: end
+            }
+            layout {
+                sequence: 40
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: V
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn ACCOUNT_CODE (
+                sequence: 1
+            )
+
+            displayColumn ACCOUNT_GROUP (
+                sequence: 3
+            )
+
+            displayColumn ACCOUNT_NAME (
+                sequence: 2
+            )
+
+            displayColumn AMOUNT (
+                sequence: 4
+            )
+
+        )
+
+    )
+
+    region voucher-mst_1 (
+        name: Balance Sheet
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                WITH ACCOUNT_TOTAL AS
+                (
+                    SELECT
+                           H.ACCOUNT_TYPE,
+                
+                           SUM(
+                               CASE
+                                   WHEN H.ACCOUNT_TYPE = 'A'
+                                   THEN NVL(D.DEBIT_AMOUNT,0)
+                                      - NVL(D.CREDIT_AMOUNT,0)
+                
+                                   WHEN H.ACCOUNT_TYPE IN ('L','C')
+                                   THEN NVL(D.CREDIT_AMOUNT,0)
+                                      - NVL(D.DEBIT_AMOUNT,0)
+                
+                                   ELSE 0
+                               END
+                           ) AS AMOUNT
+                
+                    FROM MST_ACCOUNT_HEAD H
+                    JOIN ACC_VOUCHER_DTL D
+                      ON D.ACCOUNT_NO = H.ACCOUNT_NO
+                    JOIN ACC_VOUCHER_MST M
+                      ON M.VOUCHER_NO = D.VOUCHER_NO
+                
+                    WHERE H.IS_POSTING = 'Y'
+                      AND H.ACTIVE_STATUS = 'Y'
+                      AND M.APPROVAL_STATUS = 'A'
+                      AND M.VOUCHER_DATE <= :P311_AS_OF_DATE
+                
+                    GROUP BY H.ACCOUNT_TYPE
+                ),
+                
+                TOTALS AS
+                (
+                    SELECT
+                        NVL(SUM(CASE WHEN ACCOUNT_TYPE = 'A'
+                                     THEN AMOUNT ELSE 0 END),0) AS TOTAL_ASSETS,
+                
+                        NVL(SUM(CASE WHEN ACCOUNT_TYPE = 'L'
+                                     THEN AMOUNT ELSE 0 END),0) AS TOTAL_LIABILITIES,
+                
+                        NVL(SUM(CASE WHEN ACCOUNT_TYPE = 'C'
+                                     THEN AMOUNT ELSE 0 END),0) AS TOTAL_CAPITAL
+                
+                    FROM ACCOUNT_TOTAL
+                ),
+                
+                PROFIT AS
+                (
+                    SELECT
+                        NVL(
+                            SUM(
+                                CASE
+                                    WHEN H.ACCOUNT_TYPE = 'I'
+                                    THEN NVL(D.CREDIT_AMOUNT,0)
+                                       - NVL(D.DEBIT_AMOUNT,0)
+                
+                                    WHEN H.ACCOUNT_TYPE = 'E'
+                                    THEN NVL(D.DEBIT_AMOUNT,0)
+                                       - NVL(D.CREDIT_AMOUNT,0)
+                
+                                    ELSE 0
+                                END
+                            ),
+                            0
+                        ) AS NET_PROFIT
+                
+                    FROM MST_ACCOUNT_HEAD H
+                    JOIN ACC_VOUCHER_DTL D
+                      ON D.ACCOUNT_NO = H.ACCOUNT_NO
+                    JOIN ACC_VOUCHER_MST M
+                      ON M.VOUCHER_NO = D.VOUCHER_NO
+                
+                    WHERE H.IS_POSTING = 'Y'
+                      AND H.ACTIVE_STATUS = 'Y'
+                      AND H.ACCOUNT_TYPE IN ('I','E')
+                      AND M.APPROVAL_STATUS = 'A'
+                      AND M.VOUCHER_DATE <= :P311_AS_OF_DATE
+                )
+                
+                SELECT
+                       'Total Assets' AS PARTICULARS,
+                       T.TOTAL_ASSETS AS AMOUNT,
+                       NULL AS BALANCE_STATUS
+                FROM TOTALS T
+                
+                UNION ALL
+                
+                SELECT
+                       'Total Liabilities',
+                       T.TOTAL_LIABILITIES,
+                       NULL
+                FROM TOTALS T
+                
+                UNION ALL
+                
+                SELECT
+                       'Capital',
+                       T.TOTAL_CAPITAL,
+                       NULL
+                FROM TOTALS T
+                
+                UNION ALL
+                
+                SELECT
+                       'Current Period Profit / (Loss)',
+                       P.NET_PROFIT,
+                       NULL
+                FROM PROFIT P
+                
+                UNION ALL
+                
+                SELECT
+                       'Total Liabilities + Equity',
+                       T.TOTAL_LIABILITIES
+                       + T.TOTAL_CAPITAL
+                       + P.NET_PROFIT,
+                       NULL
+                FROM TOTALS T
+                CROSS JOIN PROFIT P
+                
+                UNION ALL
+                
+                SELECT
+                       'Balance Status',
+                       NULL,
+                       CASE
+                           WHEN ROUND(T.TOTAL_ASSETS,2)
+                              =
+                                ROUND(
+                                    T.TOTAL_LIABILITIES
+                                  + T.TOTAL_CAPITAL
+                                  + P.NET_PROFIT,
+                                  2
+                                )
+                           THEN 'Balanced'
+                           ELSE 'Not Balanced'
+                       END
+                FROM TOTALS T
+                CROSS JOIN PROFIT P;
+                ```
+            pageItemsToSubmit: P311_AS_OF_DATE
+        }
+        layout {
+            sequence: 70
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        componentAppearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Report--stretch
+                t-Report--altRowsDefault
+                t-Report--rowHighlight
+            ]
+        }
+
+        column AMOUNT (
+            reportColumnQueryId: 2
+            derivedColumn: N
+            heading {
+                heading: Amount
+                alignment: end
+            }
+            layout {
+                sequence: 40
+                columnAlignment: end
+            }
+            sorting {
+                sortable: false
+            }
+        )
+
+        column BALANCE_STATUS (
+            reportColumnQueryId: 3
+            derivedColumn: N
+            heading {
+                heading: Balance Status
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column PARTICULARS (
+            reportColumnQueryId: 1
+            derivedColumn: N
+            heading {
+                heading: Particulars
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+    )
+
+    pageItem P311_AS_OF_DATE (
+        type: datePicker
+        label {
+            label: From Date
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        default {
+            type: expression
+            plsqlExpression: sysdate
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-reset
+            customAttributes: disabled
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    dynamicAction new (
+        name: New
+        execution {
+            sequence: 10
+        }
+        when {
+            selectionType: items
+            items: P311_AS_OF_DATE
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @voucher-mst
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process debit-and-credit-amount-must-be-equal (
+        name: Debit and Credit amount must be equal.
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    v_dr NUMBER;
+                    v_cr NUMBER;
+                
+                BEGIN
+                
+                    SELECT NVL(SUM(DEBIT_AMOUNT),0),
+                           NVL(SUM(CREDIT_AMOUNT),0)
+                      INTO v_dr,
+                           v_cr
+                      FROM ACC_VOUCHER_DTL
+                     WHERE VOUCHER_NO =
+                           :P306_VOUCHER_NO;
+                
+                    IF v_dr <> v_cr THEN
+                
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Debit and Credit amount must be equal.'
+                        );
+                
+                    END IF;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: afterSubmit
+        }
+        advanced {
+            executionMappingIdentifier: 10931808232549085
+        }
+    )
+
+    process process-form-voucher-mst (
+        name: Process form VOUCHER MST
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                
+                    v_code VARCHAR2(30);
+                
+                BEGIN
+                
+                    IF :P306_VOUCHER_DATE IS NULL THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Please enter voucher date.'
+                        );
+                    END IF;
+                
+                    IF :P306_VOUCHER_TYPE IS NULL THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Please select voucher type.'
+                        );
+                    END IF;
+                
+                    --------------------------------------------------
+                    -- INSERT
+                    --------------------------------------------------
+                
+                    IF :P306_VOUCHER_NO IS NULL THEN
+                
+                        :P306_VOUCHER_NO :=
+                            SEQ_VOUCHER_NO.NEXTVAL;
+                
+                        v_code :=
+                            :P306_VOUCHER_TYPE
+                            || '-'
+                            || LPAD(:P306_VOUCHER_NO,6,'0');
+                
+                        INSERT INTO ACC_VOUCHER_MST
+                        (
+                            VOUCHER_NO,
+                            VOUCHER_CODE,
+                            VOUCHER_DATE,
+                            VOUCHER_TYPE,
+                            NARRATION,
+                            APPROVAL_STATUS,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES
+                        (
+                            :P306_VOUCHER_NO,
+                            v_code,
+                            :P306_VOUCHER_DATE,
+                            :P306_VOUCHER_TYPE,
+                            :P306_NARRATION,
+                            'P',
+                            :APP_USER,
+                            SYSDATE
+                        ) RETURNING VOUCHER_NO INTO :P306_VOUCHER_NO ;
+                
+                    --------------------------------------------------
+                    -- UPDATE
+                    --------------------------------------------------
+                
+                    ELSE
+                
+                        UPDATE ACC_VOUCHER_MST
+                           SET VOUCHER_DATE = :P306_VOUCHER_DATE,
+                               VOUCHER_TYPE = :P306_VOUCHER_TYPE,
+                               NARRATION    = :P306_NARRATION,
+                               UPDATED_BY   = :APP_USER,
+                               UPDATED_DATE = SYSDATE
+                         WHERE VOUCHER_NO = :P306_VOUCHER_NO;
+                
+                    END IF;
+                
+                    apex_application.g_print_success_message :=
+                        'Voucher saved successfully.';
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+        advanced {
+            executionMappingIdentifier: 10931455749549085
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+)
+

@@ -923,7 +923,7 @@ page 302 (
                            v_cr
                       FROM ACC_VOUCHER_DTL
                      WHERE VOUCHER_NO =
-                           :P302_VOUCHER_NO;
+                           :P304_VOUCHER_NO;
                 
                     IF v_dr <> v_cr THEN
                 

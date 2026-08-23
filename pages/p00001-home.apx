@@ -11,7 +11,7 @@ page 1 (
     }
     security {
         pageAccessProtection: argumentsMustHaveChecksum
-        // formAutoComplete: false
+        formAutoComplete: false
     }
 
     region dealer-inventory-sales-management-system (
@@ -23,7 +23,12 @@ page 1 (
         }
         appearance {
             template: @/hero
-            templateOptions: #DEFAULT#
+            templateOptions: [
+                #DEFAULT#
+                t-HeroRegion--noPadding
+                t-Form--slimPadding
+                t-Form--stretchInputs
+            ]
         }
         image {
             fileUrl: #APP_FILES#icons/app-icon-512.png

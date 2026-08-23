@@ -240,6 +240,7 @@ page 16 (
             displayColumn (
                 column: @PRODUCT_CODE
                 layout {
+                    width: 102.25
                     sequence: 2
                 }
             )
@@ -247,6 +248,7 @@ page 16 (
             displayColumn (
                 column: @PRODUCT_NAME
                 layout {
+                    width: 167.25
                     sequence: 3
                 }
             )
@@ -254,6 +256,7 @@ page 16 (
             displayColumn (
                 column: @PURCHASE_QTY
                 layout {
+                    width: 91.25
                     sequence: 4
                 }
             )
@@ -261,6 +264,7 @@ page 16 (
             displayColumn (
                 column: @PURCHASE_RATE
                 layout {
+                    width: 103.25
                     sequence: 5
                 }
             )

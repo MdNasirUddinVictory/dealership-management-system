@@ -867,7 +867,7 @@ page 103 (
             templateOptions: [
                 #DEFAULT#
                 t-Button--small
-                t-Button--primary
+                t-Button--success
                 t-Button--iconLeft
             ]
         }
