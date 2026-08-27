@@ -1885,7 +1885,7 @@ page 21 (
                 ```
         }
         execution {
-            sequence: 20
+            sequence: 40
         }
         advanced {
             executionMappingIdentifier: 11471338484512832921
@@ -2200,16 +2200,22 @@ page 21 (
                     -- Update Invoice Total
                     ------------------------------------------------
                 
-                    UPDATE TRN_SALES_INVOICE_MST
-                       SET TOTAL_AMOUNT =
+                 UPDATE TRN_SALES_INVOICE_MST I
+                   SET TOTAL_AMOUNT =
                        (
-                           SELECT NVL(SUM(TOTAL_AMOUNT),0)
-                           FROM TRN_SALES_INVOICE_DTL
-                           WHERE INVOICE_NO=:P21_INVOICE_NO
+                           SELECT NVL(SUM(D.TOTAL_AMOUNT), 0)
+                             FROM TRN_SALES_INVOICE_DTL D
+                            WHERE D.INVOICE_NO = I.INVOICE_NO
                        ),
-                       UPDATED_BY=:APP_USER,
-                       UPDATED_DATE=SYSDATE
-                    WHERE INVOICE_NO=:P21_INVOICE_NO;
+                       DUE_AMOUNT =
+                       (
+                           SELECT NVL(SUM(D.TOTAL_AMOUNT), 0)
+                             FROM TRN_SALES_INVOICE_DTL D
+                            WHERE D.INVOICE_NO = I.INVOICE_NO
+                       ),
+                       UPDATED_BY   = :APP_USER,
+                       UPDATED_DATE = SYSDATE
+                 WHERE I.INVOICE_NO = :P21_INVOICE_NO;
                 
                     ------------------------------------------------
                     -- Update Order Status

@@ -1171,39 +1171,31 @@ page 305 (
             }
 
             displayColumn APPROVED_BY (
-                sequence: 11
-            )
-
-            displayColumn APPROVED_DATE (
-                sequence: 12
-            )
-
-            displayColumn CREATED_BY (
                 sequence: 9
             )
 
-            displayColumn CREATED_DATE (
+            displayColumn APPROVED_DATE (
                 sequence: 10
             )
 
             displayColumn DETAILS (
-                sequence: 13
+                sequence: 11
             )
 
             displayColumn PARTY_NAME (
-                sequence: 4
+                sequence: 3
             )
 
             displayColumn PAYMENT_MODE (
-                sequence: 7
-            )
-
-            displayColumn STATUS_NAME (
                 sequence: 6
             )
 
-            displayColumn TOTAL_AMOUNT (
+            displayColumn STATUS_NAME (
                 sequence: 5
+            )
+
+            displayColumn TOTAL_AMOUNT (
+                sequence: 8
             )
 
             displayColumn TRANSACTION_CODE (
@@ -1215,11 +1207,11 @@ page 305 (
             )
 
             displayColumn TRANSACTION_TYPE (
-                sequence: 3
+                sequence: 4
             )
 
             displayColumn VOUCHER_CODE (
-                sequence: 8
+                sequence: 7
             )
 
         )

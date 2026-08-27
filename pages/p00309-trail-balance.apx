@@ -59,90 +59,931 @@ page 309 (
         }
     )
 
-    region trial-balance-summary (
+    region trial-balance-summary_1 (
         name: Trial Balance Summary
-        type: classicReport
+        type: dynamicContent
         source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                WITH TB AS
-                (
-                    SELECT
-                        H.ACCOUNT_NO,
+            plsqlFunctionBody:
+                ```plsql
+                /* Formatted on 8/25/2026 4:14:59 PM (QP5 v5.388) */
+                DECLARE
+                    v_html               CLOB := '';
                 
-                        NVL(O.OPENING_DEBIT,0)  OPENING_DEBIT,
-                        NVL(O.OPENING_CREDIT,0) OPENING_CREDIT,
+                    v_current_type       VARCHAR2 (1) := NULL;
+                    v_type_name          VARCHAR2 (100);
                 
-                        NVL(P.PERIOD_DEBIT,0)   PERIOD_DEBIT,
-                        NVL(P.PERIOD_CREDIT,0)  PERIOD_CREDIT
+                    /* Section Total */
+                    v_sec_opening_dr     NUMBER := 0;
+                    v_sec_opening_cr     NUMBER := 0;
+                    v_sec_period_dr      NUMBER := 0;
+                    v_sec_period_cr      NUMBER := 0;
+                    v_sec_closing_dr     NUMBER := 0;
+                    v_sec_closing_cr     NUMBER := 0;
                 
-                    FROM MST_ACCOUNT_HEAD H
+                    /* Grand Total */
+                    v_total_opening_dr   NUMBER := 0;
+                    v_total_opening_cr   NUMBER := 0;
+                    v_total_period_dr    NUMBER := 0;
+                    v_total_period_cr    NUMBER := 0;
+                    v_total_closing_dr   NUMBER := 0;
+                    v_total_closing_cr   NUMBER := 0;
                 
-                    LEFT JOIN
-                    (
-                        SELECT
-                            ACCOUNT_NO,
-                            SUM(OPENING_DEBIT)  OPENING_DEBIT,
-                            SUM(OPENING_CREDIT) OPENING_CREDIT
-                        FROM ACC_OPENING_BALANCE
-                        WHERE APPROVAL_STATUS = 'A'
-                        GROUP BY ACCOUNT_NO
-                    ) O
-                        ON O.ACCOUNT_NO = H.ACCOUNT_NO
+                    /* Summary */
+                    v_opening_balance    NUMBER := 0;
+                    v_closing_balance    NUMBER := 0;
+                BEGIN
+                    /* =========================================================
+                       STEP 1
+                       FIRST CALCULATE GRAND TOTAL
+                       ========================================================= */
                 
-                    LEFT JOIN
-                    (
-                        SELECT
-                            D.ACCOUNT_NO,
-                            SUM(NVL(D.DEBIT_AMOUNT,0))  PERIOD_DEBIT,
-                            SUM(NVL(D.CREDIT_AMOUNT,0)) PERIOD_CREDIT
-                        FROM ACC_VOUCHER_MST M
-                        JOIN ACC_VOUCHER_DTL D
-                          ON D.VOUCHER_NO = M.VOUCHER_NO
-                        WHERE M.APPROVAL_STATUS = 'A'
-                          AND M.VOUCHER_DATE BETWEEN :P309_FROM_DATE
-                                                 AND :P309_TO_DATE
-                        GROUP BY D.ACCOUNT_NO
-                    ) P
-                        ON P.ACCOUNT_NO = H.ACCOUNT_NO
+                    WITH
+                        OPENING
+                        AS
+                            (  SELECT ACCOUNT_NO,
+                                      NVL (SUM (OPENING_DEBIT), 0)      AS OPENING_DEBIT,
+                                      NVL (SUM (OPENING_CREDIT), 0)     AS OPENING_CREDIT
+                                 FROM ACC_OPENING_BALANCE
+                                WHERE APPROVAL_STATUS = 'A'
+                             GROUP BY ACCOUNT_NO),
+                        PERIOD
+                        AS
+                            (  SELECT D.ACCOUNT_NO,
+                                      NVL (SUM (D.DEBIT_AMOUNT), 0)      AS PERIOD_DEBIT,
+                                      NVL (SUM (D.CREDIT_AMOUNT), 0)     AS PERIOD_CREDIT
+                                 FROM ACC_VOUCHER_MST M
+                                      JOIN ACC_VOUCHER_DTL D ON D.VOUCHER_NO = M.VOUCHER_NO
+                                WHERE     M.APPROVAL_STATUS = 'A'
+                                      AND M.VOUCHER_DATE >=
+                                          TO_DATE ( :P309_FROM_DATE, 'MM/DD/YYYY')
+                                      AND M.VOUCHER_DATE <
+                                          TO_DATE ( :P309_TO_DATE, 'MM/DD/YYYY') + 1
+                             GROUP BY D.ACCOUNT_NO),
+                        TB
+                        AS
+                            (SELECT H.ACCOUNT_NO,
+                                    NVL (O.OPENING_DEBIT, 0)      AS OPENING_DEBIT,
+                                    NVL (O.OPENING_CREDIT, 0)     AS OPENING_CREDIT,
+                                    NVL (P.PERIOD_DEBIT, 0)       AS PERIOD_DEBIT,
+                                    NVL (P.PERIOD_CREDIT, 0)      AS PERIOD_CREDIT
+                               FROM MST_ACCOUNT_HEAD  H
+                                    LEFT JOIN OPENING O ON O.ACCOUNT_NO = H.ACCOUNT_NO
+                                    LEFT JOIN PERIOD P ON P.ACCOUNT_NO = H.ACCOUNT_NO
+                              WHERE H.IS_POSTING = 'Y' AND H.ACTIVE_STATUS = 'Y'),
+                        CALC
+                        AS
+                            (SELECT TB.*,
+                                    (  OPENING_DEBIT
+                                     - OPENING_CREDIT
+                                     + PERIOD_DEBIT
+                                     - PERIOD_CREDIT)    AS NET_BALANCE
+                               FROM TB)
+                    SELECT NVL (SUM (OPENING_DEBIT), 0),
+                           NVL (SUM (OPENING_CREDIT), 0),
+                           NVL (SUM (PERIOD_DEBIT), 0),
+                           NVL (SUM (PERIOD_CREDIT), 0),
+                           NVL (SUM (CASE WHEN NET_BALANCE > 0 THEN NET_BALANCE ELSE 0 END),
+                                0),
+                           NVL (
+                               SUM (
+                                   CASE
+                                       WHEN NET_BALANCE < 0 THEN ABS (NET_BALANCE)
+                                       ELSE 0
+                                   END),
+                               0)
+                      INTO v_total_opening_dr,
+                           v_total_opening_cr,
+                           v_total_period_dr,
+                           v_total_period_cr,
+                           v_total_closing_dr,
+                           v_total_closing_cr
+                      FROM CALC
+                     WHERE    OPENING_DEBIT <> 0
+                           OR OPENING_CREDIT <> 0
+                           OR PERIOD_DEBIT <> 0
+                           OR PERIOD_CREDIT <> 0;
                 
-                    WHERE H.IS_POSTING = 'Y'
-                      AND H.ACTIVE_STATUS = 'Y'
-                )
-                SELECT
-                    SUM(OPENING_DEBIT)  TOTAL_OPENING_DEBIT,
-                    SUM(OPENING_CREDIT) TOTAL_OPENING_CREDIT,
                 
-                    SUM(PERIOD_DEBIT)   TOTAL_PERIOD_DEBIT,
-                    SUM(PERIOD_CREDIT)  TOTAL_PERIOD_CREDIT,
+                    /* =========================================================
+                       SUMMARY VALUES
+                       ========================================================= */
                 
-                    SUM(
-                        CASE
-                            WHEN (OPENING_DEBIT - OPENING_CREDIT)
-                               + (PERIOD_DEBIT - PERIOD_CREDIT) >= 0
+                    v_opening_balance := ABS (v_total_opening_dr - v_total_opening_cr);
+                
+                    v_closing_balance := ABS (v_total_closing_dr - v_total_closing_cr);
+                
+                
+                    /* =========================================================
+                       HEADER
+                       ========================================================= */
+                
+                    v_html :=
+                           '<div id="trial_balance_report"
+                          style="
+                              width:100%;
+                              background:#fff;
+                              border:1px solid #e1e5e9;
+                              border-radius:8px;
+                              overflow:hidden;
+                              font-family:Arial,sans-serif;
+                              box-sizing:border-box;
+                          ">
+                
+                        <!-- ================= HEADER ================= -->
+                
+                        <div style="
+                            padding:12px 14px;
+                            border-bottom:1px solid #e1e5e9;
+                            background:#f8fafc;
+                        ">
+                
+                            <div style="
+                                font-size:18px;
+                                font-weight:700;
+                                color:#263238;
+                            ">
+                                Trial Balance
+                            </div>
+                
+                            <div style="
+                                margin-top:3px;
+                                font-size:11px;
+                                color:#78909c;
+                            ">
+                                From '
+                        || TO_CHAR (TO_DATE ( :P309_FROM_DATE, 'MM/DD/YYYY'), 'DD Mon YYYY')
+                        || ' To '
+                        || TO_CHAR (TO_DATE ( :P309_TO_DATE, 'MM/DD/YYYY'), 'DD Mon YYYY')
+                        || '
+                            </div>
+                
+                        </div>
+                
+                
+                        <!-- ================= SUMMARY ================= -->
+                
+                        <div style="
+                            display:grid;
+                            grid-template-columns:repeat(4,minmax(150px,1fr));
+                            gap:7px;
+                            padding:9px;
+                            background:#fff;
+                        ">
+                
+                
+                            <!-- Opening -->
+                
+                            <div style="
+                                padding:8px 10px;
+                                border:1px solid #e1e5e9;
+                                border-radius:6px;
+                                background:#f8fafc;
+                            ">
+                
+                                <div style="
+                                    font-size:10px;
+                                    color:#78909c;
+                                ">
+                                    Opening Balance
+                                </div>
+                
+                                <div style="
+                                    margin-top:3px;
+                                    font-size:14px;
+                                    font-weight:700;
+                                    color:#34495e;
+                                ">
+                                    ৳ '
+                        || TO_CHAR (v_opening_balance, 'FM999G999G999G990D00')
+                        || '
+                                </div>
+                
+                            </div>
+                
+                
+                            <!-- Debit -->
+                
+                            <div style="
+                                padding:8px 10px;
+                                border:1px solid #d6e7ff;
+                                border-radius:6px;
+                                background:#f8fbff;
+                            ">
+                
+                                <div style="
+                                    font-size:10px;
+                                    color:#78909c;
+                                ">
+                                    Period Debit
+                                </div>
+                
+                                <div style="
+                                    margin-top:3px;
+                                    font-size:14px;
+                                    font-weight:700;
+                                    color:#2980b9;
+                                ">
+                                    ৳ '
+                        || TO_CHAR (v_total_period_dr, 'FM999G999G999G990D00')
+                        || '
+                                </div>
+                
+                            </div>
+                            <!-- Credit -->
+                
+                            <div style="
+                                padding:8px 10px;
+                                border:1px solid #f4d6d6;
+                                border-radius:6px;
+                                background:#fffafa;
+                            ">
+                
+                                <div style="
+                                    font-size:10px;
+                                    color:#78909c;
+                                ">
+                                    Period Credit
+                                </div>
+                
+                                <div style="
+                                    margin-top:3px;
+                                    font-size:14px;
+                                    font-weight:700;
+                                    color:#c0392b;
+                                ">
+                                    ৳ '
+                        || TO_CHAR (v_total_period_cr, 'FM999G999G999G990D00')
+                        || '
+                                </div>
+                
+                            </div>
+                
+                
+                            <!-- Closing -->
+                
+                            <div style="
+                                padding:8px 10px;
+                                border:1px solid #d5f0df;
+                                border-radius:6px;
+                                background:#f8fff9;
+                            ">
+                
+                                <div style="
+                                    font-size:10px;
+                                    color:#78909c;
+                                ">
+                                    Closing Balance
+                                </div>
+                
+                                <div style="
+                                    margin-top:3px;
+                                    font-size:14px;
+                                    font-weight:700;
+                                    color:#27ae60;
+                                ">
+                                    ৳ '
+                        || TO_CHAR (v_closing_balance, 'FM999G999G999G990D00')
+                        || '
+                                </div>
+                
+                            </div>
+                
+                        </div>
+                
+                
+                        <!-- ================= TABLE ================= -->
+                
+                        <div style="
+                            width:100%;
+                            overflow-x:auto;
+                        ">
+                
+                        <table style="
+                            width:100%;
+                            min-width:850px;
+                            border-collapse:collapse;
+                            font-size:11px;
+                        ">
+                
+                        <thead>
+                
+                            <tr style="
+                                background:#f1f5f9;
+                                color:#475569;
+                            ">
+                
+                                <th style="
+                                    padding:8px 9px;
+                                    text-align:left;
+                                    border-bottom:1px solid #dfe4e8;
+                                ">
+                                    Account
+                                </th>
+                
+                                <th style="
+                                    padding:8px;
+                                    text-align:right;
+                                    border-bottom:1px solid #dfe4e8;
+                                ">
+                                    Opening
+                                </th>
+                
+                                <th style="
+                                    padding:8px;
+                                    text-align:right;
+                                    border-bottom:1px solid #dfe4e8;
+                                ">
+                                    Debit
+                                </th>
+                
+                                <th style="
+                                    padding:8px;
+                                    text-align:right;
+                                    border-bottom:1px solid #dfe4e8;
+                                ">
+                                    Credit
+                                </th>
+                
+                                <th style="
+                                    padding:8px;
+                                    text-align:right;
+                                    border-bottom:1px solid #dfe4e8;
+                                ">
+                                    Closing
+                                </th>
+                
+                            </tr>
+                
+                        </thead>
+                
+                        <tbody>';
+                
+                
+                    /* =========================================================
+                       STEP 2
+                       ACCOUNT DETAIL
+                       ========================================================= */
+                
+                    FOR R
+                        IN (WITH
+                                OPENING
+                                AS
+                                    (  SELECT ACCOUNT_NO,
+                                              NVL (SUM (OPENING_DEBIT), 0)     AS OPENING_DEBIT,
+                                              NVL (SUM (OPENING_CREDIT), 0)    AS OPENING_CREDIT
+                                         FROM ACC_OPENING_BALANCE
+                                        WHERE APPROVAL_STATUS = 'A'
+                                     GROUP BY ACCOUNT_NO),
+                                PERIOD
+                                AS
+                                    (  SELECT D.ACCOUNT_NO,
+                                              NVL (SUM (D.DEBIT_AMOUNT), 0)     AS PERIOD_DEBIT,
+                                              NVL (SUM (D.CREDIT_AMOUNT), 0)    AS PERIOD_CREDIT
+                                         FROM ACC_VOUCHER_MST M
+                                              JOIN ACC_VOUCHER_DTL D
+                                                  ON D.VOUCHER_NO = M.VOUCHER_NO
+                                        WHERE     M.APPROVAL_STATUS = 'A'
+                                              AND M.VOUCHER_DATE >=
+                                                  TO_DATE ( :P309_FROM_DATE, 'MM/DD/YYYY')
+                                              AND M.VOUCHER_DATE <
+                                                  TO_DATE ( :P309_TO_DATE, 'MM/DD/YYYY') + 1
+                                     GROUP BY D.ACCOUNT_NO),
+                                TB
+                                AS
+                                    (SELECT H.ACCOUNT_NO,
+                                            H.ACCOUNT_CODE,
+                                            H.ACCOUNT_NAME,
+                                            H.ACCOUNT_TYPE,
+                                            NVL (O.OPENING_DEBIT, 0)      AS OPENING_DEBIT,
+                                            NVL (O.OPENING_CREDIT, 0)     AS OPENING_CREDIT,
+                                            NVL (P.PERIOD_DEBIT, 0)       AS PERIOD_DEBIT,
+                                            NVL (P.PERIOD_CREDIT, 0)      AS PERIOD_CREDIT
+                                       FROM MST_ACCOUNT_HEAD  H
+                                            LEFT JOIN OPENING O
+                                                ON O.ACCOUNT_NO = H.ACCOUNT_NO
+                                            LEFT JOIN PERIOD P ON P.ACCOUNT_NO = H.ACCOUNT_NO
+                                      WHERE H.IS_POSTING = 'Y' AND H.ACTIVE_STATUS = 'Y'),
+                                CALC
+                                AS
+                                    (SELECT TB.*,
+                                            (  OPENING_DEBIT
+                                             - OPENING_CREDIT
+                                             + PERIOD_DEBIT
+                                             - PERIOD_CREDIT)    AS NET_BALANCE
+                                       FROM TB)
+                              SELECT ACCOUNT_NO,
+                                     ACCOUNT_CODE,
+                                     ACCOUNT_NAME,
+                                     ACCOUNT_TYPE,
+                                     OPENING_DEBIT,
+                                     OPENING_CREDIT,
+                                     PERIOD_DEBIT,
+                                     PERIOD_CREDIT,
+                                     NET_BALANCE
+                                FROM CALC
+                               WHERE    OPENING_DEBIT <> 0
+                                     OR OPENING_CREDIT <> 0
+                                     OR PERIOD_DEBIT <> 0
+                                     OR PERIOD_CREDIT <> 0
+                            ORDER BY CASE ACCOUNT_TYPE
+                                         WHEN 'A' THEN 1
+                                         WHEN 'L' THEN 2
+                                         WHEN 'C' THEN 3
+                                         WHEN 'I' THEN 4
+                                         WHEN 'E' THEN 5
+                                         ELSE 6
+                                     END,
+                                     ACCOUNT_CODE)
+                    LOOP
+                        /* =====================================================
+                           NEW ACCOUNT TYPE
+                           ===================================================== */
+                
+                        IF v_current_type IS NULL OR v_current_type <> R.ACCOUNT_TYPE
+                        THEN
+                            /* Previous Section Total */
+                
+                            IF v_current_type IS NOT NULL
                             THEN
-                                (OPENING_DEBIT - OPENING_CREDIT)
-                               + (PERIOD_DEBIT - PERIOD_CREDIT)
-                            ELSE 0
-                        END
-                    ) TOTAL_CLOSING_DEBIT,
+                                v_html :=
+                                       v_html
+                                    || '<tr>
                 
-                    SUM(
-                        CASE
-                            WHEN (OPENING_DEBIT - OPENING_CREDIT)
-                               + (PERIOD_DEBIT - PERIOD_CREDIT) < 0
-                            THEN
-                                ABS(
-                                    (OPENING_DEBIT - OPENING_CREDIT)
-                                   + (PERIOD_DEBIT - PERIOD_CREDIT)
-                                )
-                            ELSE 0
-                        END
-                    ) TOTAL_CLOSING_CREDIT
+                                    <td colspan="5"
+                                        style="
+                                            padding:7px 9px;
+                                            text-align:right;
+                                            background:#f8fafc;
+                                            border-bottom:1px solid #e1e5e9;
+                                            font-weight:700;
+                                            color:#64748b;
+                                        ">
                 
-                FROM TB;
+                                        Section Total
+                
+                                        &nbsp;&nbsp;
+                
+                                        <span style="color:#2980b9;">
+                                            Debit:
+                                            ৳ '
+                                    || TO_CHAR (v_sec_period_dr, 'FM999G999G999G990D00')
+                                    || '
+                                        </span>
+                
+                                        &nbsp;&nbsp;
+                
+                                        <span style="color:#c0392b;">
+                                            Credit:
+                                            ৳ '
+                                    || TO_CHAR (v_sec_period_cr, 'FM999G999G999G990D00')
+                                    || '
+                                        </span>
+                
+                                    </td>
+                
+                                </tr>';
+                            END IF;
+                
+                
+                            /* Reset */
+                
+                            v_sec_opening_dr := 0;
+                            v_sec_opening_cr := 0;
+                            v_sec_period_dr := 0;
+                            v_sec_period_cr := 0;
+                            v_sec_closing_dr := 0;
+                            v_sec_closing_cr := 0;
+                
+                
+                            v_current_type := R.ACCOUNT_TYPE;
+                
+                
+                            v_type_name :=
+                                CASE R.ACCOUNT_TYPE
+                                    WHEN 'A' THEN 'Assets'
+                                    WHEN 'L' THEN 'Liabilities'
+                                    WHEN 'C' THEN 'Capital / Equity'
+                                    WHEN 'I' THEN 'Income'
+                                    WHEN 'E' THEN 'Expenses'
+                                    ELSE 'Other Accounts'
+                                END;
+                
+                
+                            /* Section Header */
+                
+                            v_html := v_html || '<tr>
+                
+                                <td colspan="5"
+                                    style="
+                                        padding:7px 9px;
+                                        background:#f4f6f8;
+                                        border-top:6px solid #fff;
+                                        border-bottom:1px solid #e1e5e9;
+                                        color:#34495e;
+                                        font-size:11px;
+                                        font-weight:700;
+                                        text-transform:uppercase;
+                                        letter-spacing:.5px;
+                                    ">
+                
+                                    ' || v_type_name || '
+                
+                                </td>
+                
+                            </tr>';
+                        END IF;
+                
+                
+                        /* =====================================================
+                           ACCOUNT ROW
+                           ===================================================== */
+                
+                        v_html :=
+                               v_html
+                            || '<tr>
+                
+                            <!-- ACCOUNT -->
+                
+                            <td style="
+                                padding:7px 9px;
+                                border-bottom:1px solid #edf0f2;
+                            ">
+                
+                                <div style="
+                                    font-weight:600;
+                                    color:#263238;
+                                ">
+                                    '
+                            || APEX_ESCAPE.HTML (R.ACCOUNT_NAME)
+                            || '
+                                </div>
+                
+                                <div style="
+                                    margin-top:2px;
+                                    font-size:9px;
+                                    color:#94a3b8;
+                                ">
+                                    Code: '
+                            || APEX_ESCAPE.HTML (R.ACCOUNT_CODE)
+                            || '
+                                </div>
+                
+                            </td>
+                
+                
+                            <!-- OPENING -->
+                
+                            <td style="
+                                padding:7px 8px;
+                                text-align:right;
+                                border-bottom:1px solid #edf0f2;
+                                color:#475569;
+                            ">
+                
+                                '
+                            || CASE
+                                   WHEN R.OPENING_DEBIT > R.OPENING_CREDIT
+                                   THEN
+                                          TO_CHAR (R.OPENING_DEBIT - R.OPENING_CREDIT,
+                                                   'FM999G999G999G990D00')
+                                       || ' <span style="
+                                            color:#2980b9;
+                                            font-size:9px;
+                                            font-weight:700;
+                                        ">DR</span>'
+                                   WHEN R.OPENING_CREDIT > R.OPENING_DEBIT
+                                   THEN
+                                          TO_CHAR (R.OPENING_CREDIT - R.OPENING_DEBIT,
+                                                   'FM999G999G999G990D00')
+                                       || ' <span style="
+                                            color:#c0392b;
+                                            font-size:9px;
+                                            font-weight:700;
+                                        ">CR</span>'
+                                   ELSE
+                                       '0.00'
+                               END
+                            || '
+                
+                            </td>
+                
+                
+                            <!-- DEBIT -->
+                
+                            <td style="
+                                padding:7px 8px;
+                                text-align:right;
+                                border-bottom:1px solid #edf0f2;
+                                color:#2980b9;
+                            ">
+                
+                                '
+                            || TO_CHAR (R.PERIOD_DEBIT, 'FM999G999G999G990D00')
+                            || '
+                
+                            </td>
+                
+                
+                            <!-- CREDIT -->
+                
+                            <td style="
+                                padding:7px 8px;
+                                text-align:right;
+                                border-bottom:1px solid #edf0f2;
+                                color:#c0392b;
+                            ">
+                
+                                '
+                            || TO_CHAR (R.PERIOD_CREDIT, 'FM999G999G999G990D00')
+                            || '
+                
+                            </td>
+                
+                
+                            <!-- CLOSING -->
+                
+                            <td style="
+                                padding:7px 8px;
+                                text-align:right;
+                                border-bottom:1px solid #edf0f2;
+                                font-weight:700;
+                            ">
+                
+                                '
+                            || CASE
+                                   WHEN R.NET_BALANCE > 0
+                                   THEN
+                                          TO_CHAR (R.NET_BALANCE, 'FM999G999G999G990D00')
+                                       || ' <span style="
+                                            color:#2980b9;
+                                            font-size:9px;
+                                            font-weight:700;
+                                        ">DR</span>'
+                                   WHEN R.NET_BALANCE < 0
+                                   THEN
+                                          TO_CHAR (ABS (R.NET_BALANCE),
+                                                   'FM999G999G999G990D00')
+                                       || ' <span style="
+                                            color:#c0392b;
+                                            font-size:9px;
+                                            font-weight:700;
+                                        ">CR</span>'
+                                   ELSE
+                                       '0.00'
+                               END
+                            || '
+                
+                            </td>
+                
+                        </tr>';
+                
+                
+                        /* =====================================================
+                           SECTION TOTAL
+                           ===================================================== */
+                
+                        v_sec_opening_dr := v_sec_opening_dr + R.OPENING_DEBIT;
+                
+                        v_sec_opening_cr := v_sec_opening_cr + R.OPENING_CREDIT;
+                
+                        v_sec_period_dr := v_sec_period_dr + R.PERIOD_DEBIT;
+                
+                        v_sec_period_cr := v_sec_period_cr + R.PERIOD_CREDIT;
+                    END LOOP;
+                
+                
+                    /* =========================================================
+                       LAST SECTION TOTAL
+                       ========================================================= */
+                
+                    IF v_current_type IS NOT NULL
+                    THEN
+                        v_html :=
+                               v_html
+                            || '<tr>
+                
+                            <td colspan="5"
+                                style="
+                                    padding:7px 9px;
+                                    text-align:right;
+                                    background:#f8fafc;
+                                    border-bottom:1px solid #e1e5e9;
+                                    font-weight:700;
+                                    color:#64748b;
+                                ">
+                
+                                Section Total
+                
+                                &nbsp;&nbsp;
+                
+                                <span style="color:#2980b9;">
+                                    Debit:
+                                    ৳ '
+                            || TO_CHAR (v_sec_period_dr, 'FM999G999G999G990D00')
+                            || '
+                                </span>
+                
+                                &nbsp;&nbsp;
+                
+                                <span style="color:#c0392b;">
+                                    Credit:
+                                    ৳ '
+                            || TO_CHAR (v_sec_period_cr, 'FM999G999G999G990D00')
+                            || '
+                                </span>
+                
+                            </td>
+                
+                        </tr>';
+                    END IF;
+                
+                
+                    /* =========================================================
+                       FINAL TOTAL + BALANCE STATUS
+                       ========================================================= */
+                
+                    v_html :=
+                           v_html
+                        || '</tbody>
+                
+                        </table>
+                
+                        </div>
+                
+                
+                        <!-- ================= FOOTER ================= -->
+                
+                        <div style="
+                            padding:10px;
+                            background:#f8fafc;
+                            border-top:1px solid #e1e5e9;
+                        ">
+                
+                            <div style="
+                                display:grid;
+                                grid-template-columns:
+                                    repeat(3,minmax(150px,1fr));
+                                gap:7px;
+                            ">
+                
+                
+                                <!-- TOTAL DEBIT -->
+                
+                                <div style="
+                                    padding:8px 10px;
+                                    background:#fff;
+                                    border:1px solid #d6e7ff;
+                                    border-radius:6px;
+                                ">
+                
+                                    <div style="
+                                        font-size:10px;
+                                        color:#78909c;
+                                    ">
+                                        Total Debit
+                                    </div>
+                
+                                    <div style="
+                                        margin-top:3px;
+                                        font-size:14px;
+                                        font-weight:700;
+                                        color:#2980b9;
+                                    ">
+                                        ৳ '
+                        || TO_CHAR (v_total_period_dr, 'FM999G999G999G990D00')
+                        || '
+                                    </div>
+                
+                                </div>
+                
+                
+                                <!-- TOTAL CREDIT -->
+                
+                                <div style="
+                                    padding:8px 10px;
+                                    background:#fff;
+                                    border:1px solid #f4d6d6;
+                                    border-radius:6px;
+                                ">
+                
+                                    <div style="
+                                        font-size:10px;
+                                        color:#78909c;
+                                    ">
+                                        Total Credit
+                                    </div>
+                
+                                    <div style="
+                                        margin-top:3px;
+                                        font-size:14px;
+                                        font-weight:700;
+                                        color:#c0392b;
+                                    ">
+                                        ৳ '
+                        || TO_CHAR (v_total_period_cr, 'FM999G999G999G990D00')
+                        || '
+                                    </div>
+                
+                                </div>
+                
+                
+                                <!-- BALANCE STATUS -->
+                
+                                <div style="
+                                    padding:8px 10px;
+                                    background:#fff;
+                                    border:1px solid '
+                        || CASE
+                               WHEN ROUND (v_total_period_dr, 2) =
+                                    ROUND (v_total_period_cr, 2)
+                               THEN
+                                   '#d5f0df'
+                               ELSE
+                                   '#f4d6d6'
+                           END
+                        || ';
+                                    border-radius:6px;
+                                    text-align:center;
+                                ">
+                
+                                    <div style="
+                                        font-size:10px;
+                                        color:#78909c;
+                                    ">
+                                        Trial Balance Status
+                                    </div>
+                
+                                    <div style="
+                                        margin-top:3px;
+                                        font-size:13px;
+                                        font-weight:700;
+                                        color:'
+                        || CASE
+                               WHEN ROUND (v_total_period_dr, 2) =
+                                    ROUND (v_total_period_cr, 2)
+                               THEN
+                                   '#27ae60'
+                               ELSE
+                                   '#c0392b'
+                           END
+                        || ';
+                                    ">
+                
+                                       '
+                        || CASE
+                               WHEN ROUND (v_total_period_dr, 2) =
+                                    ROUND (v_total_period_cr, 2)
+                               THEN
+                                   '✓ BALANCED'
+                               ELSE
+                                   '⚠ NOT BALANCED'
+                           END
+                        || '
+                                    </div>
+                
+                                </div>
+                
+                            </div>
+                
+                            <!-- Difference -->
+                
+                            <div style="
+                                margin-top:7px;
+                                text-align:right;
+                                font-size:10px;
+                                color:#78909c;
+                            ">
+                                Difference:
+                
+                                <b style="color:#34495e;">
+                                    ৳ '
+                        || TO_CHAR (ABS (v_total_period_dr - v_total_period_cr),
+                                    'FM999G999G999G990D00')
+                        || '
+                                </b>
+                            </div>
+                        </div>
+                
+                   </div>';
+                
+                    RETURN v_html;
+                EXCEPTION
+                    WHEN OTHERS
+                    THEN
+                        RETURN '<div style="
+                            padding:10px;
+                            color:#c0392b;
+                            background:#fff5f5;
+                            border:1px solid #f5c6cb;
+                            border-radius:6px;
+                            font-size:12px;
+                        ">
+                            <b>Trial Balance report unavailable.</b>
+                            <br><br>
+                            <small>' || APEX_ESCAPE.HTML (SQLERRM) || '</small>
+                
+                        </div>';
+                END;
                 ```
             pageItemsToSubmit: [
                 P309_FROM_DATE
@@ -150,7 +991,7 @@ page 309 (
             ]
         }
         layout {
-            sequence: 70
+            sequence: 80
             slot: body
         }
         appearance {
@@ -160,94 +1001,6 @@ page 309 (
                 t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
             ]
         }
-        componentAppearance {
-            template: @/standard
-            templateOptions: [
-                #DEFAULT#
-                t-Report--stretch
-                t-Report--altRowsDefault
-                t-Report--rowHighlight
-            ]
-        }
-
-        column TOTAL_CLOSING_CREDIT (
-            reportColumnQueryId: 6
-            derivedColumn: N
-            heading {
-                heading: Total Closing Credit
-                alignment: end
-            }
-            layout {
-                sequence: 60
-                columnAlignment: end
-            }
-        )
-
-        column TOTAL_CLOSING_DEBIT (
-            reportColumnQueryId: 5
-            derivedColumn: N
-            heading {
-                heading: Total Closing Debit
-                alignment: end
-            }
-            layout {
-                sequence: 50
-                columnAlignment: end
-            }
-        )
-
-        column TOTAL_OPENING_CREDIT (
-            reportColumnQueryId: 2
-            derivedColumn: N
-            heading {
-                heading: Total Opening Credit
-                alignment: end
-            }
-            layout {
-                sequence: 20
-                columnAlignment: end
-            }
-        )
-
-        column TOTAL_OPENING_DEBIT (
-            reportColumnQueryId: 1
-            derivedColumn: N
-            heading {
-                heading: Total Opening Debit
-                alignment: end
-            }
-            layout {
-                sequence: 10
-                columnAlignment: end
-            }
-        )
-
-        column TOTAL_PERIOD_CREDIT (
-            reportColumnQueryId: 4
-            derivedColumn: N
-            heading {
-                heading: Total Period Credit
-                alignment: end
-            }
-            layout {
-                sequence: 40
-                columnAlignment: end
-            }
-        )
-
-        column TOTAL_PERIOD_DEBIT (
-            reportColumnQueryId: 3
-            derivedColumn: N
-            heading {
-                heading: Total Period Debit
-                alignment: end
-            }
-            layout {
-                sequence: 30
-                columnAlignment: end
-            }
-        )
-
     )
 
     region voucher-mst (
@@ -262,26 +1015,28 @@ page 309 (
                 (
                     SELECT
                            ACCOUNT_NO,
-                           NVL(SUM(OPENING_DEBIT),0)  OPENING_DEBIT,
-                           NVL(SUM(OPENING_CREDIT),0) OPENING_CREDIT
-                    FROM ACC_OPENING_BALANCE
-                    WHERE APPROVAL_STATUS = 'A'
-                    GROUP BY ACCOUNT_NO
+                           NVL(SUM(OPENING_DEBIT), 0)  AS OPENING_DEBIT,
+                           NVL(SUM(OPENING_CREDIT), 0) AS OPENING_CREDIT
+                      FROM ACC_OPENING_BALANCE
+                     WHERE APPROVAL_STATUS = 'A'
+                     GROUP BY ACCOUNT_NO
                 ),
+                
                 PERIOD AS
                 (
                     SELECT
                            D.ACCOUNT_NO,
-                           NVL(SUM(D.DEBIT_AMOUNT),0)  PERIOD_DEBIT,
-                           NVL(SUM(D.CREDIT_AMOUNT),0) PERIOD_CREDIT
-                    FROM ACC_VOUCHER_MST M
-                         JOIN ACC_VOUCHER_DTL D
-                           ON D.VOUCHER_NO = M.VOUCHER_NO
-                    WHERE M.APPROVAL_STATUS = 'A'
-                      AND M.VOUCHER_DATE BETWEEN :P309_FROM_DATE
-                                             AND :P309_TO_DATE
-                    GROUP BY D.ACCOUNT_NO
+                           NVL(SUM(D.DEBIT_AMOUNT), 0)  AS PERIOD_DEBIT,
+                           NVL(SUM(D.CREDIT_AMOUNT), 0) AS PERIOD_CREDIT
+                      FROM ACC_VOUCHER_MST M
+                      JOIN ACC_VOUCHER_DTL D
+                        ON D.VOUCHER_NO = M.VOUCHER_NO
+                     WHERE M.APPROVAL_STATUS = 'A'
+                       AND M.VOUCHER_DATE >= TO_DATE(:P309_FROM_DATE,'MM/DD/YYYY')
+                       AND M.VOUCHER_DATE <   TO_DATE(:P309_TO_DATE, 'MM/DD/YYYY') + 1 
+                     GROUP BY D.ACCOUNT_NO
                 ),
+                
                 TB AS
                 (
                     SELECT
@@ -290,27 +1045,44 @@ page 309 (
                            H.ACCOUNT_NAME,
                            H.ACCOUNT_TYPE,
                 
-                           NVL(O.OPENING_DEBIT,0)  OPENING_DEBIT,
-                           NVL(O.OPENING_CREDIT,0) OPENING_CREDIT,
+                           NVL(O.OPENING_DEBIT, 0)  AS OPENING_DEBIT,
+                           NVL(O.OPENING_CREDIT, 0) AS OPENING_CREDIT,
                 
-                           NVL(P.PERIOD_DEBIT,0)   PERIOD_DEBIT,
-                           NVL(P.PERIOD_CREDIT,0)  PERIOD_CREDIT
+                           NVL(P.PERIOD_DEBIT, 0)   AS PERIOD_DEBIT,
+                           NVL(P.PERIOD_CREDIT, 0)  AS PERIOD_CREDIT
                 
-                    FROM MST_ACCOUNT_HEAD H
+                      FROM MST_ACCOUNT_HEAD H
                 
-                         LEFT JOIN OPENING O
-                           ON O.ACCOUNT_NO = H.ACCOUNT_NO
+                      LEFT JOIN OPENING O
+                        ON O.ACCOUNT_NO = H.ACCOUNT_NO
                 
-                         LEFT JOIN PERIOD P
-                           ON P.ACCOUNT_NO = H.ACCOUNT_NO
+                      LEFT JOIN PERIOD P
+                        ON P.ACCOUNT_NO = H.ACCOUNT_NO
                 
-                    WHERE H.IS_POSTING = 'Y'
-                      AND H.ACTIVE_STATUS = 'Y'
+                     WHERE H.IS_POSTING = 'Y'
+                       AND H.ACTIVE_STATUS = 'Y'
+                ),
+                
+                CALCULATION AS
+                (
+                    SELECT
+                           TB.*,
+                
+                           (
+                               OPENING_DEBIT
+                             - OPENING_CREDIT
+                             + PERIOD_DEBIT
+                             - PERIOD_CREDIT
+                           ) AS NET_BALANCE
+                
+                      FROM TB
                 )
+                
                 SELECT
                        ACCOUNT_NO,
                        ACCOUNT_CODE,
                        ACCOUNT_NAME,
+                       ACCOUNT_TYPE,
                 
                        OPENING_DEBIT,
                        OPENING_CREDIT,
@@ -319,46 +1091,62 @@ page 309 (
                        PERIOD_CREDIT,
                 
                        CASE
-                           WHEN
-                               (OPENING_DEBIT - OPENING_CREDIT)
-                             + (PERIOD_DEBIT - PERIOD_CREDIT) >= 0
-                           THEN
-                               (OPENING_DEBIT - OPENING_CREDIT)
-                             + (PERIOD_DEBIT - PERIOD_CREDIT)
+                           -- Asset এবং Expense account-এর normal balance Debit
+                           WHEN ACCOUNT_TYPE IN ('A', 'E')
+                                AND NET_BALANCE > 0
+                           THEN NET_BALANCE
+                
+                           -- Liability, Capital এবং Income account-এর credit balance
+                           WHEN ACCOUNT_TYPE IN ('L', 'C', 'I')
+                                AND NET_BALANCE < 0
+                           THEN ABS(NET_BALANCE)
                 
                            ELSE 0
-                       END CLOSING_DEBIT,
+                       END AS CLOSING_DEBIT,
                 
                        CASE
-                           WHEN
-                               (OPENING_DEBIT - OPENING_CREDIT)
-                             + (PERIOD_DEBIT - PERIOD_CREDIT) < 0
-                           THEN
-                               ABS(
-                                   (OPENING_DEBIT - OPENING_CREDIT)
-                                 + (PERIOD_DEBIT - PERIOD_CREDIT)
-                               )
+                           -- Asset এবং Expense account-এর credit balance
+                           WHEN ACCOUNT_TYPE IN ('A', 'E')
+                                AND NET_BALANCE < 0
+                           THEN ABS(NET_BALANCE)
+                
+                           -- Liability, Capital এবং Income account-এর normal balance Credit
+                           WHEN ACCOUNT_TYPE IN ('L', 'C', 'I')
+                                AND NET_BALANCE > 0
+                           THEN NET_BALANCE
                 
                            ELSE 0
-                       END CLOSING_CREDIT,
+                       END AS CLOSING_CREDIT,
                 
                        CASE
-                           WHEN
-                               (OPENING_DEBIT - OPENING_CREDIT)
-                             + (PERIOD_DEBIT - PERIOD_CREDIT) >= 0
+                           WHEN NET_BALANCE = 0
+                           THEN 'ZERO'
+                
+                           WHEN ACCOUNT_TYPE IN ('A', 'E')
+                                AND NET_BALANCE > 0
                            THEN 'DR'
-                           ELSE 'CR'
-                       END BALANCE_TYPE
                 
-                FROM TB
+                           WHEN ACCOUNT_TYPE IN ('A', 'E')
+                                AND NET_BALANCE < 0
+                           THEN 'CR'
                 
-                WHERE
-                       OPENING_DEBIT  <> 0
+                           WHEN ACCOUNT_TYPE IN ('L', 'C', 'I')
+                                AND NET_BALANCE > 0
+                           THEN 'CR'
+                
+                           WHEN ACCOUNT_TYPE IN ('L', 'C', 'I')
+                                AND NET_BALANCE < 0
+                           THEN 'DR'
+                       END AS BALANCE_TYPE
+                
+                  FROM CALCULATION
+                
+                 WHERE OPENING_DEBIT  <> 0
                     OR OPENING_CREDIT <> 0
                     OR PERIOD_DEBIT   <> 0
                     OR PERIOD_CREDIT  <> 0
                 
-                ORDER BY ACCOUNT_CODE;
+                 ORDER BY ACCOUNT_CODE;
                 ```
             pageItemsToSubmit: [
                 P309_FROM_DATE
@@ -366,7 +1154,7 @@ page 309 (
             ]
         }
         layout {
-            sequence: 60
+            sequence: 999
             slot: body
         }
         appearance {
@@ -375,6 +1163,9 @@ page 309 (
                 #DEFAULT#
                 t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
             ]
+        }
+        config {
+            buildOption: @commented-out
         }
         pagination {
             type: rowRangesXToY
@@ -430,6 +1221,22 @@ page 309 (
             }
             advanced {
                 endUserAlias: L
+            }
+        )
+
+        column ACCOUNT_TYPE (
+            type: plainText
+            heading {
+                heading: Account Type
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: V
             }
         )
 
@@ -769,7 +1576,7 @@ page 309 (
     )
 
     dynamicAction new (
-        name: New
+        name: DA_REFRESH
         execution {
             sequence: 10
         }
@@ -785,7 +1592,7 @@ page 309 (
             action: refresh
             affectedElements {
                 selectionType: region
-                region: @voucher-mst
+                region: @trial-balance-summary_1
             }
             execution {
                 sequence: 10

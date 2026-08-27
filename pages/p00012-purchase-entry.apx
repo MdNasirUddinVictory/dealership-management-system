@@ -3,12 +3,8 @@ page 12 (
     alias: PURCHASE-ENTRY
     title: Purchase Entry
     appearance {
-        pageMode: modalDialog
-        dialogTemplate: @/modal-dialog
-        templateOptions: [
-            #DEFAULT#
-            ui-dialog--stretch
-        ]
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
     }
     navigation {
         cursorFocus: doNotFocusCursor
@@ -25,6 +21,59 @@ page 12 (
             $s("BASE_RATE", (rate / factor).toFixed(2));
             $s("TOTAL_AMOUNT", (qty * rate).toFixed(2));
             }
+            
+            
+            
+            function f_purchase_summary() {
+            
+                let itemCount = 0;
+                let totalQty = 0;
+                let totalAmount = 0;
+            
+                let widget = apex.region("purchaseDtl").widget();
+                let grid = widget.interactiveGrid("getViews", "grid");
+                let model = grid.model;
+            
+                grid.view$.grid("finishEditing");
+            
+                setTimeout(function () {
+            
+                    model.forEach(function (record) {
+            
+                        let meta = model.getRecordMetadata(model.getRecordId(record));
+            
+                        if (!meta.agg) {
+            
+                            // Product Count
+                            let product = model.getValue(record, "PRODUCT_NO");
+            
+                            if (product !== null && product !== undefined && product !== "") {
+                                itemCount++;
+                            }
+            
+                            // Total Quantity
+                            let qty = model.getValue(record, "PURCHASE_QTY");
+            
+                            if (qty !== null && qty !== undefined && qty !== "") {
+                                totalQty += Number(String(qty).replace(/,/g, ""));
+                            }
+            
+                            // Total Amount
+                            let amount = model.getValue(record, "TOTAL_AMOUNT");
+            
+                            if (amount !== null && amount !== undefined && amount !== "") {
+                                totalAmount += Number(String(amount).replace(/,/g, ""));
+                            }
+                        }
+                    });
+            
+                    // Set APEX Items
+                    $s("current_purchase_Count", itemCount);
+                    $s("current_Total_Quantity", totalQty);
+                    $s("current_purchase_amount", totalAmount);
+            
+                }, 50);
+            }
             ```
     }
     security {
@@ -32,15 +81,15 @@ page 12 (
         formAutoComplete: false
     }
 
-    region breadcrumb-2 (
+    region breadcrumb (
         name: Breadcrumb
         type: breadcrumb
         source {
             breadcrumb: @breadcrumb
         }
         layout {
-            sequence: 30
-            slot: dialogHeader
+            sequence: 40
+            slot: breadcrumbBar
         }
         appearance {
             template: @/buttons-container
@@ -69,34 +118,34 @@ page 12 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select PURCHASE_NO,
-                       PURCHASE_CODE,
-                       PURCHASE_DATE,
-                       SUPPLIER_NO,
-                       REMARKS,
-                       ACTIVE_FLAG,
-                       CREATED_BY,
-                       CREATED_DATE,
-                       UPDATED_BY,
-                       UPDATED_DATE,
-                       APPROVAL_STATUS,
-                       APPROVED_BY,
-                       APPROVED_DATE,
-                       PURCHASE_STATUS,
-                       RECEIVED_BY,
-                       RECEIVED_DATE,
-                       VOUCHER_NO,
-                       PAID_AMOUNT,
-                       DUE_AMOUNT,
-                       PAYMENT_STATUS,
-                       TOTAL_AMOUNT
-                  from TRN_PURCHASE_MST
+                select M.PURCHASE_NO,
+                       M.PURCHASE_CODE,
+                       M.PURCHASE_DATE,
+                       M.SUPPLIER_NO,
+                       M.REMARKS,
+                       M.ACTIVE_FLAG,
+                       M.APPROVAL_STATUS,
+                       DECODE(M.APPROVAL_STATUS,'A','Approved','P','Pending')APPROVAL,
+                       M.APPROVED_BY,
+                       M.APPROVED_DATE,
+                       M.PURCHASE_STATUS,
+                       M.RECEIVED_BY,
+                       M.RECEIVED_DATE,
+                       V.VOUCHER_CODE VOUCHER_NO,
+                       M.PAID_AMOUNT,
+                       M.DUE_AMOUNT,
+                       M.PAYMENT_STATUS,
+                       M.TOTAL_AMOUNT
+                  from TRN_PURCHASE_MST M,ACC_VOUCHER_MST V    
+                  WHERE M.VOUCHER_NO = V.VOUCHER_NO(+)
                 ```
         }
         layout {
-            sequence: 10
-            slot: contentBody
+            sequence: 20
+            parentRegion: @main
+            slot: regionBody
             startNewRow: false
+            columnSpan: 9
         }
         appearance {
             template: @/standard
@@ -118,6 +167,322 @@ page 12 (
                 update
                 delete
             ]
+        }
+    )
+
+    region main (
+        name: main
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region new (
+        name: Supplier Payment SUmmery
+        type: dynamicContent
+        source {
+            plsqlFunctionBody:
+                ```plsql
+                /* Formatted on 8/24/2026 8:16:35 PM (QP5 v5.388) */
+                DECLARE
+                    v_html   CLOB;
+                BEGIN
+                    SELECT    '<div id="supplier_summary" style="
+                            width:100%;
+                            max-width:240px;
+                            box-sizing:border-box;
+                            padding:6px 9px;
+                            border:1px solid #e1e5e9;
+                            border-radius:5px;
+                            background:#fff;
+                            font-size:11px;
+                            line-height:1.55;
+                        ">
+                
+                        <!-- Supplier -->
+                        <div style="
+                            font-size:12px;
+                            font-weight:600;
+                            color:#333;
+                            margin-bottom:5px;
+                            white-space:nowrap;
+                            overflow:hidden;
+                            text-overflow:ellipsis;
+                        ">
+                            Supplier: '
+                           || NVL (S.SUPPLIER_NAME, 'N/A')
+                           || '
+                        </div>
+                
+                
+                        <!-- ================= PREVIOUS ================= -->
+                
+                        <div style="
+                            margin-top:2px;
+                            margin-bottom:4px;
+                            padding:3px 6px;
+                            border-left:3px solid #7b8794;
+                            background:#f4f6f8;
+                            color:#5f6b76;
+                            font-size:10px;
+                            font-weight:700;
+                            text-transform:uppercase;
+                            letter-spacing:.5px;
+                        ">
+                            Previous
+                        </div>
+                
+                
+                        <!-- Purchase -->
+                
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                        ">
+                            <span>Purchase</span>
+                
+                            <b>
+                                ৳ '
+                           || TO_CHAR (NVL (X.PURCHASE_AMOUNT, 0), 'FM999G999G999G990D00')
+                           || '</b>
+                        </div>
+                
+                
+                        <!-- Paid -->
+                
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                        ">
+                            <span>Paid</span>
+                
+                            <b>
+                                ৳ '
+                           || TO_CHAR (NVL (X.PAID_AMOUNT, 0), 'FM999G999G999G990D00')
+                           || '</b>
+                        </div>
+                
+                
+                        <!-- Due -->
+                
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                            border-top:1px solid #eee;
+                            margin-top:2px;
+                            padding-top:2px;
+                        ">
+                            <span>Due</span>
+                
+                            <b style="
+                                color:#c0392b;
+                                font-weight:700;
+                            ">
+                                ৳ '
+                           || TO_CHAR (NVL (X.DUE_AMOUNT, 0), 'FM999G999G999G990D00')
+                           || '</b>
+                        </div>
+                
+                
+                        <!-- Payment Status -->
+                
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                        ">
+                            <span>Status</span>
+                
+                            <b style="
+                                color:'
+                           || CASE X.PAYMENT_STATUS
+                                  WHEN 'Paid' THEN '#27ae60'
+                                  WHEN 'Unpaid' THEN '#c0392b'
+                                  ELSE '#e67e22'
+                              END
+                           || ';
+                            ">
+                                '
+                           || NVL (X.PAYMENT_STATUS, 'Unpaid')
+                           || '
+                            </b>
+                        </div>
+                
+                
+                        <!-- ================= CURRENT PURCHASE ================= -->
+                
+                        <div style="
+                            margin-top:7px;
+                            margin-bottom:4px;
+                            padding:3px 6px;
+                            border-left:3px solid #27ae60;
+                            background:#f1f9f4;
+                            color:#218c4b;
+                            font-size:10px;
+                            font-weight:700;
+                            text-transform:uppercase;
+                            letter-spacing:.5px;
+                        ">
+                            Current Purchase
+                        </div>
+                
+                
+                     <!-- Current Paid -->
+                
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                    font-size:12px;
+                ">
+                    <span>Paid</span>
+                
+                    <b>
+                        ৳ '
+                    || TO_CHAR(
+                           NVL(C.PAID_AMOUNT, 0),
+                           'FM999G999G999G990D00'
+                       )
+                    || '
+                    </b>
+                </div>
+                
+                
+                <!-- Current Due -->
+                
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                    border-top:1px solid #eee;
+                    margin-top:2px;
+                    padding-top:2px;
+                    font-size:12px;
+                ">
+                    <span>Due</span>
+                
+                    <b style="
+                        color:#c0392b;
+                        font-weight:700;
+                    ">
+                        ৳ '
+                    || TO_CHAR(
+                           NVL(C.DUE_AMOUNT, 0),
+                           'FM999G999G999G990D00'
+                       )
+                    || '
+                    </b>
+                </div>
+                
+                
+                <!-- Current Payment Status -->
+                
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                    font-size:12px;
+                ">
+                    <span>Status</span>
+                
+                    <b style="
+                        color:'
+                    || CASE C.PAYMENT_STATUS
+                           WHEN 'Paid' THEN '#27ae60'
+                           WHEN 'Unpaid' THEN '#c0392b'
+                           ELSE '#e67e22'
+                       END
+                    || ';
+                    ">
+                        '
+                    || NVL(C.PAYMENT_STATUS, 'Unpaid')
+                    || '
+                    </b>
+                </div>
+                
+                        </div>'
+                      INTO v_html
+                      FROM MST_SUPPLIER  S
+                           /* ================= PREVIOUS ================= */
+                
+                           LEFT JOIN
+                           (  SELECT M.SUPPLIER_NO,
+                                     SUM (NVL (M.TOTAL_AMOUNT, 0))    AS PURCHASE_AMOUNT,
+                                     SUM (NVL (M.PAID_AMOUNT, 0))     AS PAID_AMOUNT,
+                                     SUM (NVL (M.DUE_AMOUNT, 0))      AS DUE_AMOUNT,
+                                     CASE
+                                         WHEN SUM (NVL (M.DUE_AMOUNT, 0)) = 0 THEN 'Paid'
+                                         WHEN SUM (NVL (M.PAID_AMOUNT, 0)) = 0 THEN 'Unpaid'
+                                         ELSE 'Partially Paid'
+                                     END                              AS PAYMENT_STATUS
+                                FROM TRN_PURCHASE_MST M
+                               WHERE     M.APPROVAL_STATUS = 'A'
+                                     AND NVL (PURCHASE_NO, -1) != NVL ( :P12_PURCHASE_NO, -1)
+                            GROUP BY M.SUPPLIER_NO) X
+                               ON X.SUPPLIER_NO = S.SUPPLIER_NO
+                           /* ================= CURRENT PURCHASE ================= */
+                
+                           LEFT JOIN
+                           (  SELECT D.PURCHASE_NO,
+                                     /* Items */
+                                     COUNT (*)                        AS ITEMS,
+                                     /* Quantity */
+                                     SUM (NVL (D.PURCHASE_QTY, 0))    AS QUANTITY,
+                                     /* Purchase Amount */
+                                     SUM (NVL (D.TOTAL_AMOUNT, 0))    AS AMOUNT,
+                                     /* Paid */
+                                     MAX (NVL (M.PAID_AMOUNT, 0))     AS PAID_AMOUNT,
+                                     /* Due */
+                                     MAX (NVL (M.DUE_AMOUNT, 0))      AS DUE_AMOUNT,
+                                     /* Payment Status */
+                                     CASE
+                                         WHEN MAX (NVL (M.DUE_AMOUNT, 0)) = 0 THEN 'Paid'
+                                         WHEN MAX (NVL (M.PAID_AMOUNT, 0)) = 0 THEN 'Unpaid'
+                                         ELSE 'Partially Paid'
+                                     END                              AS PAYMENT_STATUS
+                                FROM TRN_PURCHASE_DTL D
+                                     JOIN TRN_PURCHASE_MST M ON M.PURCHASE_NO = D.PURCHASE_NO
+                               WHERE NVL (D.PURCHASE_NO, -1) = NVL ( :P12_PURCHASE_NO, -1)
+                            GROUP BY D.PURCHASE_NO) C
+                               ON C.PURCHASE_NO = :P12_PURCHASE_NO
+                     WHERE S.SUPPLIER_NO = :P12_SUPPLIER_NO;
+                
+                    RETURN v_html;
+                EXCEPTION
+                    WHEN OTHERS
+                    THEN
+                        RETURN '<div style="
+                                font-size:11px;
+                                color:#777;
+                                padding:6px;
+                            ">
+                                Supplier summary unavailable.
+                             </div>';
+                END;
+                ```
+            pageItemsToSubmit: [
+                P12_SUPPLIER_NO
+                P12_PURCHASE_NO
+            ]
+        }
+        layout {
+            sequence: 40
+            parentRegion: @main
+            slot: regionBody
+            startNewRow: false
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
         }
     )
 
@@ -173,8 +538,8 @@ page 12 (
             pageItemsToSubmit: P12_PURCHASE_NO
         }
         layout {
-            sequence: 20
-            slot: contentBody
+            sequence: 30
+            slot: body
             startNewRow: false
             newColumn: false
         }
@@ -823,30 +1188,14 @@ page 12 (
     )
 
     pageItem P12_ACTIVE_FLAG (
-        type: radioGroup
-        label {
-            label: Active Flag
-            alignment: left
-        }
+        type: hidden
         settings {
-            noOfCols: 2
-        }
-        lov {
-            type: staticValues
-            staticValues: STATIC:Active;1,Inactive;2
-            displayExtraValues: false
-            displayNullValue: false
+            valueProtected: false
         }
         layout {
-            sequence: 160
+            sequence: 120
             region: @entry
             slot: regionBody
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
         }
         source {
             formRegion: @entry
@@ -859,31 +1208,43 @@ page 12 (
         }
     )
 
-    pageItem P12_APPROVAL_STATUS (
-        type: textField
+    pageItem P12_APPROVAL (
+        type: displayOnly
         label {
-            label: Approval Status
+            label: Approval
             alignment: left
         }
         layout {
-            sequence: 240
+            sequence: 90
             region: @entry
             slot: regionBody
             alignment: left
-            startNewRow: false
         }
         appearance {
             template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
+            templateOptions: #DEFAULT#
         }
-        validation {
-            maxLength: 1
+        source {
+            formRegion: @entry
+            column: APPROVAL
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: item=value
+            item: P12_APPROVAL_STATUS
+            value: A
+        }
+    )
+
+    pageItem P12_APPROVAL_STATUS (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 80
+            region: @entry
+            slot: regionBody
         }
         source {
             formRegion: @entry
@@ -898,13 +1259,13 @@ page 12 (
     )
 
     pageItem P12_APPROVED_BY (
-        type: textField
+        type: displayOnly
         label {
             label: Approved By
             alignment: left
         }
         layout {
-            sequence: 250
+            sequence: 100
             region: @entry
             slot: regionBody
             alignment: left
@@ -918,10 +1279,6 @@ page 12 (
                 t-Form-fieldContainer--large
                 t-Form-fieldContainer--slimPadding
             ]
-            width: 30
-        }
-        validation {
-            maxLength: 100
         }
         source {
             formRegion: @entry
@@ -936,13 +1293,13 @@ page 12 (
     )
 
     pageItem P12_APPROVED_DATE (
-        type: datePicker
+        type: displayOnly
         label {
             label: Approved Date
             alignment: left
         }
         layout {
-            sequence: 260
+            sequence: 110
             region: @entry
             slot: regionBody
             alignment: left
@@ -956,7 +1313,6 @@ page 12 (
                 t-Form-fieldContainer--large
                 t-Form-fieldContainer--slimPadding
             ]
-            width: 30
         }
         source {
             formRegion: @entry
@@ -970,65 +1326,15 @@ page 12 (
         }
     )
 
-    pageItem P12_CREATED_BY (
-        type: hidden
-        settings {
-            valueProtected: false
-        }
-        layout {
-            sequence: 290
-            region: @entry
-            slot: regionBody
-        }
-        source {
-            formRegion: @entry
-            column: CREATED_BY
-            dataType: varchar2
-        }
-    )
-
-    pageItem P12_CREATED_DATE (
-        type: hidden
-        settings {
-            valueProtected: false
-        }
-        layout {
-            sequence: 300
-            region: @entry
-            slot: regionBody
-        }
-        source {
-            formRegion: @entry
-            column: CREATED_DATE
-            dataType: date
-        }
-    )
-
     pageItem P12_DUE_AMOUNT (
-        type: numberField
-        label {
-            label: Due Amount
-            alignment: left
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
-            sequence: 200
+            sequence: 140
             region: @entry
             slot: regionBody
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
-        }
-        advanced {
-            customAttributes: readonly
         }
         source {
             formRegion: @entry
@@ -1042,29 +1348,14 @@ page 12 (
     )
 
     pageItem P12_PAID_AMOUNT (
-        type: numberField
-        label {
-            label: Paid Amount
-            alignment: left
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
-            sequence: 190
+            sequence: 130
             region: @entry
             slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
-        }
-        advanced {
-            customAttributes: readonly
         }
         source {
             formRegion: @entry
@@ -1078,33 +1369,14 @@ page 12 (
     )
 
     pageItem P12_PAYMENT_STATUS (
-        type: textField
-        label {
-            label: Payment Status
-            alignment: left
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
-            sequence: 220
+            sequence: 160
             region: @entry
             slot: regionBody
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
-        }
-        validation {
-            maxLength: 2
-        }
-        advanced {
-            customAttributes: readonly
         }
         source {
             formRegion: @entry
@@ -1118,13 +1390,13 @@ page 12 (
     )
 
     pageItem P12_PURCHASE_CODE (
-        type: textField
+        type: displayOnly
         label {
             label: Purchase Code
             alignment: left
         }
         layout {
-            sequence: 230
+            sequence: 20
             region: @entry
             slot: regionBody
             alignment: left
@@ -1138,7 +1410,6 @@ page 12 (
                 t-Form-fieldContainer--large
                 t-Form-fieldContainer--slimPadding
             ]
-            width: 30
         }
         source {
             formRegion: @entry
@@ -1212,7 +1483,7 @@ page 12 (
             valueProtected: false
         }
         layout {
-            sequence: 270
+            sequence: 170
             region: @entry
             slot: regionBody
         }
@@ -1229,7 +1500,7 @@ page 12 (
             valueProtected: false
         }
         layout {
-            sequence: 330
+            sequence: 180
             region: @entry
             slot: regionBody
         }
@@ -1246,7 +1517,7 @@ page 12 (
             valueProtected: false
         }
         layout {
-            sequence: 340
+            sequence: 190
             region: @entry
             slot: regionBody
         }
@@ -1264,7 +1535,7 @@ page 12 (
             alignment: left
         }
         layout {
-            sequence: 170
+            sequence: 60
             region: @entry
             slot: regionBody
             alignment: left
@@ -1272,16 +1543,8 @@ page 12 (
         }
         appearance {
             template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
+            templateOptions: #DEFAULT#
             width: 30
-        }
-        validation {
-            maxLength: 500
         }
         source {
             formRegion: @entry
@@ -1313,7 +1576,7 @@ page 12 (
             nullDisplayValue: --Select--
         }
         layout {
-            sequence: 20
+            sequence: 40
             region: @entry
             slot: regionBody
             alignment: left
@@ -1340,30 +1603,14 @@ page 12 (
     )
 
     pageItem P12_TOTAL_AMOUNT (
-        type: numberField
-        label {
-            label: Total Amount
-            alignment: left
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
-            sequence: 210
+            sequence: 150
             region: @entry
             slot: regionBody
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
-        }
-        advanced {
-            customAttributes: readonly
         }
         source {
             formRegion: @entry
@@ -1376,54 +1623,30 @@ page 12 (
         }
     )
 
-    pageItem P12_UPDATED_BY (
-        type: hidden
-        settings {
-            valueProtected: false
-        }
-        layout {
-            sequence: 310
-            region: @entry
-            slot: regionBody
-        }
-        source {
-            formRegion: @entry
-            column: UPDATED_BY
-            dataType: varchar2
-        }
-    )
-
-    pageItem P12_UPDATED_DATE (
-        type: hidden
-        settings {
-            valueProtected: false
-        }
-        layout {
-            sequence: 320
-            region: @entry
-            slot: regionBody
-        }
-        source {
-            formRegion: @entry
-            column: UPDATED_DATE
-            dataType: date
-        }
-    )
-
     pageItem P12_VOUCHER_NO (
-        type: hidden
-        settings {
-            valueProtected: false
+        type: displayOnly
+        label {
+            label: Voucher Code
+            alignment: left
         }
         layout {
-            sequence: 280
+            sequence: 50
             region: @entry
             slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
         }
         source {
             formRegion: @entry
             column: VOUCHER_NO
-            dataType: number
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P12_VOUCHER_NO
         }
     )
 
@@ -1432,7 +1655,7 @@ page 12 (
         label: Delete
         layout {
             sequence: 40
-            region: @breadcrumb-2
+            region: @breadcrumb
             slot: next
         }
         appearance {
@@ -1461,7 +1684,7 @@ page 12 (
         label: New
         layout {
             sequence: 10
-            region: @breadcrumb-2
+            region: @breadcrumb
             slot: next
         }
         appearance {
@@ -1490,7 +1713,7 @@ page 12 (
         label: Save
         layout {
             sequence: 20
-            region: @breadcrumb-2
+            region: @breadcrumb
             slot: next
         }
         appearance {
@@ -1514,7 +1737,7 @@ page 12 (
         label: Update
         layout {
             sequence: 30
-            region: @breadcrumb-2
+            region: @breadcrumb
             slot: next
         }
         appearance {
@@ -1578,6 +1801,30 @@ page 12 (
 
     )
 
+    dynamicAction new_1 (
+        name: New
+        execution {
+            sequence: 50
+        }
+        when {
+            selectionType: items
+            items: P12_SUPPLIER_NO
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @new
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
     dynamicAction new_2 (
         name: New
         execution {
@@ -1597,6 +1844,35 @@ page 12 (
             action: executeJsCode
             settings {
                 jsCode: purchaseCalculate(this);
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction new_3 (
+        name: DA_TOATL
+        execution {
+            sequence: 60
+        }
+        when {
+            selectionType: columns
+            interactiveGrid: @purchaseDtl
+            columns: TOTAL_AMOUNT
+        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                    // col_amt = model.getFieldKey("TOTAL_AMOUNT");
+                    // apex.item("current_purchase_amount").setValue($v('TOTAL_AMOUNT'));
+                    f_purchase_summary();
+                    ```
             }
             execution {
                 sequence: 10
@@ -1928,7 +2204,7 @@ page 12 (
                             0,
                             0,
                             0,
-                            'P'
+                            'UP'
                         );
                 
                         apex_application.g_print_success_message :=
@@ -1961,6 +2237,9 @@ page 12 (
         execution {
             sequence: 10
         }
+        error {
+            errorMessage: #SQLERRM_TEXT#
+        }
         advanced {
             executionMappingIdentifier: 8293111583625552009
         }
@@ -1975,19 +2254,53 @@ page 12 (
         source {
             plsqlCode:
                 ```plsql
+                DECLARE
+                    l_status TRN_PURCHASE_MST.APPROVAL_STATUS%TYPE;
                 BEGIN
+                
+                    SELECT APPROVAL_STATUS
+                      INTO l_status
+                      FROM TRN_PURCHASE_MST
+                     WHERE PURCHASE_NO = :P12_PURCHASE_NO;
+                
+                
+                    IF l_status = 'A' THEN
+                        raise_application_error(
+                            -20001,
+                            'Approved purchase cannot be deleted.'
+                        );
+                    END IF;
+                
+                
+                    /* Delete Detail First */
+                
+                    DELETE FROM TRN_PURCHASE_DTL
+                     WHERE PURCHASE_NO = :P12_PURCHASE_NO;
+                
+                
+                    /* Delete Master */
                 
                     DELETE FROM TRN_PURCHASE_MST
                      WHERE PURCHASE_NO = :P12_PURCHASE_NO;
                 
+                
                     apex_application.g_print_success_message :=
                         'Purchase information deleted successfully.';
                 
+                EXCEPTION
+                    WHEN NO_DATA_FOUND THEN
+                        raise_application_error(
+                            -20002,
+                            'Purchase information not found.'
+                        );
                 END;
                 ```
         }
         execution {
             sequence: 20
+        }
+        error {
+            errorMessage: #SQLERRM_TEXT#
         }
         advanced {
             executionMappingIdentifier: 8293111692319552010

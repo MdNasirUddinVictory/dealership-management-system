@@ -59,167 +59,960 @@ page 306 (
         }
     )
 
-    region voucher-mst (
-        name: Balance Sheet
-        type: interactiveReport
+    region voucher-mst_1 (
+        name: Summery Balance Sheet HTM
+        type: dynamicContent
         source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                WITH ACCOUNT_BALANCE AS
-                (
-                    SELECT
-                           H.ACCOUNT_NO,
-                           H.ACCOUNT_CODE,
-                           H.ACCOUNT_NAME,
-                           H.ACCOUNT_TYPE,
+            plsqlFunctionBody:
+                ```plsql
+                /* Formatted on 8/25/2026 3:50:57 PM (QP5 v5.388) */
+                DECLARE
+                    v_html   CLOB;
+                BEGIN
+                    WITH
+                        OPENING_BALANCE
+                        AS
+                            (  SELECT ACCOUNT_NO,
+                                      NVL (SUM (OPENING_DEBIT), 0)      AS OPENING_DEBIT,
+                                      NVL (SUM (OPENING_CREDIT), 0)     AS OPENING_CREDIT
+                                 FROM ACC_OPENING_BALANCE
+                                WHERE APPROVAL_STATUS = 'A'
+                             GROUP BY ACCOUNT_NO),
+                        VOUCHER_BALANCE
+                        AS
+                            (  SELECT D.ACCOUNT_NO,
+                                      NVL (SUM (D.DEBIT_AMOUNT), 0)      AS VOUCHER_DEBIT,
+                                      NVL (SUM (D.CREDIT_AMOUNT), 0)     AS VOUCHER_CREDIT
+                                 FROM ACC_VOUCHER_DTL D
+                                      JOIN ACC_VOUCHER_MST M ON M.VOUCHER_NO = D.VOUCHER_NO
+                                WHERE     M.APPROVAL_STATUS = 'A'
+                                      AND M.VOUCHER_DATE <= TO_DATE(:P306_AS_OF_DATE, 'MM/DD/YYYY')
+                             GROUP BY D.ACCOUNT_NO),
+                        ACCOUNT_BALANCE
+                        AS
+                            (SELECT H.ACCOUNT_NO,
+                                    H.ACCOUNT_TYPE,
+                                    NVL (O.OPENING_DEBIT, 0) + NVL (V.VOUCHER_DEBIT, 0)
+                                        AS TOTAL_DEBIT,
+                                    NVL (O.OPENING_CREDIT, 0) + NVL (V.VOUCHER_CREDIT, 0)
+                                        AS TOTAL_CREDIT
+                               FROM MST_ACCOUNT_HEAD  H
+                                    LEFT JOIN OPENING_BALANCE O
+                                        ON O.ACCOUNT_NO = H.ACCOUNT_NO
+                                    LEFT JOIN VOUCHER_BALANCE V
+                                        ON V.ACCOUNT_NO = H.ACCOUNT_NO
+                              WHERE H.IS_POSTING = 'Y' AND H.ACTIVE_STATUS = 'Y'),
+                        ACCOUNT_TOTAL
+                        AS
+                            (  SELECT ACCOUNT_TYPE,
+                                      SUM (
+                                          CASE
+                                              WHEN ACCOUNT_TYPE = 'A'
+                                              THEN
+                                                  TOTAL_DEBIT - TOTAL_CREDIT
+                                              WHEN ACCOUNT_TYPE IN ('L', 'C')
+                                              THEN
+                                                  TOTAL_CREDIT - TOTAL_DEBIT
+                                              ELSE
+                                                  0
+                                          END)    AS AMOUNT
+                                 FROM ACCOUNT_BALANCE
+                             GROUP BY ACCOUNT_TYPE),
+                        TOTALS
+                        AS
+                            (SELECT NVL (
+                                        SUM (
+                                            CASE
+                                                WHEN ACCOUNT_TYPE = 'A' THEN AMOUNT
+                                                ELSE 0
+                                            END),
+                                        0)    AS TOTAL_ASSETS,
+                                    NVL (
+                                        SUM (
+                                            CASE
+                                                WHEN ACCOUNT_TYPE = 'L' THEN AMOUNT
+                                                ELSE 0
+                                            END),
+                                        0)    AS TOTAL_LIABILITIES,
+                                    NVL (
+                                        SUM (
+                                            CASE
+                                                WHEN ACCOUNT_TYPE = 'C' THEN AMOUNT
+                                                ELSE 0
+                                            END),
+                                        0)    AS TOTAL_CAPITAL
+                               FROM ACCOUNT_TOTAL),
+                        PROFIT_LOSS
+                        AS
+                            (SELECT NVL (
+                                        SUM (
+                                            CASE
+                                                WHEN ACCOUNT_TYPE = 'I'
+                                                THEN
+                                                    TOTAL_CREDIT - TOTAL_DEBIT
+                                                WHEN ACCOUNT_TYPE = 'E'
+                                                THEN
+                                                    TOTAL_DEBIT - TOTAL_CREDIT
+                                                ELSE
+                                                    0
+                                            END),
+                                        0)    AS NET_PROFIT
+                               FROM ACCOUNT_BALANCE
+                              WHERE ACCOUNT_TYPE IN ('I', 'E'))
+                    SELECT    '<div id="balance_sheet_summary" style="
+                            width:100%;
+                            max-width:320px;
+                            box-sizing:border-box;
+                            padding:10px;
+                            border:1px solid #e1e5e9;
+                            border-radius:8px;
+                            background:#fff;
+                            font-size:12px;
+                            line-height:1.6;
+                        ">
                 
-                           NVL(SUM(D.DEBIT_AMOUNT), 0)  AS DEBIT_AMOUNT,
-                           NVL(SUM(D.CREDIT_AMOUNT), 0) AS CREDIT_AMOUNT
+                        <!-- ================= HEADER ================= -->
                 
-                    FROM MST_ACCOUNT_HEAD H
+                        <div style="
+                            text-align:center;
+                            font-size:14px;
+                            font-weight:700;
+                            color:#2c3e50;
+                            margin-bottom:2px;
+                        ">
+                            Balance Sheet Summary
+                        </div>
                 
-                    JOIN ACC_VOUCHER_DTL D
-                      ON D.ACCOUNT_NO = H.ACCOUNT_NO
+                        <div style="
+                            text-align:center;
+                            font-size:10px;
+                            color:#7f8c8d;
+                            margin-bottom:8px;
+                        ">
+                            As of '
+                           || NVL (TO_CHAR ( TO_DATE(:P306_AS_OF_DATE, 'MM/DD/YYYY'), 'DD Mon YYYY'),
+                                   'Current Date')
+                           || '
+                        </div>
                 
-                    JOIN ACC_VOUCHER_MST M
-                      ON M.VOUCHER_NO = D.VOUCHER_NO
                 
-                    WHERE H.IS_POSTING = 'Y'
-                      AND H.ACTIVE_STATUS = 'Y'
-                      AND M.APPROVAL_STATUS = 'A'
-                      AND M.VOUCHER_DATE <= :P311_AS_OF_DATE
+                        <!-- ================= ASSETS ================= -->
                 
-                    GROUP BY
-                           H.ACCOUNT_NO,
-                           H.ACCOUNT_CODE,
-                           H.ACCOUNT_NAME,
-                           H.ACCOUNT_TYPE
-                ),
+                        <div style="
+                            margin-top:4px;
+                            margin-bottom:4px;
+                            padding:4px 7px;
+                            border-left:4px solid #2980b9;
+                            background:#f4f8fb;
+                            color:#2471a3;
+                            font-size:11px;
+                            font-weight:700;
+                            text-transform:uppercase;
+                            letter-spacing:.4px;
+                        ">
+                            Assets
+                        </div>
                 
-                BALANCE_SHEET AS
-                (
-                    SELECT
-                           ACCOUNT_NO,
-                           ACCOUNT_CODE,
-                           ACCOUNT_NAME,
-                           ACCOUNT_TYPE,
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                            padding:2px 2px;
+                        ">
+                            <span>Total Assets</span>
                 
-                           CASE
-                               WHEN ACCOUNT_TYPE = 'A'
-                               THEN DEBIT_AMOUNT - CREDIT_AMOUNT
+                            <b style="
+                                color:#2980b9;
+                                font-size:13px;
+                            ">
+                                ৳ '
+                           || TO_CHAR (NVL (T.TOTAL_ASSETS, 0), 'FM999G999G999G990D00')
+                           || '
+                            </b>
+                        </div>
                 
-                               WHEN ACCOUNT_TYPE IN ('L','C')
-                               THEN CREDIT_AMOUNT - DEBIT_AMOUNT
-                           END AS AMOUNT,
                 
-                           CASE
-                               WHEN ACCOUNT_TYPE = 'A'
-                               THEN 'Assets'
+                        <!-- ================= LIABILITIES ================= -->
                 
-                               WHEN ACCOUNT_TYPE = 'L'
-                               THEN 'Liabilities'
+                        <div style="
+                            margin-top:8px;
+                            margin-bottom:4px;
+                            padding:4px 7px;
+                            border-left:4px solid #e67e22;
+                            background:#fdf6ee;
+                            color:#d35400;
+                            font-size:11px;
+                            font-weight:700;
+                            text-transform:uppercase;
+                            letter-spacing:.4px;
+                        ">
+                            Liabilities & Equity
+                        </div>
                 
-                               WHEN ACCOUNT_TYPE = 'C'
-                               THEN 'Equity'
-                           END AS ACCOUNT_GROUP
                 
-                    FROM ACCOUNT_BALANCE
+                        <!-- Liability -->
                 
-                    WHERE ACCOUNT_TYPE IN ('A','L','C')
-                ),
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                            padding:2px;
+                        ">
+                            <span>Total Liabilities</span>
                 
-                PROFIT_LOSS AS
-                (
-                    SELECT
-                           NVL(
-                               SUM(
+                            <b>
+                                ৳ '
+                           || TO_CHAR (NVL (T.TOTAL_LIABILITIES, 0), 'FM999G999G999G990D00')
+                           || '
+                            </b>
+                        </div>
+                
+                
+                        <!-- Capital -->
+                
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                            padding:2px;
+                        ">
+                            <span>Capital</span>
+                
+                            <b>
+                                ৳ '
+                           || TO_CHAR (NVL (T.TOTAL_CAPITAL, 0), 'FM999G999G999G990D00')
+                           || '
+                            </b>
+                        </div>
+                
+                
+                        <!-- Profit / Loss -->
+                
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                            padding:2px;
+                        ">
+                            <span>'
+                           || CASE
+                                  WHEN P.NET_PROFIT >= 0 THEN 'Current Period Profit'
+                                  ELSE 'Current Period Loss'
+                              END
+                           || '</span>
+                
+                            <b style="
+                                color:'
+                           || CASE WHEN P.NET_PROFIT >= 0 THEN '#27ae60' ELSE '#c0392b' END
+                           || ';
+                            ">
+                                ৳ '
+                           || TO_CHAR (ABS (NVL (P.NET_PROFIT, 0)), 'FM999G999G999G990D00')
+                           || '
+                            </b>
+                        </div>
+                
+                
+                        <!-- ================= TOTAL ================= -->
+                
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                            border-top:1px solid #ddd;
+                            margin-top:6px;
+                            padding-top:5px;
+                            font-weight:700;
+                        ">
+                            <span>Liabilities + Equity</span>
+                
+                            <b>
+                                ৳ '
+                           || TO_CHAR (
+                                  NVL (T.TOTAL_LIABILITIES + T.TOTAL_CAPITAL + P.NET_PROFIT,
+                                       0),
+                                  'FM999G999G999G990D00')
+                           || '
+                            </b>
+                        </div>
+                
+                
+                        <!-- ================= BALANCE STATUS ================= -->
+                
+                        <div style="
+                            margin-top:8px;
+                            padding:5px 7px;
+                            border-radius:4px;
+                            text-align:center;
+                            font-size:11px;
+                            font-weight:700;
+                            background:'
+                           || CASE
+                                  WHEN ROUND (T.TOTAL_ASSETS, 2) =
+                                       ROUND (
+                                             T.TOTAL_LIABILITIES
+                                           + T.TOTAL_CAPITAL
+                                           + P.NET_PROFIT,
+                                           2)
+                                  THEN
+                                      '#eaf7ef'
+                                  ELSE
+                                      '#fdeeee'
+                              END
+                           || ';
+                            color:'
+                           || CASE
+                                  WHEN ROUND (T.TOTAL_ASSETS, 2) =
+                                       ROUND (
+                                             T.TOTAL_LIABILITIES
+                                           + T.TOTAL_CAPITAL
+                                           + P.NET_PROFIT,
+                                           2)
+                                  THEN
+                                      '#27ae60'
+                                  ELSE
+                                      '#c0392b'
+                              END
+                           || ';
+                        ">
+                            '
+                           || CASE
+                                  WHEN ROUND (T.TOTAL_ASSETS, 2) =
+                                       ROUND (
+                                             T.TOTAL_LIABILITIES
+                                           + T.TOTAL_CAPITAL
+                                           + P.NET_PROFIT,
+                                           2)
+                                  THEN
+                                      '✓ BALANCED'
+                                  ELSE
+                                      '⚠ NOT BALANCED'
+                              END
+                           || '
+                        </div>
+                
+                        </div>'
+                      INTO v_html
+                      FROM TOTALS T CROSS JOIN PROFIT_LOSS P;
+                
+                
+                    RETURN v_html;
+                EXCEPTION
+                    WHEN OTHERS
+                    THEN    
+                        RETURN '
+                        <div style="
+                            padding:10px;
+                            font-size:12px;
+                            color:#c0392b;
+                            border:1px solid #f5c6cb;
+                            border-radius:5px;
+                            background:#fff5f5;
+                        ">
+                            Balance sheet summary unavailable. 
+                        </div>' || SQLERRM;
+                END;
+                ```
+            pageItemsToSubmit: P306_AS_OF_DATE
+        }
+        layout {
+            sequence: 40
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        config {
+            buildOption: @commented-out
+        }
+    )
+
+    region voucher-mst_2 (
+        name: Balance Sheet
+        type: dynamicContent
+        source {
+            plsqlFunctionBody:
+                ```plsql
+                /* Formatted on 8/25/2026 4:21:39 PM (QP5 v5.388) */
+                DECLARE
+                    v_html                CLOB;
+                    v_last_group          VARCHAR2 (30) := NULL;
+                
+                    v_total_assets        NUMBER := 0;
+                    v_total_liabilities   NUMBER := 0;
+                    v_total_equity        NUMBER := 0;
+                    v_net_profit          NUMBER := 0;
+                    v_total_le            NUMBER := 0;
+                    v_difference          NUMBER := 0;
+                BEGIN
+                    /* =========================================================
+                       CALCULATE SUMMARY
+                       ========================================================= */
+                
+                    WITH
+                        OPENING_BALANCE
+                        AS
+                            (  SELECT ACCOUNT_NO,
+                                      NVL (SUM (OPENING_DEBIT), 0)      OPENING_DEBIT,
+                                      NVL (SUM (OPENING_CREDIT), 0)     OPENING_CREDIT
+                                 FROM ACC_OPENING_BALANCE
+                                WHERE APPROVAL_STATUS = 'A'
+                             GROUP BY ACCOUNT_NO),
+                        VOUCHER_BALANCE
+                        AS
+                            (  SELECT D.ACCOUNT_NO,
+                                      NVL (SUM (D.DEBIT_AMOUNT), 0)      VOUCHER_DEBIT,
+                                      NVL (SUM (D.CREDIT_AMOUNT), 0)     VOUCHER_CREDIT
+                                 FROM ACC_VOUCHER_DTL D
+                                      JOIN ACC_VOUCHER_MST M ON M.VOUCHER_NO = D.VOUCHER_NO
+                                WHERE     M.APPROVAL_STATUS = 'A'
+                                      AND M.VOUCHER_DATE <=
+                                          TO_DATE ( :P306_AS_OF_DATE, 'MM/DD/YYYY')
+                             GROUP BY D.ACCOUNT_NO),
+                        ACCOUNT_BALANCE
+                        AS
+                            (SELECT H.ACCOUNT_NO,
+                                    H.ACCOUNT_TYPE,
+                                    NVL (O.OPENING_DEBIT, 0) + NVL (V.VOUCHER_DEBIT, 0)
+                                        TOTAL_DEBIT,
+                                    NVL (O.OPENING_CREDIT, 0) + NVL (V.VOUCHER_CREDIT, 0)
+                                        TOTAL_CREDIT
+                               FROM MST_ACCOUNT_HEAD  H
+                                    LEFT JOIN OPENING_BALANCE O
+                                        ON O.ACCOUNT_NO = H.ACCOUNT_NO
+                                    LEFT JOIN VOUCHER_BALANCE V
+                                        ON V.ACCOUNT_NO = H.ACCOUNT_NO
+                              WHERE H.IS_POSTING = 'Y' AND H.ACTIVE_STATUS = 'Y')
+                    SELECT NVL (
+                               SUM (
+                                   CASE
+                                       WHEN ACCOUNT_TYPE = 'A'
+                                       THEN
+                                           TOTAL_DEBIT - TOTAL_CREDIT
+                                       ELSE
+                                           0
+                                   END),
+                               0),
+                           NVL (
+                               SUM (
+                                   CASE
+                                       WHEN ACCOUNT_TYPE = 'L'
+                                       THEN
+                                           TOTAL_CREDIT - TOTAL_DEBIT
+                                       ELSE
+                                           0
+                                   END),
+                               0),
+                           NVL (
+                               SUM (
+                                   CASE
+                                       WHEN ACCOUNT_TYPE = 'C'
+                                       THEN
+                                           TOTAL_CREDIT - TOTAL_DEBIT
+                                       ELSE
+                                           0
+                                   END),
+                               0),
+                           NVL (
+                               SUM (
                                    CASE
                                        WHEN ACCOUNT_TYPE = 'I'
-                                       THEN CREDIT_AMOUNT - DEBIT_AMOUNT
-                
+                                       THEN
+                                           TOTAL_CREDIT - TOTAL_DEBIT
                                        WHEN ACCOUNT_TYPE = 'E'
-                                       THEN -(DEBIT_AMOUNT - CREDIT_AMOUNT)
+                                       THEN
+                                           TOTAL_DEBIT - TOTAL_CREDIT
+                                       ELSE
+                                           0
+                                   END),
+                               0)
+                      INTO v_total_assets,
+                           v_total_liabilities,
+                           v_total_equity,
+                           v_net_profit
+                      FROM ACCOUNT_BALANCE;
                 
-                                       ELSE 0
-                                   END
-                               ),
-                               0
-                           ) AS NET_PROFIT
                 
-                    FROM ACCOUNT_BALANCE
+                    v_total_le := v_total_liabilities + v_total_equity + v_net_profit;
                 
-                    WHERE ACCOUNT_TYPE IN ('I','E')
-                )
+                    v_difference := v_total_assets - v_total_le;
                 
-                SELECT
-                       ACCOUNT_GROUP,
-                       ACCOUNT_CODE,
-                       ACCOUNT_NAME,
-                       AMOUNT
                 
-                FROM
-                (
-                    --------------------------------------------------
-                    -- Assets / Liabilities / Equity Accounts
-                    --------------------------------------------------
+                    /* =========================================================
+                       HEADER
+                       ========================================================= */
                 
-                    SELECT
-                           ACCOUNT_GROUP,
-                           ACCOUNT_CODE,
-                           ACCOUNT_NAME,
-                           AMOUNT
+                    v_html :=
+                           '<div style="
+                        width:100%;
+                        box-sizing:border-box;
+                        font-family:Arial,sans-serif;
+                        background:#fff;
+                        border:1px solid #e1e5e9;
+                        border-radius:8px;
+                        overflow:hidden;
+                    ">
                 
-                    FROM BALANCE_SHEET
+                        <div style="
+                            padding:14px 16px;
+                            border-bottom:1px solid #e5e9ed;
+                            background:#fafbfc;
+                        ">
                 
-                    WHERE NVL(AMOUNT,0) <> 0
+                            <div style="
+                                font-size:20px;
+                                font-weight:700;
+                                color:#26343f;
+                            ">
+                                Balance Sheet
+                            </div>
                 
-                    UNION ALL
+                            <div style="
+                                margin-top:4px;
+                                font-size:11px;
+                                color:#7a8793;
+                            ">
+                                Financial Position as of '
+                        || TO_CHAR (TO_DATE ( :P306_AS_OF_DATE, 'MM/DD/YYYY'), 'DD Mon YYYY')
+                        || '
+                            </div>
                 
-                    --------------------------------------------------
-                    -- Current Period Profit
-                    --------------------------------------------------
+                        </div>
                 
-                    SELECT
-                           'Equity'        AS ACCOUNT_GROUP,
-                           NULL            AS ACCOUNT_CODE,
-                           'Current Period Profit' AS ACCOUNT_NAME,
-                           NET_PROFIT      AS AMOUNT
                 
-                    FROM PROFIT_LOSS
+                        <!-- SUMMARY -->
                 
-                    WHERE NET_PROFIT > 0
+                        <div style="
+                            display:flex;
+                            gap:10px;
+                            padding:12px;
+                            flex-wrap:wrap;
+                        ">
                 
-                    UNION ALL
+                            <div style="
+                                flex:1;
+                                min-width:180px;
+                                padding:10px 12px;
+                                border:1px solid #dce4ea;
+                                border-radius:6px;
+                                background:#f7fafc;
+                            ">
                 
-                    --------------------------------------------------
-                    -- Current Period Loss
-                    --------------------------------------------------
+                                <div style="
+                                    font-size:11px;
+                                    color:#71808d;
+                                ">
+                                    Total Assets
+                                </div>
                 
-                    SELECT
-                           'Equity',
-                           NULL,
-                           'Current Period Loss',
-                           ABS(NET_PROFIT)
+                                <div style="
+                                    margin-top:4px;
+                                    font-size:17px;
+                                    font-weight:700;
+                                    color:#286090;
+                                ">
+                                    ৳ '
+                        || TO_CHAR (v_total_assets, 'FM999G999G999G990D00')
+                        || '
+                                </div>
                 
-                    FROM PROFIT_LOSS
+                            </div>
                 
-                    WHERE NET_PROFIT < 0
-                )
                 
-                ORDER BY
-                       CASE ACCOUNT_GROUP
-                           WHEN 'Assets'      THEN 1
-                           WHEN 'Liabilities' THEN 2
-                           WHEN 'Equity'      THEN 3
-                       END,
-                       ACCOUNT_CODE;
+                            <div style="
+                                flex:1;
+                                min-width:180px;
+                                padding:10px 12px;
+                                border:1px solid #dce4ea;
+                                border-radius:6px;
+                                background:#fff8f8;
+                            ">
+                
+                                <div style="
+                                    font-size:11px;
+                                    color:#71808d;
+                                ">
+                                    Total Liabilities
+                                </div>
+                
+                                <div style="
+                                    margin-top:4px;
+                                    font-size:17px;
+                                    font-weight:700;
+                                    color:#c0392b;
+                                ">
+                                    ৳ '
+                        || TO_CHAR (v_total_liabilities, 'FM999G999G999G990D00')
+                        || '
+                                </div>
+                
+                            </div>
+                
+                
+                            <div style="
+                                flex:1;
+                                min-width:180px;
+                                padding:10px 12px;
+                                border:1px solid #dce4ea;
+                                border-radius:6px;
+                                background:#f7fcf9;
+                            ">
+                
+                                <div style="
+                                    font-size:11px;
+                                    color:#71808d;
+                                ">
+                                    Equity
+                                </div>
+                
+                                <div style="
+                                    margin-top:4px;
+                                    font-size:17px;
+                                    font-weight:700;
+                                    color:#218c4b;
+                                ">
+                                    ৳ '
+                        || TO_CHAR (v_total_equity + v_net_profit, 'FM999G999G999G990D00')
+                        || '
+                                </div>
+                
+                            </div>
+                
+                        </div>
+                
+                
+                        <!-- REPORT -->
+                
+                        <div style="
+                            margin:0 12px 12px 12px;
+                            border:1px solid #e1e5e9;
+                            border-radius:6px;
+                            overflow:hidden;
+                        ">
+                
+                            <div style="
+                                display:grid;
+                                grid-template-columns:120px 1fr 170px;
+                                padding:9px 10px;
+                                background:#f1f4f7;
+                                font-size:11px;
+                                font-weight:700;
+                                color:#526170;
+                            ">
+                                <div>Code</div>
+                                <div>Account Name</div>
+                                <div style="text-align:right;">
+                                    Amount
+                                </div>
+                            </div>';
+                
+                
+                    /* =========================================================
+                       ACCOUNT DETAILS
+                       ========================================================= */
+                
+                    FOR R
+                        IN (WITH
+                                OPENING_BALANCE
+                                AS
+                                    (  SELECT ACCOUNT_NO,
+                                              NVL (SUM (OPENING_DEBIT), 0)      OPENING_DEBIT,
+                                              NVL (SUM (OPENING_CREDIT), 0)     OPENING_CREDIT
+                                         FROM ACC_OPENING_BALANCE
+                                        WHERE APPROVAL_STATUS = 'A'
+                                     GROUP BY ACCOUNT_NO),
+                                VOUCHER_BALANCE
+                                AS
+                                    (  SELECT D.ACCOUNT_NO,
+                                              NVL (SUM (D.DEBIT_AMOUNT), 0)      VOUCHER_DEBIT,
+                                              NVL (SUM (D.CREDIT_AMOUNT), 0)     VOUCHER_CREDIT
+                                         FROM ACC_VOUCHER_DTL D
+                                              JOIN ACC_VOUCHER_MST M
+                                                  ON M.VOUCHER_NO = D.VOUCHER_NO
+                                        WHERE     M.APPROVAL_STATUS = 'A'
+                                              AND M.VOUCHER_DATE <=
+                                                  TO_DATE ( :P306_AS_OF_DATE, 'MM/DD/YYYY')
+                                     GROUP BY D.ACCOUNT_NO),
+                                ACCOUNT_BALANCE
+                                AS
+                                    (SELECT H.ACCOUNT_NO,
+                                            H.ACCOUNT_CODE,
+                                            H.ACCOUNT_NAME,
+                                            H.ACCOUNT_TYPE,
+                                              NVL (O.OPENING_DEBIT, 0)
+                                            + NVL (V.VOUCHER_DEBIT, 0)     TOTAL_DEBIT,
+                                              NVL (O.OPENING_CREDIT, 0)
+                                            + NVL (V.VOUCHER_CREDIT, 0)    TOTAL_CREDIT
+                                       FROM MST_ACCOUNT_HEAD  H
+                                            LEFT JOIN OPENING_BALANCE O
+                                                ON O.ACCOUNT_NO = H.ACCOUNT_NO
+                                            LEFT JOIN VOUCHER_BALANCE V
+                                                ON V.ACCOUNT_NO = H.ACCOUNT_NO
+                                      WHERE H.IS_POSTING = 'Y' AND H.ACTIVE_STATUS = 'Y'),
+                                BALANCE_SHEET
+                                AS
+                                    (SELECT ACCOUNT_CODE,
+                                            ACCOUNT_NAME,
+                                            ACCOUNT_TYPE,
+                                            CASE
+                                                WHEN ACCOUNT_TYPE = 'A'
+                                                THEN
+                                                    TOTAL_DEBIT - TOTAL_CREDIT
+                                                WHEN ACCOUNT_TYPE IN ('L', 'C')
+                                                THEN
+                                                    TOTAL_CREDIT - TOTAL_DEBIT
+                                            END    AS AMOUNT
+                                       FROM ACCOUNT_BALANCE
+                                      WHERE ACCOUNT_TYPE IN ('A', 'L', 'C'))
+                              SELECT CASE
+                                         WHEN ACCOUNT_TYPE = 'A' THEN 'Assets'
+                                         WHEN ACCOUNT_TYPE = 'L' THEN 'Liabilities'
+                                         WHEN ACCOUNT_TYPE = 'C' THEN 'Equity'
+                                     END    ACCOUNT_GROUP,
+                                     ACCOUNT_CODE,
+                                     ACCOUNT_NAME,
+                                     AMOUNT
+                                FROM BALANCE_SHEET
+                               WHERE NVL (AMOUNT, 0) <> 0
+                            ORDER BY CASE ACCOUNT_TYPE
+                                         WHEN 'A' THEN 1
+                                         WHEN 'L' THEN 2
+                                         WHEN 'C' THEN 3
+                                     END,
+                                     ACCOUNT_CODE)
+                    LOOP
+                        /* GROUP HEADER */
+                
+                        IF v_last_group IS NULL OR v_last_group <> R.ACCOUNT_GROUP
+                        THEN
+                            v_last_group := R.ACCOUNT_GROUP;
+                
+                            v_html := v_html || '<div style="
+                                padding:7px 10px;
+                                background:#f5f7f9;
+                                border-top:1px solid #e5e9ed;
+                                border-bottom:1px solid #e5e9ed;
+                                font-size:11px;
+                                font-weight:700;
+                                color:#4f5d68;
+                            ">
+                                ' || R.ACCOUNT_GROUP || '
+                            </div>';
+                        END IF;
+                
+                
+                        /* ACCOUNT ROW */
+                
+                        v_html :=
+                               v_html
+                            || '<div style="
+                            display:grid;
+                            grid-template-columns:120px 1fr 170px;
+                            padding:8px 10px;
+                            border-bottom:1px solid #f0f2f4;
+                            font-size:11px;
+                        ">
+                
+                            <div style="color:#7a8793;">
+                                '
+                            || NVL (R.ACCOUNT_CODE, '-')
+                            || '
+                            </div>
+                
+                            <div style="color:#34424d;">
+                                '
+                            || APEX_ESCAPE.HTML (R.ACCOUNT_NAME)
+                            || '
+                            </div>
+                
+                            <div style="
+                                text-align:right;
+                                font-weight:600;
+                            ">
+                                ৳ '
+                            || TO_CHAR (R.AMOUNT, 'FM999G999G999G990D00')
+                            || '
+                            </div>
+                
+                        </div>';
+                    END LOOP;
+                
+                
+                    /* =========================================================
+                       PROFIT / LOSS
+                       ========================================================= */
+                
+                    IF v_net_profit >= 0
+                    THEN
+                        v_html :=
+                               v_html
+                            || '<div style="
+                            display:flex;
+                            justify-content:space-between;
+                            padding:10px;
+                            background:#f7fcf9;
+                            border-top:1px solid #dceee3;
+                        ">
+                
+                            <div>
+                                <b style="color:#218c4b;">
+                                    Current Period Profit
+                                </b>
+                            </div>
+                
+                            <div style="
+                                font-weight:700;
+                                color:#218c4b;
+                            ">
+                                ৳ '
+                            || TO_CHAR (v_net_profit, 'FM999G999G999G990D00')
+                            || '
+                            </div>
+                
+                        </div>';
+                    ELSE
+                        v_html :=
+                               v_html
+                            || '<div style="
+                            display:flex;
+                            justify-content:space-between;
+                            padding:10px;
+                            background:#fff7f7;
+                            border-top:1px solid #f0dddd;
+                        ">
+                
+                            <div>
+                                <b style="color:#c0392b;">
+                                    Current Period Loss
+                                </b>
+                            </div>
+                
+                            <div style="
+                                font-weight:700;
+                                color:#c0392b;
+                            ">
+                                ৳ '
+                            || TO_CHAR (ABS (v_net_profit), 'FM999G999G999G990D00')
+                            || '
+                            </div>
+                
+                        </div>';
+                    END IF;
+                
+                
+                    /* =========================================================
+                       TOTALS
+                       ========================================================= */
+                
+                    v_html :=
+                           v_html
+                        || '<div style="
+                        padding:12px;
+                        background:#fafbfc;
+                        border-top:1px solid #dfe5ea;
+                    ">
+                
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            padding:5px 0;
+                            font-size:12px;
+                        ">
+                            <span>
+                                <b>Total Assets</b>
+                            </span>
+                
+                            <b>
+                                ৳ '
+                        || TO_CHAR (v_total_assets, 'FM999G999G999G990D00')
+                        || '</b>
+                        </div>
+                
+                
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            padding:5px 0;
+                            font-size:12px;
+                        ">
+                            <span>
+                                <b>Total Liabilities + Equity</b>
+                            </span>
+                
+                            <b>
+                                ৳ '
+                        || TO_CHAR (v_total_le, 'FM999G999G999G990D00')
+                        || '</b>
+                        </div>';
+                
+                
+                    /* =========================================================
+                       BALANCE STATUS
+                       ========================================================= */
+                
+                    IF ABS (v_difference) < 0.01
+                    THEN
+                        v_html := v_html || '<div style="
+                            margin-top:8px;
+                            padding:8px 10px;
+                            border-radius:5px;
+                            background:#eaf8ef;
+                            color:#218c4b;
+                            font-size:11px;
+                            font-weight:700;
+                            text-align:center;
+                        ">
+                            ✓ BALANCED
+                        </div>';
+                    ELSE
+                        v_html :=
+                               v_html
+                            || '<div style="
+                            margin-top:8px;
+                            padding:8px 10px;
+                            border-radius:5px;
+                            background:#fff1f1;
+                            color:#c0392b;
+                            font-size:11px;
+                            font-weight:700;
+                            text-align:center;
+                        ">
+                            ✕ NOT BALANCED
+                            &nbsp;&nbsp;
+                            Difference: ৳ '
+                            || TO_CHAR (ABS (v_difference), 'FM999G999G999G990D00')
+                            || '</div>';
+                    END IF;
+                
+                
+                    v_html := v_html || '</div>
+                    </div>';
+                
+                
+                    RETURN v_html;
+                EXCEPTION
+                    WHEN OTHERS
+                    THEN
+                        RETURN '<div style="
+                            padding:12px;
+                            border:1px solid #f1cccc;
+                            border-radius:6px;
+                            background:#fff5f5;
+                            color:#c0392b;
+                            font-size:12px;
+                        ">
+                            <b>Balance Sheet Error</b>
+                            <br><br>' || APEX_ESCAPE.HTML (SQLERRM) || '</div>';
+                END;
                 ```
-            pageItemsToSubmit: P311_AS_OF_DATE
+            pageItemsToSubmit: P306_AS_OF_DATE
         }
         layout {
-            sequence: 60
+            sequence: 20
             slot: body
         }
         appearance {
@@ -229,343 +1022,22 @@ page 306 (
                 t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
             ]
         }
-        pagination {
-            type: rowRangesXToY
-        }
-        advanced {
-            savedReportMappingIdentifier: 13178408834389097314
-        }
-
-        column ACCOUNT_CODE (
-            type: plainText
-            heading {
-                heading: Account Code
-            }
-            layout {
-                sequence: 20
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: M
-            }
-        )
-
-        column ACCOUNT_GROUP (
-            type: plainText
-            heading {
-                heading: Account Group
-            }
-            layout {
-                sequence: 50
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: W
-            }
-        )
-
-        column ACCOUNT_NAME (
-            type: plainText
-            heading {
-                heading: Account Name
-            }
-            layout {
-                sequence: 30
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: N
-            }
-        )
-
-        column AMOUNT (
-            type: plainText
-            heading {
-                heading: Amount
-                alignment: end
-            }
-            layout {
-                sequence: 40
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: V
-            }
-        )
-
-        page {
-            borderWidth: 0.5
-            borderColor: #666666
-        }
-
-        savedReport primary (
-            visibility: primaryDefault
-            view {
-                rowsPerPage: 50
-            }
-
-            displayColumn ACCOUNT_CODE (
-                sequence: 1
-            )
-
-            displayColumn ACCOUNT_GROUP (
-                sequence: 3
-            )
-
-            displayColumn ACCOUNT_NAME (
-                sequence: 2
-            )
-
-            displayColumn AMOUNT (
-                sequence: 4
-            )
-
-        )
-
     )
 
-    region voucher-mst_1 (
-        name: Balance Sheet
-        type: classicReport
-        source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                WITH ACCOUNT_TOTAL AS
-                (
-                    SELECT
-                           H.ACCOUNT_TYPE,
-                
-                           SUM(
-                               CASE
-                                   WHEN H.ACCOUNT_TYPE = 'A'
-                                   THEN NVL(D.DEBIT_AMOUNT,0)
-                                      - NVL(D.CREDIT_AMOUNT,0)
-                
-                                   WHEN H.ACCOUNT_TYPE IN ('L','C')
-                                   THEN NVL(D.CREDIT_AMOUNT,0)
-                                      - NVL(D.DEBIT_AMOUNT,0)
-                
-                                   ELSE 0
-                               END
-                           ) AS AMOUNT
-                
-                    FROM MST_ACCOUNT_HEAD H
-                    JOIN ACC_VOUCHER_DTL D
-                      ON D.ACCOUNT_NO = H.ACCOUNT_NO
-                    JOIN ACC_VOUCHER_MST M
-                      ON M.VOUCHER_NO = D.VOUCHER_NO
-                
-                    WHERE H.IS_POSTING = 'Y'
-                      AND H.ACTIVE_STATUS = 'Y'
-                      AND M.APPROVAL_STATUS = 'A'
-                      AND M.VOUCHER_DATE <= :P311_AS_OF_DATE
-                
-                    GROUP BY H.ACCOUNT_TYPE
-                ),
-                
-                TOTALS AS
-                (
-                    SELECT
-                        NVL(SUM(CASE WHEN ACCOUNT_TYPE = 'A'
-                                     THEN AMOUNT ELSE 0 END),0) AS TOTAL_ASSETS,
-                
-                        NVL(SUM(CASE WHEN ACCOUNT_TYPE = 'L'
-                                     THEN AMOUNT ELSE 0 END),0) AS TOTAL_LIABILITIES,
-                
-                        NVL(SUM(CASE WHEN ACCOUNT_TYPE = 'C'
-                                     THEN AMOUNT ELSE 0 END),0) AS TOTAL_CAPITAL
-                
-                    FROM ACCOUNT_TOTAL
-                ),
-                
-                PROFIT AS
-                (
-                    SELECT
-                        NVL(
-                            SUM(
-                                CASE
-                                    WHEN H.ACCOUNT_TYPE = 'I'
-                                    THEN NVL(D.CREDIT_AMOUNT,0)
-                                       - NVL(D.DEBIT_AMOUNT,0)
-                
-                                    WHEN H.ACCOUNT_TYPE = 'E'
-                                    THEN NVL(D.DEBIT_AMOUNT,0)
-                                       - NVL(D.CREDIT_AMOUNT,0)
-                
-                                    ELSE 0
-                                END
-                            ),
-                            0
-                        ) AS NET_PROFIT
-                
-                    FROM MST_ACCOUNT_HEAD H
-                    JOIN ACC_VOUCHER_DTL D
-                      ON D.ACCOUNT_NO = H.ACCOUNT_NO
-                    JOIN ACC_VOUCHER_MST M
-                      ON M.VOUCHER_NO = D.VOUCHER_NO
-                
-                    WHERE H.IS_POSTING = 'Y'
-                      AND H.ACTIVE_STATUS = 'Y'
-                      AND H.ACCOUNT_TYPE IN ('I','E')
-                      AND M.APPROVAL_STATUS = 'A'
-                      AND M.VOUCHER_DATE <= :P311_AS_OF_DATE
-                )
-                
-                SELECT
-                       'Total Assets' AS PARTICULARS,
-                       T.TOTAL_ASSETS AS AMOUNT,
-                       NULL AS BALANCE_STATUS
-                FROM TOTALS T
-                
-                UNION ALL
-                
-                SELECT
-                       'Total Liabilities',
-                       T.TOTAL_LIABILITIES,
-                       NULL
-                FROM TOTALS T
-                
-                UNION ALL
-                
-                SELECT
-                       'Capital',
-                       T.TOTAL_CAPITAL,
-                       NULL
-                FROM TOTALS T
-                
-                UNION ALL
-                
-                SELECT
-                       'Current Period Profit / (Loss)',
-                       P.NET_PROFIT,
-                       NULL
-                FROM PROFIT P
-                
-                UNION ALL
-                
-                SELECT
-                       'Total Liabilities + Equity',
-                       T.TOTAL_LIABILITIES
-                       + T.TOTAL_CAPITAL
-                       + P.NET_PROFIT,
-                       NULL
-                FROM TOTALS T
-                CROSS JOIN PROFIT P
-                
-                UNION ALL
-                
-                SELECT
-                       'Balance Status',
-                       NULL,
-                       CASE
-                           WHEN ROUND(T.TOTAL_ASSETS,2)
-                              =
-                                ROUND(
-                                    T.TOTAL_LIABILITIES
-                                  + T.TOTAL_CAPITAL
-                                  + P.NET_PROFIT,
-                                  2
-                                )
-                           THEN 'Balanced'
-                           ELSE 'Not Balanced'
-                       END
-                FROM TOTALS T
-                CROSS JOIN PROFIT P;
-                ```
-            pageItemsToSubmit: P311_AS_OF_DATE
-        }
-        layout {
-            sequence: 70
-            slot: body
-        }
-        appearance {
-            template: @/interactive-report
-            templateOptions: [
-                #DEFAULT#
-                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
-            ]
-        }
-        componentAppearance {
-            template: @/standard
-            templateOptions: [
-                #DEFAULT#
-                t-Report--stretch
-                t-Report--altRowsDefault
-                t-Report--rowHighlight
-            ]
-        }
-
-        column AMOUNT (
-            reportColumnQueryId: 2
-            derivedColumn: N
-            heading {
-                heading: Amount
-                alignment: end
-            }
-            layout {
-                sequence: 40
-                columnAlignment: end
-            }
-            sorting {
-                sortable: false
-            }
-        )
-
-        column BALANCE_STATUS (
-            reportColumnQueryId: 3
-            derivedColumn: N
-            heading {
-                heading: Balance Status
-            }
-            layout {
-                sequence: 60
-            }
-        )
-
-        column PARTICULARS (
-            reportColumnQueryId: 1
-            derivedColumn: N
-            heading {
-                heading: Particulars
-            }
-            layout {
-                sequence: 50
-            }
-        )
-
-    )
-
-    pageItem P311_AS_OF_DATE (
+    pageItem P306_AS_OF_DATE (
         type: datePicker
         label {
             label: From Date
             alignment: left
         }
         layout {
-            sequence: 20
+            sequence: 10
             slot: body
             alignment: left
-            startNewRow: false
         }
         appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
+            template: @/optional
+            templateOptions: #DEFAULT#
             width: 30
         }
         default {
@@ -686,14 +1158,25 @@ page 306 (
         }
         when {
             selectionType: items
-            items: P311_AS_OF_DATE
+            items: P306_AS_OF_DATE
+        }
+    )
+
+    dynamicAction new_1 (
+        name: New
+        execution {
+            sequence: 20
+        }
+        when {
+            selectionType: items
+            items: P306_AS_OF_DATE
         }
 
         action native-refresh (
             action: refresh
             affectedElements {
                 selectionType: region
-                region: @voucher-mst
+                region: @voucher-mst_1
             }
             execution {
                 sequence: 10

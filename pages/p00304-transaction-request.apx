@@ -193,6 +193,192 @@ page 304 (
         }
     )
 
+    region main (
+        name: MAIN
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region supplier-summery (
+        name: SUPPLIER SUMMERY
+        type: dynamicContent
+        source {
+            plsqlFunctionBody:
+                ```plsql
+                /* Formatted on 8/25/2026 4:45:21 PM (QP5 v5.388) */
+                DECLARE
+                    v_html   CLOB;
+                BEGIN
+                    SELECT    '<div id="supplier_summary"
+                                 style="
+                                    width:100%;
+                                    max-width:240px;
+                                    box-sizing:border-box;
+                                    padding:6px 9px;
+                                    border:1px solid #e1e5e9;
+                                    border-radius:5px;
+                                    background:#fff;
+                                    font-size:11px;
+                                    line-height:1.55;
+                                 ">
+                
+                                <!-- Supplier -->
+                                <div style="
+                                    font-size:12px;
+                                    font-weight:600;
+                                    color:#333;
+                                    margin-bottom:5px;
+                                    white-space:nowrap;
+                                    overflow:hidden;
+                                    text-overflow:ellipsis;
+                                ">
+                                    Supplier:
+                                    '
+                           || NVL (S.SUPPLIER_NAME, 'N/A')
+                           || '
+                                </div>
+                
+                                <!-- PREVIOUS -->
+                                <div style="
+                                    margin-top:2px;
+                                    margin-bottom:4px;
+                                    padding:3px 6px;
+                                    border-left:3px solid #7b8794;
+                                    background:#f4f6f8;
+                                    color:#5f6b76;
+                                    font-size:10px;
+                                    font-weight:700;
+                                    text-transform:uppercase;
+                                    letter-spacing:.5px;
+                                ">
+                                    Previous
+                                </div>
+                
+                                <!-- Purchase -->
+                                <div style="
+                                    display:flex;
+                                    justify-content:space-between;
+                                    align-items:center;
+                                ">
+                                    <span>Purchase</span>
+                
+                                    <b>
+                                        ৳ '
+                           || TO_CHAR (NVL (X.PURCHASE_AMOUNT, 0), 'FM999G999G999G990D00')
+                           || '</b>
+                                </div>
+                
+                                <!-- Paid -->
+                                <div style="
+                                    display:flex;
+                                    justify-content:space-between;
+                                    align-items:center;
+                                ">
+                                    <span>Paid</span>
+                
+                                    <b>
+                                        ৳ '
+                           || TO_CHAR (NVL (X.PAID_AMOUNT, 0), 'FM999G999G999G990D00')
+                           || '</b>
+                                </div>
+                
+                                <!-- Due -->
+                                <div style="
+                                    display:flex;
+                                    justify-content:space-between;
+                                    align-items:center;
+                                    border-top:1px solid #eee;
+                                    margin-top:2px;
+                                    padding-top:2px;
+                                ">
+                                    <span>Due</span>
+                
+                                    <b style="
+                                        color:#c0392b;
+                                        font-weight:700;
+                                    ">
+                                        ৳ '
+                           || TO_CHAR (NVL (X.DUE_AMOUNT, 0), 'FM999G999G999G990D00')
+                           || '</b>
+                                </div>
+                
+                                <!-- Payment Status -->
+                                <div style="
+                                    display:flex;
+                                    justify-content:space-between;
+                                    align-items:center;
+                                ">
+                                    <span>Status</span>
+                
+                                    <b style="
+                                        color:'
+                           || CASE X.PAYMENT_STATUS
+                                  WHEN 'Paid' THEN '#27ae60'
+                                  WHEN 'Unpaid' THEN '#c0392b'
+                                  ELSE '#e67e22'
+                              END
+                           || ';
+                                        font-weight:700;
+                                    ">
+                                        '
+                           || NVL (X.PAYMENT_STATUS, 'Unpaid')
+                           || '
+                                    </b>
+                                </div>
+                
+                           </div>'
+                      INTO v_html
+                      FROM MST_SUPPLIER  S
+                           LEFT JOIN
+                           (  SELECT M.SUPPLIER_NO,
+                                     SUM (NVL (M.TOTAL_AMOUNT, 0))    AS PURCHASE_AMOUNT,
+                                     SUM (NVL (M.PAID_AMOUNT, 0))     AS PAID_AMOUNT,
+                                     SUM (NVL (M.DUE_AMOUNT, 0))      AS DUE_AMOUNT,
+                                     CASE
+                                         WHEN SUM (NVL (M.DUE_AMOUNT, 0)) = 0 THEN 'Paid'
+                                         WHEN SUM (NVL (M.PAID_AMOUNT, 0)) = 0 THEN 'Unpaid'
+                                         ELSE 'Partially Paid'
+                                     END                              AS PAYMENT_STATUS
+                                FROM TRN_PURCHASE_MST M
+                            GROUP BY M.SUPPLIER_NO) X
+                               ON X.SUPPLIER_NO = S.SUPPLIER_NO
+                     WHERE S.SUPPLIER_NO = :P304_PARTY_NO;
+                
+                
+                    RETURN v_html;
+                EXCEPTION
+                    WHEN OTHERS
+                    THEN
+                        RETURN '<div style="
+                            font-size:11px;
+                            color:#777;
+                            padding:6px;
+                        ">
+                            Supplier summary unavailable.
+                         </div>';
+                END;
+                ```
+            pageItemsToSubmit: P304_PARTY_NO
+        }
+        layout {
+            sequence: 30
+            parentRegion: @main
+            slot: regionBody
+            startNewRow: false
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+    )
+
     region trn-dtl (
         name: TRN DTL
         type: interactiveGrid
@@ -238,7 +424,7 @@ page 304 (
             pageItemsToSubmit: P304_TRANSACTION_NO
         }
         layout {
-            sequence: 20
+            sequence: 30
             slot: body
         }
         appearance {
@@ -395,7 +581,7 @@ page 304 (
             displayColumn (
                 column: @INVOICE_AMOUNT
                 layout {
-                    width: 105.125
+                    width: 108.125
                     sequence: 13
                 }
             )
@@ -403,7 +589,7 @@ page 304 (
             displayColumn (
                 column: @DUE_AMOUNT
                 layout {
-                    width: 85.969
+                    width: 95.9688
                     sequence: 14
                 }
             )
@@ -457,7 +643,7 @@ page 304 (
             displayColumn (
                 column: @PREVIOUS_AMOUNT
                 layout {
-                    width: 113.953
+                    width: 116.948
                     sequence: 17
                 }
             )
@@ -904,8 +1090,10 @@ page 304 (
                 ```
         }
         layout {
-            sequence: 10
-            slot: body
+            sequence: 20
+            parentRegion: @main
+            slot: regionBody
+            columnSpan: 9
         }
         appearance {
             template: @/standard
@@ -1083,26 +1271,31 @@ page 304 (
             alignment: left
         }
         lov {
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                SELECT PARTY_NAME D,
-                       PARTY_NO   R
-                FROM
-                (
-                    SELECT CUSTOMER_NAME PARTY_NAME,
-                           CUSTOMER_NO   PARTY_NO
-                      FROM MST_CUSTOMER
-                     WHERE :P304_TRANSACTION_TYPE = 'R'
+            type: functionBody
+            plsqlFunctionBody:
+                ```plsql
                 
-                    UNION ALL
+                  SELECT PARTY_NAME AS D, PARTY_NO AS R
+                    FROM (
+                          SELECT C.CUSTOMER_NAME AS PARTY_NAME, C.CUSTOMER_NO AS PARTY_NO
+                            FROM MST_CUSTOMER C
+                           WHERE     :P304_TRANSACTION_TYPE = 'R'
+                                 AND EXISTS
+                                         (SELECT 1
+                                            FROM TRN_SALES_INVOICE_MST I
+                                           WHERE     I.CUSTOMER_NO = C.CUSTOMER_NO
+                                                 AND NVL (I.DUE_AMOUNT, 0) > 0)
+                          UNION ALL
                 
-                    SELECT SUPPLIER_NAME,
-                           SUPPLIER_NO
-                      FROM MST_SUPPLIER
-                     WHERE :P304_TRANSACTION_TYPE = 'P'
-                )
-                ORDER BY D;
+                          SELECT S.SUPPLIER_NAME AS PARTY_NAME, S.SUPPLIER_NO AS PARTY_NO
+                            FROM MST_SUPPLIER S
+                           WHERE     :P304_TRANSACTION_TYPE = 'P'
+                                 AND EXISTS
+                                         (SELECT 1
+                                            FROM TRN_PURCHASE_MST P
+                                           WHERE     P.SUPPLIER_NO = S.SUPPLIER_NO
+                                                 AND NVL (P.DUE_AMOUNT, 0) > 0))
+                ORDER BY PARTY_NAME;
                 ```
             displayExtraValues: false
         }
@@ -1765,6 +1958,35 @@ page 304 (
 
     )
 
+    dynamicAction supplier-summery-refresh (
+        name: SUPPLIER SUMMERY REFRESH
+        execution {
+            sequence: 40
+        }
+        when {
+            selectionType: items
+            items: P304_PARTY_NO
+        }
+        clientSideCondition {
+            type: item=value
+            item: P304_TRANSACTION_TYPE
+            value: P
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @supplier-summery
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
     process delete (
         name: DELETE
         type: executeCode
@@ -1873,210 +2095,153 @@ page 304 (
         source {
             plsqlCode:
                 ```plsql
+                /* Formatted on 8/24/2026 4:31:33 PM (QP5 v5.388) */
                 DECLARE
-                
-                    V_DATA CLOB;
-                
+                    V_DATA   CLOB;
                 BEGIN
-                
                     ------------------------------------------------------------------
                     -- RECEIVE
                     ------------------------------------------------------------------
                 
-                    IF APEX_APPLICATION.G_X02 = 'R' THEN
+                    IF APEX_APPLICATION.G_X02 = 'R'
+                    THEN
+                        SELECT JSON_ARRAYAGG (
+                                   JSON_OBJECT (
+                                       'REF_TYPE' VALUE 'INVOICE',
+                                       'REF_NO' VALUE M.INVOICE_NO,
+                                       --'DOC_NO' VALUE M.INVOICE_NO,
                 
-                        SELECT JSON_ARRAYAGG
-                        (
-                            JSON_OBJECT
-                            (
-                                'REF_TYPE' VALUE 'INVOICE',
-                
-                                'REF_NO' VALUE M.INVOICE_NO,
-                
-                                --'DOC_NO' VALUE M.INVOICE_NO,
-                
-                                'DOC_CODE' VALUE M.INVOICE_CODE,
-                
-                                'DOC_DATE' VALUE TO_CHAR(M.INVOICE_DATE,'MM/DD/YYYY'),
-                
-                                'PRODUCT_NO' VALUE D.PRODUCT_NO,
-                
-                                'PRODUCT_NAME' VALUE P.PRODUCT_NAME,
-                
-                                'PRODUCT_CODE' VALUE P.PRODUCT_CODE,
-                
-                                'INVOICE_AMOUNT' VALUE D.TOTAL_AMOUNT,
-                
-                                'PREVIOUS_AMOUNT' VALUE
-                                NVL
-                                (
-                                    (
-                                        SELECT SUM(T.ALLOCATE_AMOUNT)
-                                          FROM TRN_TRANSACTION_DTL T
-                                          JOIN TRN_TRANSACTION_MST H
-                                            ON H.TRANSACTION_NO=T.TRANSACTION_NO
-                                         WHERE T.REF_TYPE='INVOICE'
-                                           AND T.REF_NO=D.INVOICE_DTL_NO
-                                           AND H.APPROVAL_STATUS='A'
-                                    ),
-                                    0
-                                ),
-                
-                                'DUE_AMOUNT' VALUE
-                                D.TOTAL_AMOUNT-
-                                NVL
-                                (
-                                    (
-                                        SELECT SUM(T.ALLOCATE_AMOUNT)
-                                          FROM TRN_TRANSACTION_DTL T
-                                          JOIN TRN_TRANSACTION_MST H
-                                            ON H.TRANSACTION_NO=T.TRANSACTION_NO
-                                         WHERE T.REF_TYPE='INVOICE'
-                                           AND T.REF_NO=D.INVOICE_DTL_NO
-                                           AND H.APPROVAL_STATUS='A'
-                                    ),
-                                    0
-                                ),
-                
-                                'ALLOCATE_AMOUNT' VALUE 0
-                
-                            )
-                            RETURNING CLOB
-                        )
-                
-                        INTO V_DATA
-                
-                        FROM TRN_SALES_INVOICE_MST M
-                        JOIN TRN_SALES_INVOICE_DTL D
-                          ON D.INVOICE_NO=M.INVOICE_NO
-                        JOIN MST_PRODUCT P
-                          ON P.PRODUCT_NO=D.PRODUCT_NO
-                
-                        WHERE M.CUSTOMER_NO=APEX_APPLICATION.G_X01
-                
-                        AND
-                        (
-                            D.TOTAL_AMOUNT-
-                            NVL
-                            (
-                                (
-                                    SELECT SUM(T.ALLOCATE_AMOUNT)
-                                      FROM TRN_TRANSACTION_DTL T
-                                      JOIN TRN_TRANSACTION_MST H
-                                        ON H.TRANSACTION_NO=T.TRANSACTION_NO
-                                     WHERE T.REF_TYPE='INVOICE'
-                                       AND T.REF_NO=D.INVOICE_DTL_NO
-                                       AND H.APPROVAL_STATUS='A'
-                                ),
-                                0
-                            )
-                        )>0;
-                
+                                       'DOC_CODE' VALUE M.INVOICE_CODE,
+                                       'DOC_DATE' VALUE
+                                           TO_CHAR (M.INVOICE_DATE, 'MM/DD/YYYY'),
+                                       'PRODUCT_NO' VALUE D.PRODUCT_NO,
+                                       'PRODUCT_NAME' VALUE P.PRODUCT_NAME,
+                                       'PRODUCT_CODE' VALUE P.PRODUCT_CODE,
+                                       'INVOICE_AMOUNT' VALUE D.TOTAL_AMOUNT,
+                                       'PREVIOUS_AMOUNT' VALUE
+                                           NVL (
+                                               (SELECT SUM (T.ALLOCATE_AMOUNT)
+                                                 FROM TRN_TRANSACTION_DTL  T
+                                                      JOIN TRN_TRANSACTION_MST H
+                                                          ON H.TRANSACTION_NO =
+                                                             T.TRANSACTION_NO
+                                                WHERE     T.REF_TYPE = 'INVOICE'
+                                                      AND T.REF_NO = D.INVOICE_DTL_NO
+                                                      AND H.APPROVAL_STATUS = 'A'),
+                                               0),
+                                       'DUE_AMOUNT' VALUE
+                                             D.TOTAL_AMOUNT
+                                           - NVL (
+                                                 (SELECT SUM (T.ALLOCATE_AMOUNT)
+                                                   FROM TRN_TRANSACTION_DTL  T
+                                                        JOIN TRN_TRANSACTION_MST H
+                                                            ON H.TRANSACTION_NO =
+                                                               T.TRANSACTION_NO
+                                                  WHERE     T.REF_TYPE = 'INVOICE'
+                                                        AND T.REF_NO = D.INVOICE_DTL_NO
+                                                        AND H.APPROVAL_STATUS = 'A'),
+                                                 0),
+                                       'ALLOCATE_AMOUNT' VALUE 0)
+                                   RETURNING CLOB)
+                          INTO V_DATA
+                          FROM TRN_SALES_INVOICE_MST  M
+                               JOIN TRN_SALES_INVOICE_DTL D ON D.INVOICE_NO = M.INVOICE_NO
+                               JOIN MST_PRODUCT P ON P.PRODUCT_NO = D.PRODUCT_NO
+                         WHERE     M.CUSTOMER_NO = APEX_APPLICATION.G_X01
+                               AND (  D.TOTAL_AMOUNT
+                                    - NVL (
+                                          (SELECT SUM (T.ALLOCATE_AMOUNT)
+                                            FROM TRN_TRANSACTION_DTL  T
+                                                 JOIN TRN_TRANSACTION_MST H
+                                                     ON H.TRANSACTION_NO = T.TRANSACTION_NO
+                                           WHERE     T.REF_TYPE = 'INVOICE'
+                                                 AND T.REF_NO = D.INVOICE_DTL_NO
+                                                 AND H.APPROVAL_STATUS = 'A'),
+                                          0)) >
+                                   0;
                     ------------------------------------------------------------------
                     -- PAYMENT
                     ------------------------------------------------------------------
                 
-                    ELSIF APEX_APPLICATION.G_X02='P' THEN
+                    ELSIF APEX_APPLICATION.G_X02 = 'P'
+                    THEN
+                        SELECT JSON_ARRAYAGG (
+                                   JSON_OBJECT (
+                                       'REF_TYPE' VALUE 'PURCHASE',
+                                       'REF_NO' VALUE D.PURCHASE_NO,
+                                       -- 'DOC_NO' VALUE M.PURCHASE_NO,
                 
-                        SELECT JSON_ARRAYAGG
-                        (
-                            JSON_OBJECT
-                            (
-                
-                                'REF_TYPE' VALUE 'PURCHASE',
-                
-                                'REF_NO' VALUE D.PURCHASE_NO,
-                
-                               -- 'DOC_NO' VALUE M.PURCHASE_NO,
-                
-                                'DOC_CODE' VALUE M.PURCHASE_CODE,
-                
-                                'DOC_DATE' VALUE TO_CHAR(M.PURCHASE_DATE,'MM/DD/YYYY'),
-                
-                                'PRODUCT_NO' VALUE D.PRODUCT_NO,
-                
-                                'PRODUCT_NAME' VALUE P.PRODUCT_NAME,
-                
-                                'PRODUCT_CODE' VALUE P.PRODUCT_CODE,
-                
-                                'INVOICE_AMOUNT' VALUE D.TOTAL_AMOUNT,
-                
-                                'PREVIOUS_AMOUNT' VALUE
-                                NVL
-                                (
-                                    (
-                                        SELECT SUM(T.ALLOCATE_AMOUNT)
-                                          FROM TRN_TRANSACTION_DTL T
-                                          JOIN TRN_TRANSACTION_MST H
-                                            ON H.TRANSACTION_NO=T.TRANSACTION_NO
-                                         WHERE T.REF_TYPE='PURCHASE'
-                                           AND T.REF_NO=D.PURCHASE_DTL_NO
-                                           AND H.APPROVAL_STATUS='A'
-                                    ),
-                                    0
-                                ),
-                
-                                'DUE_AMOUNT' VALUE
-                                D.TOTAL_AMOUNT-
-                                NVL
-                                (
-                                    (
-                                        SELECT SUM(T.ALLOCATE_AMOUNT)
-                                          FROM TRN_TRANSACTION_DTL T
-                                          JOIN TRN_TRANSACTION_MST H
-                                            ON H.TRANSACTION_NO=T.TRANSACTION_NO
-                                         WHERE T.REF_TYPE='PURCHASE'
-                                           AND T.REF_NO=D.PURCHASE_DTL_NO
-                                           AND H.APPROVAL_STATUS='A'
-                                    ),
-                                    0
-                                ),
-                
-                                'ALLOCATE_AMOUNT' VALUE 0
-                
-                            )
-                            RETURNING CLOB
-                        )
-                
-                        INTO V_DATA
-                
-                        FROM TRN_PURCHASE_MST M
-                        JOIN TRN_PURCHASE_DTL D
-                          ON D.PURCHASE_NO=M.PURCHASE_NO
-                        JOIN MST_PRODUCT P
-                          ON P.PRODUCT_NO=D.PRODUCT_NO
-                
-                        WHERE M.SUPPLIER_NO=APEX_APPLICATION.G_X01
-                
-                        AND
-                        (
-                            D.TOTAL_AMOUNT-
-                            NVL
-                            (
-                                (
-                                    SELECT SUM(T.ALLOCATE_AMOUNT)
-                                      FROM TRN_TRANSACTION_DTL T
-                                      JOIN TRN_TRANSACTION_MST H
-                                        ON H.TRANSACTION_NO=T.TRANSACTION_NO
-                                     WHERE T.REF_TYPE='PURCHASE'
-                                       AND T.REF_NO=D.PURCHASE_DTL_NO
-                                       AND H.APPROVAL_STATUS='A'
-                                ),
-                                0
-                            )
-                        )>0;
-                
+                                       'DOC_CODE' VALUE M.PURCHASE_CODE,
+                                       'DOC_DATE' VALUE
+                                           TO_CHAR (M.PURCHASE_DATE, 'MM/DD/YYYY'),
+                                       'PRODUCT_NO' VALUE D.PRODUCT_NO,
+                                       'PRODUCT_NAME' VALUE P.PRODUCT_NAME,
+                                       'PRODUCT_CODE' VALUE P.PRODUCT_CODE,
+                                       'INVOICE_AMOUNT' VALUE D.TOTAL_AMOUNT,
+                                       'PREVIOUS_AMOUNT' VALUE
+                                           NVL (
+                                               (SELECT SUM (T.ALLOCATE_AMOUNT)
+                                                 FROM TRN_TRANSACTION_DTL  T
+                                                      JOIN TRN_TRANSACTION_MST H
+                                                          ON H.TRANSACTION_NO =
+                                                             T.TRANSACTION_NO
+                                                WHERE     T.REF_TYPE = 'PURCHASE'
+                                                      AND T.PRODUCT_NO = D.PRODUCT_NO
+                                                      AND H.APPROVAL_STATUS = 'A'),
+                                               0),
+                                       'DUE_AMOUNT' VALUE
+                                             D.TOTAL_AMOUNT
+                                           - NVL (
+                                                 (SELECT SUM (T.ALLOCATE_AMOUNT)
+                                                   FROM TRN_TRANSACTION_DTL  T
+                                                        JOIN TRN_TRANSACTION_MST H
+                                                            ON H.TRANSACTION_NO =
+                                                               T.TRANSACTION_NO
+                                                  WHERE     T.REF_TYPE = 'PURCHASE'
+                                                        AND T.PRODUCT_NO = D.PRODUCT_NO
+                                                        AND H.APPROVAL_STATUS = 'A'),
+                                                 0),
+                                       'ALLOCATE_AMOUNT' VALUE   D.TOTAL_AMOUNT
+                                           - NVL (
+                                                 (SELECT SUM (T.ALLOCATE_AMOUNT)
+                                                   FROM TRN_TRANSACTION_DTL  T
+                                                        JOIN TRN_TRANSACTION_MST H
+                                                            ON H.TRANSACTION_NO =
+                                                               T.TRANSACTION_NO
+                                                  WHERE     T.REF_TYPE = 'PURCHASE'
+                                                        AND T.PRODUCT_NO = D.PRODUCT_NO
+                                                        AND H.APPROVAL_STATUS = 'A'),
+                                                 0))
+                                   RETURNING CLOB)
+                          INTO V_DATA
+                          FROM TRN_PURCHASE_MST  M
+                               JOIN TRN_PURCHASE_DTL D ON D.PURCHASE_NO = M.PURCHASE_NO
+                               JOIN MST_PRODUCT P ON P.PRODUCT_NO = D.PRODUCT_NO
+                         WHERE     M.SUPPLIER_NO = APEX_APPLICATION.G_X01
+                         AND M.APPROVAL_STATUS = 'A'
+                               AND (  D.TOTAL_AMOUNT
+                                    - NVL (
+                                          (SELECT SUM (T.ALLOCATE_AMOUNT)
+                                            FROM TRN_TRANSACTION_DTL  T
+                                                 JOIN TRN_TRANSACTION_MST H
+                                                     ON H.TRANSACTION_NO = T.TRANSACTION_NO
+                                           WHERE     T.REF_TYPE = 'PURCHASE'
+                                                 AND T.REF_NO = D.PURCHASE_DTL_NO
+                                                 AND H.APPROVAL_STATUS = 'A'),
+                                          0)) >
+                                   0;
                     END IF;
                 
-                    IF V_DATA IS NULL THEN
+                    IF V_DATA IS NULL
+                    THEN
                         V_DATA := '[]';
                     END IF;
                 
-                    HTP.PRN(V_DATA);
-                
+                    HTP.PRN (V_DATA);
                 EXCEPTION
-                    WHEN OTHERS THEN
-                        HTP.PRN('[]');
+                    WHEN OTHERS
+                    THEN
+                        HTP.PRN ('[]');
                 END;
                 ```
         }

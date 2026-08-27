@@ -103,7 +103,9 @@ page 301 (
                        DEBIT_AMOUNT,
                        CREDIT_AMOUNT
                   from ACC_VOUCHER_DTL
+                  where VOUCHER_NO  = :P301_VOUCHER_NO
                 ```
+            pageItemsToSubmit: P301_VOUCHER_NO
         }
         layout {
             sequence: 50
@@ -158,28 +160,28 @@ page 301 (
             displayColumn (
                 column: @VOUCHER_DTL_NO
                 layout {
-                    sequence: 1
+                    sequence: 2
                 }
             )
 
             displayColumn (
                 column: @VOUCHER_NO
                 layout {
-                    sequence: 2
+                    sequence: 3
                 }
             )
 
             displayColumn (
                 column: @ACCOUNT_NO
                 layout {
-                    sequence: 3
+                    sequence: 4
                 }
             )
 
             displayColumn (
                 column: @PARTICULARS
                 layout {
-                    sequence: 4
+                    sequence: 7
                 }
             )
 
@@ -200,7 +202,8 @@ page 301 (
             displayColumn (
                 column: @APEX$ROW_ACTION
                 layout {
-                    sequence: 0
+                    frozen: true
+                    sequence: 1
                 }
             )
 
@@ -653,7 +656,6 @@ page 301 (
         }
         advanced {
             htmlDomId: pb-delete
-            customAttributes: disabled
         }
     )
 
@@ -678,7 +680,6 @@ page 301 (
         }
         advanced {
             htmlDomId: pb-reset
-            customAttributes: disabled
         }
     )
 
@@ -703,7 +704,6 @@ page 301 (
         }
         advanced {
             htmlDomId: pb-save
-            customAttributes: disabled
         }
     )
 
@@ -728,7 +728,6 @@ page 301 (
         }
         advanced {
             htmlDomId: pb-update
-            customAttributes: disabled
         }
     )
 
@@ -910,7 +909,7 @@ page 301 (
                             :P301_VOUCHER_DATE,
                             :P301_VOUCHER_TYPE,
                             :P301_NARRATION,
-                            'P',
+                            'A',
                             :APP_USER,
                             SYSDATE
                         ) RETURNING VOUCHER_NO INTO :P301_VOUCHER_NO ;

@@ -234,7 +234,7 @@ page 10 (
             ]
         }
         layout {
-            sequence: 40
+            sequence: 50
             slot: body
         }
         appearance {
@@ -545,6 +545,453 @@ page 10 (
 
         )
 
+    )
+
+    region summery (
+        name: SUMMERY
+        type: dynamicContent
+        source {
+            plsqlFunctionBody:
+                ```plsql
+                DECLARE
+                    L_HTML CLOB;
+                
+                    V_TOTAL_PRODUCTS   NUMBER := 0;
+                    V_STOCK_IN         NUMBER := 0;
+                    V_STOCK_OUT        NUMBER := 0;
+                    V_CURRENT_STOCK    NUMBER := 0;
+                    V_LOW_STOCK        NUMBER := 0;
+                    V_OUT_OF_STOCK     NUMBER := 0;
+                    V_STOCK_VALUE      NUMBER := 0;
+                    V_SALES_VALUE      NUMBER := 0;
+                
+                BEGIN
+                
+                    SELECT
+                        COUNT(*),
+                        NVL(SUM(STOCK_IN),0),
+                        NVL(SUM(STOCK_OUT),0),
+                        NVL(SUM(CURRENT_STOCK),0),
+                
+                        NVL(SUM(
+                            CASE
+                                WHEN CURRENT_STOCK > 0
+                                 AND CURRENT_STOCK < MIN_STOCK_QTY
+                                THEN 1
+                                ELSE 0
+                            END
+                        ),0),
+                
+                        NVL(SUM(
+                            CASE
+                                WHEN CURRENT_STOCK <= 0
+                                THEN 1
+                                ELSE 0
+                            END
+                        ),0),
+                
+                        NVL(SUM(STOCK_VALUE),0),
+                        NVL(SUM(SALES_VALUE),0)
+                
+                    INTO
+                        V_TOTAL_PRODUCTS,
+                        V_STOCK_IN,
+                        V_STOCK_OUT,
+                        V_CURRENT_STOCK,
+                        V_LOW_STOCK,
+                        V_OUT_OF_STOCK,
+                        V_STOCK_VALUE,
+                        V_SALES_VALUE
+                
+                    FROM
+                    (
+                        SELECT
+                            P.PRODUCT_NO,
+                            P.PURCHASE_RATE,
+                            P.SALES_RATE,
+                
+                            NVL(P.MIN_STOCK_QTY,0) MIN_STOCK_QTY,
+                
+                            NVL(SUM(NVL(L.QTY_IN,0)),0) STOCK_IN,
+                
+                            NVL(SUM(NVL(L.QTY_OUT,0)),0) STOCK_OUT,
+                
+                            NVL(
+                                SUM(NVL(L.QTY_IN,0))
+                                -
+                                SUM(NVL(L.QTY_OUT,0)),
+                                0
+                            ) CURRENT_STOCK,
+                
+                            ROUND(
+                                NVL(
+                                    SUM(NVL(L.QTY_IN,0))
+                                    -
+                                    SUM(NVL(L.QTY_OUT,0)),
+                                    0
+                                ) * NVL(P.PURCHASE_RATE,0),
+                                2
+                            ) STOCK_VALUE,
+                
+                            ROUND(
+                                NVL(
+                                    SUM(NVL(L.QTY_IN,0))
+                                    -
+                                    SUM(NVL(L.QTY_OUT,0)),
+                                    0
+                                ) * NVL(P.SALES_RATE,0),
+                                2
+                            ) SALES_VALUE
+                
+                        FROM MST_PRODUCT P
+                
+                        LEFT JOIN TRN_STOCK_LEDGER L
+                               ON L.PRODUCT_NO = P.PRODUCT_NO
+                
+                        WHERE
+                            (:P10_CATEGORY_NO IS NULL
+                             OR P.CATEGORY_NO = :P10_CATEGORY_NO)
+                
+                        AND (:P10_PRODUCT_NO IS NULL
+                             OR P.PRODUCT_NO = :P10_PRODUCT_NO)
+                
+                        GROUP BY
+                            P.PRODUCT_NO,
+                            P.PURCHASE_RATE,
+                            P.SALES_RATE,
+                            P.MIN_STOCK_QTY
+                    )
+                    WHERE
+                          :P10_STATUS IS NULL
+                
+                       OR (:P10_STATUS = 'A'
+                           AND CURRENT_STOCK >= MIN_STOCK_QTY)
+                
+                       OR (:P10_STATUS = 'L'
+                           AND CURRENT_STOCK > 0
+                           AND CURRENT_STOCK < MIN_STOCK_QTY)
+                
+                       OR (:P10_STATUS = 'O'
+                           AND CURRENT_STOCK <= 0);
+                
+                
+                    L_HTML :=
+                    '<style>
+                
+                        .stock-summary{
+                            display:grid;
+                            grid-template-columns:repeat(4,1fr);
+                            gap:8px;
+                            width:100%;
+                            margin-bottom:8px;
+                            font-family:Arial,sans-serif;
+                        }
+                
+                        .stock-card{
+                            min-width:0;
+                            display:flex;
+                            align-items:center;
+                            gap:8px;
+                            padding:8px 10px;
+                            border:1px solid #e2e8f0;
+                            border-radius:8px;
+                            background:#fff;
+                            box-sizing:border-box;
+                        }
+                
+                        .stock-icon{
+                            width:29px;
+                            height:29px;
+                            min-width:29px;
+                            border-radius:7px;
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                            font-size:12px;
+                        }
+                
+                        .stock-info{
+                            min-width:0;
+                        }
+                
+                        .stock-title{
+                            font-size:10px;
+                            color:#64748b;
+                            line-height:13px;
+                            white-space:nowrap;
+                        }
+                
+                        .stock-value{
+                            font-size:14px;
+                            font-weight:700;
+                            line-height:17px;
+                            white-space:nowrap;
+                            color:#334155;
+                        }
+                
+                        /* Total Products */
+                        .card-product{
+                            background:#f8fafc;
+                            border-color:#dbe4ef;
+                        }
+                
+                        .card-product .stock-icon{
+                            background:#e2e8f0;
+                            color:#475569;
+                        }
+                
+                        /* Stock In */
+                        .card-in{
+                            background:#f8fbff;
+                            border-color:#bfdbfe;
+                        }
+                
+                        .card-in .stock-icon{
+                            background:#dbeafe;
+                            color:#2563eb;
+                        }
+                
+                        .card-in .stock-value{
+                            color:#2563eb;
+                        }
+                
+                        /* Stock Out */
+                        .card-out{
+                            background:#fffafa;
+                            border-color:#fecaca;
+                        }
+                
+                        .card-out .stock-icon{
+                            background:#fee2e2;
+                            color:#dc2626;
+                        }
+                
+                        .card-out .stock-value{
+                            color:#dc2626;
+                        }
+                
+                        /* Current Stock */
+                        .card-current{
+                            background:#f7fdf9;
+                            border-color:#bbf7d0;
+                        }
+                
+                        .card-current .stock-icon{
+                            background:#dcfce7;
+                            color:#16a34a;
+                        }
+                
+                        .card-current .stock-value{
+                            color:#16a34a;
+                        }
+                
+                        /* Low Stock */
+                        .card-low{
+                            background:#fffdf7;
+                            border-color:#fde68a;
+                        }
+                
+                        .card-low .stock-icon{
+                            background:#fef3c7;
+                            color:#d97706;
+                        }
+                
+                        .card-low .stock-value{
+                            color:#d97706;
+                        }
+                
+                        /* Out of Stock */
+                        .card-oos{
+                            background:#fff8f8;
+                            border-color:#fecaca;
+                        }
+                
+                        .card-oos .stock-icon{
+                            background:#fee2e2;
+                            color:#dc2626;
+                        }
+                
+                        .card-oos .stock-value{
+                            color:#dc2626;
+                        }
+                
+                        /* Stock Value */
+                        .card-value{
+                            background:#f7fdf9;
+                            border-color:#bbf7d0;
+                        }
+                
+                        .card-value .stock-icon{
+                            background:#dcfce7;
+                            color:#059669;
+                        }
+                
+                        .card-value .stock-value{
+                            color:#059669;
+                        }
+                
+                        /* Sales Value */
+                        .card-sales{
+                            background:#f8fbff;
+                            border-color:#bfdbfe;
+                        }
+                
+                        .card-sales .stock-icon{
+                            background:#dbeafe;
+                            color:#2563eb;
+                        }
+                
+                        .card-sales .stock-value{
+                            color:#2563eb;
+                        }
+                
+                        @media(max-width:900px){
+                            .stock-summary{
+                                grid-template-columns:repeat(2,1fr);
+                            }
+                        }
+                
+                        @media(max-width:500px){
+                            .stock-summary{
+                                grid-template-columns:1fr;
+                            }
+                        }
+                
+                    </style>
+                
+                    <div class="stock-summary">
+                
+                        <!-- Total Products -->
+                        <div class="stock-card card-product">
+                            <div class="stock-icon">
+                                <span class="fa fa-cubes"></span>
+                            </div>
+                            <div class="stock-info">
+                                <div class="stock-title">Total Products</div>
+                                <div class="stock-value">'
+                                || TO_CHAR(V_TOTAL_PRODUCTS,'999G999G999')
+                                || '</div>
+                            </div>
+                        </div>
+                
+                
+                        <!-- Stock In -->
+                        <div class="stock-card card-in">
+                            <div class="stock-icon">
+                                <span class="fa fa-arrow-up"></span>
+                            </div>
+                            <div class="stock-info">
+                                <div class="stock-title">Stock In</div>
+                                <div class="stock-value">'
+                                || TO_CHAR(V_STOCK_IN,'999G999G999')
+                                || '</div>
+                            </div>
+                        </div>
+                
+                
+                        <!-- Stock Out -->
+                        <div class="stock-card card-out">
+                            <div class="stock-icon">
+                                <span class="fa fa-arrow-down"></span>
+                            </div>
+                            <div class="stock-info">
+                                <div class="stock-title">Stock Out</div>
+                                <div class="stock-value">'
+                                || TO_CHAR(V_STOCK_OUT,'999G999G999')
+                                || '</div>
+                            </div>
+                        </div>
+                
+                
+                        <!-- Current Stock -->
+                        <div class="stock-card card-current">
+                            <div class="stock-icon">
+                                <span class="fa fa-cubes"></span>
+                            </div>
+                            <div class="stock-info">
+                                <div class="stock-title">Current Stock</div>
+                                <div class="stock-value">'
+                                || TO_CHAR(V_CURRENT_STOCK,'999G999G999')
+                                || '</div>
+                            </div>
+                        </div>
+                
+                
+                        <!-- Low Stock -->
+                        <div class="stock-card card-low">
+                            <div class="stock-icon">
+                                <span class="fa fa-exclamation-triangle"></span>
+                            </div>
+                            <div class="stock-info">
+                                <div class="stock-title">Low Stock</div>
+                                <div class="stock-value">'
+                                || TO_CHAR(V_LOW_STOCK,'999G999G999')
+                                || '</div>
+                            </div>
+                        </div>
+                
+                
+                        <!-- Out of Stock -->
+                        <div class="stock-card card-oos">
+                            <div class="stock-icon">
+                                <span class="fa fa-times-circle"></span>
+                            </div>
+                            <div class="stock-info">
+                                <div class="stock-title">Out of Stock</div>
+                                <div class="stock-value">'
+                                || TO_CHAR(V_OUT_OF_STOCK,'999G999G999')
+                                || '</div>
+                            </div>
+                        </div>
+                
+                
+                        <!-- Stock Value -->
+                        <div class="stock-card card-value">
+                            <div class="stock-icon">
+                                <span class="fa fa-money"></span>
+                            </div>
+                            <div class="stock-info">
+                                <div class="stock-title">Stock Value</div>
+                                <div class="stock-value">৳ '
+                                || TO_CHAR(V_STOCK_VALUE,'999G999G999D00')
+                                || '</div>
+                            </div>
+                        </div>
+                
+                
+                        <!-- Sales Value -->
+                        <div class="stock-card card-sales">
+                            <div class="stock-icon">
+                                <span class="fa fa-line-chart"></span>
+                            </div>
+                            <div class="stock-info">
+                                <div class="stock-title">Sales Value</div>
+                                <div class="stock-value">৳ '
+                                || TO_CHAR(V_SALES_VALUE,'999G999G999D00')
+                                || '</div>
+                            </div>
+                        </div>
+                
+                    </div>';
+                
+                    RETURN L_HTML;
+                
+                END;
+                ```
+            pageItemsToSubmit: [
+                P10_CATEGORY_NO
+                P10_PRODUCT_NO
+                P10_STATUS
+            ]
+        }
+        layout {
+            sequence: 40
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
     )
 
     pageItem P10_CATEGORY_NO (

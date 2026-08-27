@@ -106,7 +106,7 @@ breadcrumb breadcrumb (
     )
 
     entry general-ledger-2 (
-        name: General Ledger
+        name: Trail Balance
         pageNumber: 309
         execution {
             sequence: 10
@@ -205,6 +205,19 @@ breadcrumb breadcrumb (
         link {
             target: {
                 page: 50
+            }
+        }
+    )
+
+    entry opening-balance-entry (
+        name: Opening Balance Entry
+        pageNumber: 311
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 311
             }
         }
     )

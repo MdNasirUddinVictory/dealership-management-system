@@ -966,59 +966,91 @@ page 16 (
         source {
             plsqlCode:
                 ```plsql
+                /* Formatted on 8/25/2026 2:38:49 PM (QP5 v5.388) */
                 DECLARE
+                    v_status         NUMBER;
+                    v_exists         NUMBER;
                 
-                    v_status NUMBER;
-                    v_exists NUMBER;
-                
+                    v_cash_balance   NUMBER;
+                    v_purchase_amt   NUMBER;
                 BEGIN
-                
                     ------------------------------------------------
                     -- Already Approved
                     ------------------------------------------------
-                    SELECT COUNT(*)
+                    SELECT COUNT (*)
                       INTO v_status
                       FROM TRN_PURCHASE_MST
-                     WHERE PURCHASE_NO = APEX_APPLICATION.G_X01
-                       AND APPROVAL_STATUS = 'A';
+                     WHERE PURCHASE_NO = APEX_APPLICATION.G_X01 AND APPROVAL_STATUS = 'A';
                 
-                    IF v_status > 0 THEN
-                        RAISE_APPLICATION_ERROR(
-                            -20001,
-                            'Purchase already approved.'
-                        );
+                    IF v_status > 0
+                    THEN
+                        RAISE_APPLICATION_ERROR (-20001, 'Purchase already approved.');
                     END IF;
                 
                     ------------------------------------------------
                     -- Detail Exists
                     ------------------------------------------------
-                    SELECT COUNT(*)
+                    SELECT COUNT (*)
                       INTO v_exists
                       FROM TRN_PURCHASE_DTL
                      WHERE PURCHASE_NO = APEX_APPLICATION.G_X01;
                 
-                    IF v_exists = 0 THEN
-                        RAISE_APPLICATION_ERROR(
-                            -20001,
-                            'Purchase details not found.'
-                        );
+                    IF v_exists = 0
+                    THEN
+                        RAISE_APPLICATION_ERROR (-20001, 'Purchase details not found.');
                     END IF;
                 
                     ------------------------------------------------
                     -- Stock Already Posted
                     ------------------------------------------------
-                    SELECT COUNT(*)
+                    SELECT COUNT (*)
                       INTO v_exists
                       FROM TRN_STOCK_LEDGER
-                     WHERE TRAN_TYPE = 'PURCHASE'
-                       AND REF_NO = APEX_APPLICATION.G_X01;
+                     WHERE TRAN_TYPE = 'PURCHASE' AND REF_NO = APEX_APPLICATION.G_X01;
                 
-                    IF v_exists > 0 THEN
-                        RAISE_APPLICATION_ERROR(
-                            -20001,
-                            'Stock already posted.'
-                        );
+                    IF v_exists > 0
+                    THEN
+                        RAISE_APPLICATION_ERROR (-20001, 'Stock already posted.');
                     END IF;
+                
+                
+                ---jODI PURCHASE SOMOY CASH PAYMENT KORE EI SCREEN TAILE EI VALIDATION LAGBE
+                    -- BEGIN
+                    --     SELECT   NVL (
+                    --                  (SELECT SUM (
+                    --                                NVL (OPENING_DEBIT, 0)
+                    --                              - NVL (OPENING_CREDIT, 0))
+                    --                    FROM ACC_OPENING_BALANCE
+                    --                   WHERE ACCOUNT_NO = 6 AND APPROVAL_STATUS = 'A'),
+                    --                  0)
+                    --            + NVL (
+                    --                  (SELECT SUM (
+                    --                                NVL (D.DEBIT_AMOUNT, 0)
+                    --                              - NVL (D.CREDIT_AMOUNT, 0))
+                    --                    FROM ACC_VOUCHER_MST  M
+                    --                         JOIN ACC_VOUCHER_DTL D
+                    --                             ON D.VOUCHER_NO = M.VOUCHER_NO
+                    --                   WHERE D.ACCOUNT_NO = 6 AND M.APPROVAL_STATUS = 'A'),
+                    --                  0)
+                    --       INTO v_cash_balance
+                    --       FROM DUAL;
+                
+                    --     SELECT NVL (TOTAL_AMOUNT, 0)
+                    --       INTO v_purchase_amt
+                    --       FROM TRN_PURCHASE_MST
+                    --      WHERE PURCHASE_NO = APEX_APPLICATION.G_X01;
+                
+                    --     IF v_cash_balance < v_purchase_amt
+                    --     THEN
+                    --         RAISE_APPLICATION_ERROR (
+                    --             -20001,
+                    --                'Insufficient cash in hand. Available: '
+                    --             || TO_CHAR (v_cash_balance)
+                    --             || ', Required: '
+                    --             || TO_CHAR (v_purchase_amt));
+                    --     END IF;
+                    -- END;
+                
                 
                     ------------------------------------------------
                     -- Approve Purchase
@@ -1026,59 +1058,48 @@ page 16 (
                     UPDATE TRN_PURCHASE_MST
                        SET APPROVAL_STATUS = 'A',
                            PURCHASE_STATUS = 'R',
-                           APPROVED_BY     = :APP_USER,
-                           APPROVED_DATE   = SYSDATE
+                           APPROVED_BY = :APP_USER,
+                           APPROVED_DATE = SYSDATE
                      WHERE PURCHASE_NO = APEX_APPLICATION.G_X01;
                 
                     ------------------------------------------------
                     -- Stock Ledger Posting
                     ------------------------------------------------
-                    INSERT INTO TRN_STOCK_LEDGER
-                    (
-                        LEDGER_NO,
-                        TRAN_DATE,
-                        TRAN_TYPE,
-                        REF_NO,
-                        PRODUCT_NO,
-                        QTY_IN,
-                        QTY_OUT,
-                        CREATED_BY,
-                        CREATED_DATE
-                    )
-                    SELECT
-                        SEQ_LEDGER_NO.NEXTVAL,
-                        M.PURCHASE_DATE,
-                        'PURCHASE',
-                        D.PURCHASE_NO,
-                        D.PRODUCT_NO,
-                        D.BASE_QTY,
-                        0,
-                        :APP_USER,
-                        SYSDATE
-                    FROM TRN_PURCHASE_DTL D
-                    JOIN TRN_PURCHASE_MST M
-                      ON M.PURCHASE_NO = D.PURCHASE_NO
-                    WHERE D.PURCHASE_NO = APEX_APPLICATION.G_X01;
+                    INSERT INTO TRN_STOCK_LEDGER (LEDGER_NO,
+                                                  TRAN_DATE,
+                                                  TRAN_TYPE,
+                                                  REF_NO,
+                                                  PRODUCT_NO,
+                                                  QTY_IN,
+                                                  QTY_OUT,
+                                                  CREATED_BY,
+                                                  CREATED_DATE)
+                        SELECT SEQ_LEDGER_NO.NEXTVAL,
+                               M.PURCHASE_DATE,
+                               'PURCHASE',
+                               D.PURCHASE_NO,
+                               D.PRODUCT_NO,
+                               D.BASE_QTY,
+                               0,
+                               :APP_USER,
+                               SYSDATE
+                          FROM TRN_PURCHASE_DTL  D
+                               JOIN TRN_PURCHASE_MST M ON M.PURCHASE_NO = D.PURCHASE_NO
+                         WHERE D.PURCHASE_NO = APEX_APPLICATION.G_X01;
                 
                     ------------------------------------------------
                     -- Finance Voucher Posting
                     ------------------------------------------------
-                    PKG_FINANCE.POST_PURCHASE
-                    (
-                        P_PURCHASE_NO => APEX_APPLICATION.G_X01
-                    );
+                    PKG_FINANCE.POST_PURCHASE (P_PURCHASE_NO => APEX_APPLICATION.G_X01);
                 
                     COMMIT;
                 
-                    HTP.P('Purchase approved successfully.');
-                
+                    HTP.P ('Purchase approved successfully.');
                 EXCEPTION
-                    WHEN OTHERS THEN
+                    WHEN OTHERS
+                    THEN
                         ROLLBACK;
-                        RAISE_APPLICATION_ERROR(
-                            -20001,
-                            SQLERRM
-                        );
+                        RAISE_APPLICATION_ERROR (-20001, SQLERRM);
                 END;
                 ```
         }

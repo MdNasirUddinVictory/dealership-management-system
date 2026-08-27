@@ -3,12 +3,8 @@ page 100 (
     alias: SALES-REPORT
     title: Sales Report
     appearance {
-        pageMode: modalDialog
-        dialogTemplate: @/modal-dialog
-        templateOptions: [
-            #DEFAULT#
-            ui-dialog--stretch
-        ]
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
     }
     navigation {
         cursorFocus: doNotFocusCursor
@@ -26,7 +22,7 @@ page 100 (
         }
         layout {
             sequence: 30
-            slot: dialogHeader
+            slot: breadcrumbBar
         }
         appearance {
             template: @/buttons-container
@@ -45,6 +41,675 @@ page 100 (
             breadcrumbTemplate: @/breadcrumb
             templateOptions: #DEFAULT#
         }
+    )
+
+    region sales-report (
+        name: Sales Report
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                /* Formatted on 8/23/2026 6:18:23 PM (QP5 v5.388) */
+                  SELECT I.INVOICE_NO,
+                         I.INVOICE_CODE,
+                         I.INVOICE_DATE,
+                         O.ORDER_CODE,
+                         C.CUSTOMER_CODE,
+                         C.CUSTOMER_NAME,
+                         C.MOBILE_NO,
+                         C.EMAIL_ADDRESS,
+                         C.ADDRESS,
+                         D.INVOICE_DTL_NO,
+                         --  D.LINE_NO,
+                         P.PRODUCT_CODE,
+                         P.PRODUCT_NAME,
+                         PC.CATEGORY_NAME,
+                         D.SALES_QTY,
+                         D.DELIVERED_QTY,
+                         NVL (D.SALES_QTY, 0) - NVL (D.DELIVERED_QTY, 0)
+                             AS BALANCE_QTY,
+                         D.SALES_RATE,
+                         NVL (D.TOTAL_AMOUNT, 0)
+                             AS LINE_TOTAL_AMOUNT,
+                         NVL (I.TOTAL_AMOUNT, 0)
+                             AS INVOICE_TOTAL_AMOUNT,
+                         NVL (I.RECEIVED_AMOUNT, 0)
+                             AS RECEIVED_AMOUNT,
+                         NVL (I.DUE_AMOUNT, 0)
+                             AS DUE_AMOUNT,
+                         I.PAYMENT_STATUS,
+                         I.DELIVERY_STATUS,
+                         I.DELIVERY_BY,
+                         I.DELIVERY_DATE,
+                         I.CREATED_BY,
+                         I.CREATED_DATE,
+                         I.UPDATED_BY,
+                         I.UPDATED_DATE,
+                         NVL (R.RETURN_QTY, 0)
+                             AS RETURN_QTY
+                    FROM TRN_SALES_INVOICE_MST I
+                         LEFT JOIN TRN_SALES_INVOICE_DTL D ON D.INVOICE_NO = I.INVOICE_NO
+                         LEFT JOIN MST_CUSTOMER C ON C.CUSTOMER_NO = I.CUSTOMER_NO
+                         LEFT JOIN MST_PRODUCT P ON P.PRODUCT_NO = D.PRODUCT_NO
+                         LEFT JOIN MST_PRODUCT_CATEGORY PC ON PC.CATEGORY_NO = P.CATEGORY_NO
+                         LEFT JOIN TRN_SALES_ORDER_MST O ON O.ORDER_NO = I.ORDER_NO
+                         LEFT JOIN
+                         (  SELECT INVOICE_DTL_NO, SUM (NVL (RETURN_QTY, 0)) AS RETURN_QTY
+                              FROM TRN_CUSTOMER_RETURN_DTL D
+                                   JOIN TRN_CUSTOMER_RETURN_MST M ON M.RETURN_NO = D.RETURN_NO
+                             WHERE M.APPROVAL_STATUS = 'A'
+                          GROUP BY INVOICE_DTL_NO) R
+                             ON R.INVOICE_DTL_NO = D.INVOICE_DTL_NO
+                ORDER BY I.INVOICE_DATE DESC, I.INVOICE_NO DESC, D.INVOICE_DTL_NO;
+                ```
+        }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 10937440172718310
+        }
+
+        column ADDRESS (
+            type: plainText
+            heading {
+                heading: Address
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: I
+            }
+        )
+
+        column BALANCE_QTY (
+            type: plainText
+            heading {
+                heading: Balance Qty
+                alignment: end
+            }
+            layout {
+                sequence: 160
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: P
+            }
+        )
+
+        column CATEGORY_NAME (
+            type: plainText
+            heading {
+                heading: Category Name
+            }
+            layout {
+                sequence: 130
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: M
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 260
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: Z
+            }
+        )
+
+        column CREATED_DATE (
+            type: plainText
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 270
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: AA
+            }
+        )
+
+        column CUSTOMER_CODE (
+            type: plainText
+            heading {
+                heading: Customer Code
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: E
+            }
+        )
+
+        column CUSTOMER_NAME (
+            type: plainText
+            heading {
+                heading: Customer Name
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: F
+            }
+        )
+
+        column DELIVERED_QTY (
+            type: plainText
+            heading {
+                heading: Delivered Qty
+                alignment: end
+            }
+            layout {
+                sequence: 150
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: O
+            }
+        )
+
+        column DELIVERY_BY (
+            type: plainText
+            heading {
+                heading: Delivery By
+            }
+            layout {
+                sequence: 240
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: X
+            }
+        )
+
+        column DELIVERY_DATE (
+            type: plainText
+            heading {
+                heading: Delivery Date
+            }
+            layout {
+                sequence: 250
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: Y
+            }
+        )
+
+        column DELIVERY_STATUS (
+            type: plainText
+            heading {
+                heading: Delivery Status
+            }
+            layout {
+                sequence: 230
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: W
+            }
+        )
+
+        column DUE_AMOUNT (
+            type: plainText
+            heading {
+                heading: Due Amount
+                alignment: end
+            }
+            layout {
+                sequence: 210
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: U
+            }
+        )
+
+        column EMAIL_ADDRESS (
+            type: plainText
+            heading {
+                heading: Email Address
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: H
+            }
+        )
+
+        column INVOICE_CODE (
+            type: plainText
+            heading {
+                heading: Invoice Code
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: B
+            }
+        )
+
+        column INVOICE_DATE (
+            type: plainText
+            heading {
+                heading: Invoice Date
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: C
+            }
+        )
+
+        column INVOICE_DTL_NO (
+            type: plainText
+            heading {
+                heading: Invoice Dtl No
+                alignment: end
+            }
+            layout {
+                sequence: 100
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: J
+            }
+        )
+
+        column INVOICE_NO (
+            type: plainText
+            heading {
+                heading: Invoice No
+                alignment: end
+            }
+            layout {
+                sequence: 10
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: A
+            }
+        )
+
+        column INVOICE_TOTAL_AMOUNT (
+            type: plainText
+            heading {
+                heading: Invoice Total Amount
+                alignment: end
+            }
+            layout {
+                sequence: 190
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: S
+            }
+        )
+
+        column LINE_TOTAL_AMOUNT (
+            type: plainText
+            heading {
+                heading: Line Total Amount
+                alignment: end
+            }
+            layout {
+                sequence: 180
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: R
+            }
+        )
+
+        column MOBILE_NO (
+            type: plainText
+            heading {
+                heading: Mobile No
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: G
+            }
+        )
+
+        column ORDER_CODE (
+            type: plainText
+            heading {
+                heading: Order Code
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: D
+            }
+        )
+
+        column PAYMENT_STATUS (
+            type: plainText
+            heading {
+                heading: Payment Status
+            }
+            layout {
+                sequence: 220
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: V
+            }
+        )
+
+        column PRODUCT_CODE (
+            type: plainText
+            heading {
+                heading: Product Code
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: K
+            }
+        )
+
+        column PRODUCT_NAME (
+            type: plainText
+            heading {
+                heading: Product Name
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: L
+            }
+        )
+
+        column RECEIVED_AMOUNT (
+            type: plainText
+            heading {
+                heading: Received Amount
+                alignment: end
+            }
+            layout {
+                sequence: 200
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: T
+            }
+        )
+
+        column RETURN_QTY (
+            type: plainText
+            heading {
+                heading: Return Qty
+                alignment: end
+            }
+            layout {
+                sequence: 300
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AD
+            }
+        )
+
+        column SALES_QTY (
+            type: plainText
+            heading {
+                heading: Sales Qty
+                alignment: end
+            }
+            layout {
+                sequence: 140
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: N
+            }
+        )
+
+        column SALES_RATE (
+            type: plainText
+            heading {
+                heading: Sales Rate
+                alignment: end
+            }
+            layout {
+                sequence: 170
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: Q
+            }
+        )
+
+        column UPDATED_BY (
+            type: plainText
+            heading {
+                heading: Updated By
+            }
+            layout {
+                sequence: 280
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: AB
+            }
+        )
+
+        column UPDATED_DATE (
+            type: plainText
+            heading {
+                heading: Updated Date
+            }
+            layout {
+                sequence: 290
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: AC
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn BALANCE_QTY (
+                sequence: 11
+            )
+
+            displayColumn CATEGORY_NAME (
+                sequence: 8
+            )
+
+            displayColumn CUSTOMER_CODE (
+                sequence: 4
+            )
+
+            displayColumn CUSTOMER_NAME (
+                sequence: 5
+            )
+
+            displayColumn DELIVERED_QTY (
+                sequence: 10
+            )
+
+            displayColumn DUE_AMOUNT (
+                sequence: 16
+            )
+
+            displayColumn INVOICE_CODE (
+                sequence: 1
+            )
+
+            displayColumn INVOICE_DATE (
+                sequence: 2
+            )
+
+            displayColumn INVOICE_TOTAL_AMOUNT (
+                sequence: 14
+            )
+
+            displayColumn LINE_TOTAL_AMOUNT (
+                sequence: 13
+            )
+
+            displayColumn ORDER_CODE (
+                sequence: 3
+            )
+
+            displayColumn PAYMENT_STATUS (
+                sequence: 17
+            )
+
+            displayColumn PRODUCT_CODE (
+                sequence: 6
+            )
+
+            displayColumn PRODUCT_NAME (
+                sequence: 7
+            )
+
+            displayColumn RECEIVED_AMOUNT (
+                sequence: 15
+            )
+
+            displayColumn RETURN_QTY (
+                sequence: 18
+            )
+
+            displayColumn SALES_QTY (
+                sequence: 9
+            )
+
+            displayColumn SALES_RATE (
+                sequence: 12
+            )
+
+        )
+
     )
 
     button delete (
