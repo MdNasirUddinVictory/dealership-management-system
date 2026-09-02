@@ -65,6 +65,928 @@ page 309 (
         source {
             plsqlFunctionBody:
                 ```plsql
+                /* ============================================================
+                   DEALER INVENTORY & SALES MANAGEMENT SYSTEM
+                   HEAD-WISE TRIAL BALANCE REPORT
+                   ============================================================ */
+                
+                DECLARE
+                    v_html CLOB := '';
+                
+                    /* Current Head */
+                    v_current_head_no   NUMBER := NULL;
+                    v_current_head_code VARCHAR2(100);
+                    v_current_head_name VARCHAR2(500);
+                
+                    /* Head Total */
+                    v_head_dr NUMBER := 0;
+                    v_head_cr NUMBER := 0;
+                
+                    /* Grand Total */
+                    v_total_dr NUMBER := 0;
+                    v_total_cr NUMBER := 0;
+                
+                    /* Serial */
+                    v_row_no NUMBER := 0;
+                
+                BEGIN
+                
+                    /* =========================================================
+                       REPORT HEADER
+                       ========================================================= */
+                
+                    v_html :=
+                    '<div id="trial_balance_report"
+                        style="
+                            width:100%;
+                            background:#fff;
+                            font-family:Arial,Helvetica,sans-serif;
+                            color:#111;
+                            box-sizing:border-box;
+                            padding:20px 28px;
+                        ">
+                
+                        <div style="
+                            position:relative;
+                            min-height:85px;
+                        ">
+                
+                            <!-- LEFT -->
+                
+                            <div style="
+                                position:absolute;
+                                left:0;
+                                top:0;
+                                font-size:12px;
+                                line-height:18px;
+                                color:#333;
+                            ">
+                
+                                <div style="
+                                    font-size:18px;
+                                    font-weight:700;
+                                    color:#222;
+                                    margin-bottom:5px;
+                                ">
+                                    Dealer Inventory &amp; Sales Management System
+                                </div>
+                
+                                <div>
+                                    Trial Balance Report
+                                </div>
+                
+                            </div>
+                
+                
+                            <!-- CENTER -->
+                
+                            <div style="
+                                position:absolute;
+                                left:50%;
+                                transform:translateX(-50%);
+                                text-align:center;
+                            ">
+                
+                                <div style="
+                                    width:58px;
+                                    height:58px;
+                                    margin:auto;
+                                    border:2px solid #34495e;
+                                    border-radius:10px;
+                                    display:flex;
+                                    align-items:center;
+                                    justify-content:center;
+                                    font-size:25px;
+                                    font-weight:700;
+                                    color:#34495e;
+                                    background:#f8fafc;
+                                ">
+                                    D
+                                </div>
+                
+                            </div>
+                
+                
+                            <!-- RIGHT -->
+                
+                            <div style="
+                                position:absolute;
+                                right:0;
+                                top:0;
+                                text-align:right;
+                                font-size:12px;
+                                line-height:18px;
+                                color:#333;
+                            ">
+                
+                                <div>
+                                    Date:
+                                    <b>'
+                                    || TO_CHAR(
+                                           SYSDATE,
+                                           'DD Mon YYYY HH:MI:SS PM'
+                                       )
+                                    || '</b>
+                                </div>
+                
+                            </div>
+                
+                        </div>
+                
+                
+                        <!-- REPORT TITLE -->
+                
+                        <div style="
+                            text-align:center;
+                            margin-top:5px;
+                            margin-bottom:22px;
+                        ">
+                
+                            <div style="
+                                font-size:17px;
+                                font-weight:700;
+                                color:#111;
+                            ">
+                                Trial Balance
+                            </div>
+                
+                            <div style="
+                                margin-top:4px;
+                                font-size:12px;
+                                font-weight:600;
+                                color:#333;
+                            ">
+                                As on '
+                                || TO_CHAR(
+                                       TO_DATE(
+                                           :P309_TO_DATE,
+                                           'MM/DD/YYYY'
+                                       ),
+                                       'DD/MM/YYYY'
+                                   )
+                                || '
+                            </div>
+                
+                        </div>
+                
+                
+                        <!-- TABLE -->
+                
+                        <div style="
+                            width:100%;
+                            overflow-x:auto;
+                        ">
+                
+                        <table style="
+                            width:100%;
+                            min-width:800px;
+                            border-collapse:collapse;
+                            font-size:12px;
+                        ">
+                
+                        <thead>
+                
+                            <tr style="
+                                background:#e9e9e9;
+                                color:#111;
+                            ">
+                
+                                <th style="
+                                    width:55px;
+                                    padding:8px 6px;
+                                    border:1px solid #fff;
+                                    text-align:center;
+                                ">
+                                    Sl#
+                                </th>
+                
+                                <th style="
+                                    width:140px;
+                                    padding:8px 8px;
+                                    border:1px solid #fff;
+                                    text-align:left;
+                                ">
+                                    GL Code
+                                </th>
+                
+                                <th style="
+                                    padding:8px 8px;
+                                    border:1px solid #fff;
+                                    text-align:left;
+                                ">
+                                    GL Description
+                                </th>
+                
+                                <th style="
+                                    width:180px;
+                                    padding:8px 8px;
+                                    border:1px solid #fff;
+                                    text-align:right;
+                                ">
+                                    Debit Amount
+                                </th>
+                
+                                <th style="
+                                    width:180px;
+                                    padding:8px 8px;
+                                    border:1px solid #fff;
+                                    text-align:right;
+                                ">
+                                    Credit Amount
+                                </th>
+                
+                            </tr>
+                
+                        </thead>
+                
+                        <tbody>';
+                
+                
+                    /* =========================================================
+                       ACCOUNT DATA
+                       ========================================================= */
+                
+                    FOR R IN
+                    (
+                        WITH
+                
+                        /* =====================================================
+                           OPENING BALANCE
+                           ===================================================== */
+                
+                        OPENING AS
+                        (
+                            SELECT
+                                ACCOUNT_NO,
+                
+                                NVL(
+                                    SUM(OPENING_DEBIT),
+                                    0
+                                ) AS OPENING_DEBIT,
+                
+                                NVL(
+                                    SUM(OPENING_CREDIT),
+                                    0
+                                ) AS OPENING_CREDIT
+                
+                            FROM ACC_OPENING_BALANCE
+                
+                            WHERE APPROVAL_STATUS = 'A'
+                
+                            GROUP BY ACCOUNT_NO
+                        ),
+                
+                
+                        /* =====================================================
+                           PERIOD TRANSACTION
+                           ===================================================== */
+                
+                        PERIOD AS
+                        (
+                            SELECT
+                                D.ACCOUNT_NO,
+                
+                                NVL(
+                                    SUM(D.DEBIT_AMOUNT),
+                                    0
+                                ) AS PERIOD_DEBIT,
+                
+                                NVL(
+                                    SUM(D.CREDIT_AMOUNT),
+                                    0
+                                ) AS PERIOD_CREDIT
+                
+                            FROM ACC_VOUCHER_MST M
+                
+                            JOIN ACC_VOUCHER_DTL D
+                              ON D.VOUCHER_NO = M.VOUCHER_NO
+                
+                            WHERE M.APPROVAL_STATUS = 'A'
+                
+                              AND M.VOUCHER_DATE >=
+                                  TO_DATE(
+                                      :P309_FROM_DATE,
+                                      'MM/DD/YYYY'
+                                  )
+                
+                              AND M.VOUCHER_DATE <
+                                  TO_DATE(
+                                      :P309_TO_DATE,
+                                      'MM/DD/YYYY'
+                                  ) + 1
+                
+                            GROUP BY D.ACCOUNT_NO
+                        ),
+                
+                
+                        /* =====================================================
+                           ACCOUNT BALANCE
+                           ===================================================== */
+                
+                        ACCOUNT_BALANCE AS
+                        (
+                            SELECT
+                
+                                H.ACCOUNT_NO,
+                
+                                H.PARENT_ACCOUNT_NO,
+                
+                                H.ACCOUNT_CODE,
+                
+                                H.ACCOUNT_NAME,
+                
+                                H.ACCOUNT_TYPE,
+                
+                                H.ACCOUNT_LEVEL,
+                
+                                NVL(
+                                    O.OPENING_DEBIT,
+                                    0
+                                ) AS OPENING_DEBIT,
+                
+                                NVL(
+                                    O.OPENING_CREDIT,
+                                    0
+                                ) AS OPENING_CREDIT,
+                
+                                NVL(
+                                    P.PERIOD_DEBIT,
+                                    0
+                                ) AS PERIOD_DEBIT,
+                
+                                NVL(
+                                    P.PERIOD_CREDIT,
+                                    0
+                                ) AS PERIOD_CREDIT,
+                
+                
+                                /* TOTAL DEBIT */
+                
+                                NVL(O.OPENING_DEBIT,0)
+                                +
+                                NVL(P.PERIOD_DEBIT,0)
+                
+                                AS TOTAL_DEBIT,
+                
+                
+                                /* TOTAL CREDIT */
+                
+                                NVL(O.OPENING_CREDIT,0)
+                                +
+                                NVL(P.PERIOD_CREDIT,0)
+                
+                                AS TOTAL_CREDIT
+                
+                            FROM MST_ACCOUNT_HEAD H
+                
+                            LEFT JOIN OPENING O
+                              ON O.ACCOUNT_NO = H.ACCOUNT_NO
+                
+                            LEFT JOIN PERIOD P
+                              ON P.ACCOUNT_NO = H.ACCOUNT_NO
+                
+                            WHERE H.IS_POSTING = 'Y'
+                
+                              AND H.ACTIVE_STATUS = 'Y'
+                        ),
+                
+                
+                        /* =====================================================
+                           FINAL TRIAL BALANCE
+                           ===================================================== */
+                
+                        FINAL_DATA AS
+                        (
+                            SELECT
+                
+                                A.*,
+                
+                
+                                /* NET DEBIT */
+                
+                                CASE
+                                    WHEN
+                                        A.TOTAL_DEBIT >
+                                        A.TOTAL_CREDIT
+                                    THEN
+                                        A.TOTAL_DEBIT -
+                                        A.TOTAL_CREDIT
+                                    ELSE
+                                        0
+                                END AS BALANCE_DEBIT,
+                
+                
+                                /* NET CREDIT */
+                
+                                CASE
+                                    WHEN
+                                        A.TOTAL_CREDIT >
+                                        A.TOTAL_DEBIT
+                                    THEN
+                                        A.TOTAL_CREDIT -
+                                        A.TOTAL_DEBIT
+                                    ELSE
+                                        0
+                                END AS BALANCE_CREDIT
+                
+                            FROM ACCOUNT_BALANCE A
+                        )
+                
+                
+                        /* =====================================================
+                           GET PARENT / HEAD INFORMATION
+                           ===================================================== */
+                
+                        SELECT
+                
+                            F.*,
+                
+                            PH.ACCOUNT_NO
+                                AS HEAD_ACCOUNT_NO,
+                
+                            PH.ACCOUNT_CODE
+                                AS HEAD_CODE,
+                
+                            PH.ACCOUNT_NAME
+                                AS HEAD_NAME
+                
+                        FROM FINAL_DATA F
+                
+                        JOIN MST_ACCOUNT_HEAD PH
+                          ON PH.ACCOUNT_NO = F.PARENT_ACCOUNT_NO
+                
+                        WHERE
+                               F.BALANCE_DEBIT <> 0
+                            OR F.BALANCE_CREDIT <> 0
+                
+                        ORDER BY
+                
+                            PH.ACCOUNT_CODE,
+                
+                            F.ACCOUNT_CODE
+                
+                    )
+                
+                    LOOP
+                
+                
+                        /* =====================================================
+                           NEW HEAD
+                           ===================================================== */
+                
+                        IF v_current_head_no IS NULL
+                           OR v_current_head_no <> R.HEAD_ACCOUNT_NO
+                        THEN
+                
+                
+                            /* =================================================
+                               PREVIOUS HEAD SUB TOTAL
+                               ================================================= */
+                
+                            IF v_current_head_no IS NOT NULL
+                            THEN
+                
+                                v_html :=
+                                    v_html ||
+                
+                                    '<tr>
+                
+                                        <td colspan="3"
+                                            style="
+                                                padding:6px 8px;
+                                                text-align:right;
+                                                border-bottom:2px solid #777;
+                                                font-weight:700;
+                                            ">
+                                            Sub Total:
+                                        </td>
+                
+                
+                                        <td style="
+                                            padding:6px 8px;
+                                            text-align:right;
+                                            border-bottom:2px solid #777;
+                                            font-weight:700;
+                                        ">'
+                                        ||
+                                        TO_CHAR(
+                                            v_head_dr,
+                                            'FM999G999G999G990D00'
+                                        )
+                                        ||
+                                        '</td>
+                
+                
+                                        <td style="
+                                            padding:6px 8px;
+                                            text-align:right;
+                                            border-bottom:2px solid #777;
+                                            font-weight:700;
+                                        ">'
+                                        ||
+                                        TO_CHAR(
+                                            v_head_cr,
+                                            'FM999G999G999G990D00'
+                                        )
+                                        ||
+                                        '</td>
+                
+                                    </tr>';
+                
+                            END IF;
+                
+                
+                            /* =================================================
+                               RESET
+                               ================================================= */
+                
+                            v_head_dr := 0;
+                            v_head_cr := 0;
+                
+                            v_current_head_no := R.HEAD_ACCOUNT_NO;
+                
+                            v_current_head_code := R.HEAD_CODE;
+                
+                            v_current_head_name := R.HEAD_NAME;
+                
+                            v_row_no := 0;
+                
+                
+                            /* =================================================
+                               HEAD TITLE
+                               ================================================= */
+                
+                            v_html :=
+                                v_html ||
+                
+                                '<tr>
+                
+                                    <td colspan="5"
+                                        style="
+                                            padding:12px 0 7px 0;
+                                            font-size:14px;
+                                            font-weight:700;
+                                            color:#222;
+                                        ">
+                
+                                        Head Code:
+                                        <span>'
+                                        ||
+                                        APEX_ESCAPE.HTML(
+                                            R.HEAD_CODE
+                                        )
+                                        ||
+                                        '</span>
+                
+                                        &nbsp;&nbsp;
+                
+                                        <span>'
+                                        ||
+                                        APEX_ESCAPE.HTML(
+                                            R.HEAD_NAME
+                                        )
+                                        ||
+                                        '</span>
+                
+                                    </td>
+                
+                                </tr>';
+                
+                        END IF;
+                
+                
+                        /* =====================================================
+                           ACCOUNT ROW
+                           ===================================================== */
+                
+                        v_row_no := v_row_no + 1;
+                
+                
+                        v_html :=
+                            v_html ||
+                
+                            '<tr>
+                
+                                <!-- SL -->
+                
+                                <td style="
+                                    padding:6px;
+                                    text-align:center;
+                                    border-bottom:1px solid #e5e5e5;
+                                ">'
+                                ||
+                                v_row_no
+                                ||
+                                '</td>
+                
+                
+                                <!-- GL CODE -->
+                
+                                <td style="
+                                    padding:6px 8px;
+                                    border-bottom:1px solid #e5e5e5;
+                                ">'
+                                ||
+                                APEX_ESCAPE.HTML(
+                                    R.ACCOUNT_CODE
+                                )
+                                ||
+                                '</td>
+                
+                
+                                <!-- DESCRIPTION -->
+                
+                                <td style="
+                                    padding:6px 8px;
+                                    border-bottom:1px solid #e5e5e5;
+                                ">'
+                                ||
+                                APEX_ESCAPE.HTML(
+                                    R.ACCOUNT_NAME
+                                )
+                                ||
+                                '</td>
+                
+                
+                                <!-- DEBIT -->
+                
+                                <td style="
+                                    padding:6px 8px;
+                                    text-align:right;
+                                    border-bottom:1px solid #e5e5e5;
+                                ">'
+                                ||
+                                TO_CHAR(
+                                    R.BALANCE_DEBIT,
+                                    'FM999G999G999G990D00'
+                                )
+                                ||
+                                '</td>
+                
+                
+                                <!-- CREDIT -->
+                
+                                <td style="
+                                    padding:6px 8px;
+                                    text-align:right;
+                                    border-bottom:1px solid #e5e5e5;
+                                ">'
+                                ||
+                                TO_CHAR(
+                                    R.BALANCE_CREDIT,
+                                    'FM999G999G999G990D00'
+                                )
+                                ||
+                                '</td>
+                
+                            </tr>';
+                
+                
+                        /* =====================================================
+                           HEAD TOTAL
+                           ===================================================== */
+                
+                        v_head_dr :=
+                            v_head_dr +
+                            R.BALANCE_DEBIT;
+                
+                        v_head_cr :=
+                            v_head_cr +
+                            R.BALANCE_CREDIT;
+                
+                
+                        /* =====================================================
+                           GRAND TOTAL
+                           ===================================================== */
+                
+                        v_total_dr :=
+                            v_total_dr +
+                            R.BALANCE_DEBIT;
+                
+                        v_total_cr :=
+                            v_total_cr +
+                            R.BALANCE_CREDIT;
+                
+                
+                    END LOOP;
+                
+                
+                    /* =========================================================
+                       LAST HEAD SUB TOTAL
+                       ========================================================= */
+                
+                    IF v_current_head_no IS NOT NULL
+                    THEN
+                
+                        v_html :=
+                            v_html ||
+                
+                            '<tr>
+                
+                                <td colspan="3"
+                                    style="
+                                        padding:7px 8px;
+                                        text-align:right;
+                                        border-bottom:2px solid #777;
+                                        font-weight:700;
+                                    ">
+                                    Sub Total:
+                                </td>
+                
+                
+                                <td style="
+                                    padding:7px 8px;
+                                    text-align:right;
+                                    border-bottom:2px solid #777;
+                                    font-weight:700;
+                                ">'
+                                ||
+                                TO_CHAR(
+                                    v_head_dr,
+                                    'FM999G999G999G990D00'
+                                )
+                                ||
+                                '</td>
+                
+                
+                                <td style="
+                                    padding:7px 8px;
+                                    text-align:right;
+                                    border-bottom:2px solid #777;
+                                    font-weight:700;
+                                ">'
+                                ||
+                                TO_CHAR(
+                                    v_head_cr,
+                                    'FM999G999G999G990D00'
+                                )
+                                ||
+                                '</td>
+                
+                            </tr>';
+                
+                    END IF;
+                
+                
+                    /* =========================================================
+                       GRAND TOTAL
+                       ========================================================= */
+                
+                    v_html :=
+                        v_html ||
+                
+                        '<tr>
+                
+                            <td colspan="3"
+                                style="
+                                    padding:10px 8px;
+                                    text-align:right;
+                                    background:#e9e9e9;
+                                    border-top:2px solid #555;
+                                    border-bottom:2px solid #555;
+                                    font-size:13px;
+                                    font-weight:700;
+                                ">
+                                Grand Total:
+                            </td>
+                
+                
+                            <td style="
+                                padding:10px 8px;
+                                text-align:right;
+                                background:#e9e9e9;
+                                border-top:2px solid #555;
+                                border-bottom:2px solid #555;
+                                font-size:13px;
+                                font-weight:700;
+                            ">'
+                            ||
+                            TO_CHAR(
+                                v_total_dr,
+                                'FM999G999G999G990D00'
+                            )
+                            ||
+                            '</td>
+                
+                
+                            <td style="
+                                padding:10px 8px;
+                                text-align:right;
+                                background:#e9e9e9;
+                                border-top:2px solid #555;
+                                border-bottom:2px solid #555;
+                                font-size:13px;
+                                font-weight:700;
+                            ">'
+                            ||
+                            TO_CHAR(
+                                v_total_cr,
+                                'FM999G999G999G990D00'
+                            )
+                            ||
+                            '</td>
+                
+                        </tr>
+                
+                
+                        </tbody>
+                
+                        </table>
+                
+                        </div>
+                
+                
+                        <!-- FOOTER -->
+                
+                        <div style="
+                            margin-top:18px;
+                            padding-top:8px;
+                            border-top:1px solid #ddd;
+                            text-align:right;
+                            font-size:10px;
+                            color:#777;
+                        ">
+                
+                            Generated on:
+                            '
+                            ||
+                            TO_CHAR(
+                                SYSDATE,
+                                'DD Mon YYYY HH:MI:SS PM'
+                            )
+                            ||
+                            '
+                
+                        </div>
+                
+                
+                    </div>';
+                
+                
+                    RETURN v_html;
+                
+                
+                EXCEPTION
+                
+                    WHEN OTHERS
+                    THEN
+                
+                        RETURN
+                
+                        '<div style="
+                            padding:12px;
+                            color:#c0392b;
+                            background:#fff5f5;
+                            border:1px solid #f5c6cb;
+                            border-radius:6px;
+                            font-size:12px;
+                        ">
+                
+                            <b>
+                                Trial Balance report unavailable.
+                            </b>
+                
+                            <br><br>
+                
+                            <small>'
+                            ||
+                            APEX_ESCAPE.HTML(
+                                SQLERRM
+                            )
+                            ||
+                            '</small>
+                
+                        </div>';
+                
+                END;
+                ```
+            pageItemsToSubmit: [
+                P309_FROM_DATE
+                P309_TO_DATE
+            ]
+        }
+        layout {
+            sequence: 80
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        config {
+            buildOption: @commented-out
+        }
+    )
+
+    region trial-balance-summary_1_1 (
+        name: Trial Balance Summary
+        type: dynamicContent
+        source {
+            plsqlFunctionBody:
+                ```plsql
                 /* Formatted on 8/25/2026 4:14:59 PM (QP5 v5.388) */
                 DECLARE
                     v_html               CLOB := '';
@@ -168,9 +1090,9 @@ page 309 (
                        SUMMARY VALUES
                        ========================================================= */
                 
-                    v_opening_balance := ABS (v_total_opening_dr - v_total_opening_cr);
+                    v_opening_balance := v_total_opening_dr;  -- ABS (v_total_opening_dr - v_total_opening_cr);
                 
-                    v_closing_balance := ABS (v_total_closing_dr - v_total_closing_cr);
+                    v_closing_balance := v_total_closing_dr;  --ABS (v_total_closing_dr - v_total_closing_cr);
                 
                 
                     /* =========================================================
@@ -991,7 +1913,7 @@ page 309 (
             ]
         }
         layout {
-            sequence: 80
+            sequence: 90
             slot: body
         }
         appearance {
@@ -1001,418 +1923,6 @@ page 309 (
                 t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
             ]
         }
-    )
-
-    region voucher-mst (
-        name: Trail Balance
-        type: interactiveReport
-        source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                WITH OPENING AS
-                (
-                    SELECT
-                           ACCOUNT_NO,
-                           NVL(SUM(OPENING_DEBIT), 0)  AS OPENING_DEBIT,
-                           NVL(SUM(OPENING_CREDIT), 0) AS OPENING_CREDIT
-                      FROM ACC_OPENING_BALANCE
-                     WHERE APPROVAL_STATUS = 'A'
-                     GROUP BY ACCOUNT_NO
-                ),
-                
-                PERIOD AS
-                (
-                    SELECT
-                           D.ACCOUNT_NO,
-                           NVL(SUM(D.DEBIT_AMOUNT), 0)  AS PERIOD_DEBIT,
-                           NVL(SUM(D.CREDIT_AMOUNT), 0) AS PERIOD_CREDIT
-                      FROM ACC_VOUCHER_MST M
-                      JOIN ACC_VOUCHER_DTL D
-                        ON D.VOUCHER_NO = M.VOUCHER_NO
-                     WHERE M.APPROVAL_STATUS = 'A'
-                       AND M.VOUCHER_DATE >= TO_DATE(:P309_FROM_DATE,'MM/DD/YYYY')
-                       AND M.VOUCHER_DATE <   TO_DATE(:P309_TO_DATE, 'MM/DD/YYYY') + 1 
-                     GROUP BY D.ACCOUNT_NO
-                ),
-                
-                TB AS
-                (
-                    SELECT
-                           H.ACCOUNT_NO,
-                           H.ACCOUNT_CODE,
-                           H.ACCOUNT_NAME,
-                           H.ACCOUNT_TYPE,
-                
-                           NVL(O.OPENING_DEBIT, 0)  AS OPENING_DEBIT,
-                           NVL(O.OPENING_CREDIT, 0) AS OPENING_CREDIT,
-                
-                           NVL(P.PERIOD_DEBIT, 0)   AS PERIOD_DEBIT,
-                           NVL(P.PERIOD_CREDIT, 0)  AS PERIOD_CREDIT
-                
-                      FROM MST_ACCOUNT_HEAD H
-                
-                      LEFT JOIN OPENING O
-                        ON O.ACCOUNT_NO = H.ACCOUNT_NO
-                
-                      LEFT JOIN PERIOD P
-                        ON P.ACCOUNT_NO = H.ACCOUNT_NO
-                
-                     WHERE H.IS_POSTING = 'Y'
-                       AND H.ACTIVE_STATUS = 'Y'
-                ),
-                
-                CALCULATION AS
-                (
-                    SELECT
-                           TB.*,
-                
-                           (
-                               OPENING_DEBIT
-                             - OPENING_CREDIT
-                             + PERIOD_DEBIT
-                             - PERIOD_CREDIT
-                           ) AS NET_BALANCE
-                
-                      FROM TB
-                )
-                
-                SELECT
-                       ACCOUNT_NO,
-                       ACCOUNT_CODE,
-                       ACCOUNT_NAME,
-                       ACCOUNT_TYPE,
-                
-                       OPENING_DEBIT,
-                       OPENING_CREDIT,
-                
-                       PERIOD_DEBIT,
-                       PERIOD_CREDIT,
-                
-                       CASE
-                           -- Asset এবং Expense account-এর normal balance Debit
-                           WHEN ACCOUNT_TYPE IN ('A', 'E')
-                                AND NET_BALANCE > 0
-                           THEN NET_BALANCE
-                
-                           -- Liability, Capital এবং Income account-এর credit balance
-                           WHEN ACCOUNT_TYPE IN ('L', 'C', 'I')
-                                AND NET_BALANCE < 0
-                           THEN ABS(NET_BALANCE)
-                
-                           ELSE 0
-                       END AS CLOSING_DEBIT,
-                
-                       CASE
-                           -- Asset এবং Expense account-এর credit balance
-                           WHEN ACCOUNT_TYPE IN ('A', 'E')
-                                AND NET_BALANCE < 0
-                           THEN ABS(NET_BALANCE)
-                
-                           -- Liability, Capital এবং Income account-এর normal balance Credit
-                           WHEN ACCOUNT_TYPE IN ('L', 'C', 'I')
-                                AND NET_BALANCE > 0
-                           THEN NET_BALANCE
-                
-                           ELSE 0
-                       END AS CLOSING_CREDIT,
-                
-                       CASE
-                           WHEN NET_BALANCE = 0
-                           THEN 'ZERO'
-                
-                           WHEN ACCOUNT_TYPE IN ('A', 'E')
-                                AND NET_BALANCE > 0
-                           THEN 'DR'
-                
-                           WHEN ACCOUNT_TYPE IN ('A', 'E')
-                                AND NET_BALANCE < 0
-                           THEN 'CR'
-                
-                           WHEN ACCOUNT_TYPE IN ('L', 'C', 'I')
-                                AND NET_BALANCE > 0
-                           THEN 'CR'
-                
-                           WHEN ACCOUNT_TYPE IN ('L', 'C', 'I')
-                                AND NET_BALANCE < 0
-                           THEN 'DR'
-                       END AS BALANCE_TYPE
-                
-                  FROM CALCULATION
-                
-                 WHERE OPENING_DEBIT  <> 0
-                    OR OPENING_CREDIT <> 0
-                    OR PERIOD_DEBIT   <> 0
-                    OR PERIOD_CREDIT  <> 0
-                
-                 ORDER BY ACCOUNT_CODE;
-                ```
-            pageItemsToSubmit: [
-                P309_FROM_DATE
-                P309_TO_DATE
-            ]
-        }
-        layout {
-            sequence: 999
-            slot: body
-        }
-        appearance {
-            template: @/interactive-report
-            templateOptions: [
-                #DEFAULT#
-                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
-            ]
-        }
-        config {
-            buildOption: @commented-out
-        }
-        pagination {
-            type: rowRangesXToY
-        }
-        advanced {
-            savedReportMappingIdentifier: 13156578117880014338
-        }
-
-        column ACCOUNT_CODE (
-            type: plainText
-            heading {
-                heading: Account Code
-            }
-            layout {
-                sequence: 20
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: M
-            }
-        )
-
-        column ACCOUNT_NAME (
-            type: plainText
-            heading {
-                heading: Account Name
-            }
-            layout {
-                sequence: 30
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: N
-            }
-        )
-
-        column ACCOUNT_NO (
-            type: plainText
-            heading {
-                heading: Account No
-                alignment: end
-            }
-            layout {
-                sequence: 10
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: L
-            }
-        )
-
-        column ACCOUNT_TYPE (
-            type: plainText
-            heading {
-                heading: Account Type
-            }
-            layout {
-                sequence: 110
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: V
-            }
-        )
-
-        column BALANCE_TYPE (
-            type: plainText
-            heading {
-                heading: Balance Type
-            }
-            layout {
-                sequence: 100
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: U
-            }
-        )
-
-        column CLOSING_CREDIT (
-            type: plainText
-            heading {
-                heading: Closing Credit
-                alignment: end
-            }
-            layout {
-                sequence: 90
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: T
-            }
-        )
-
-        column CLOSING_DEBIT (
-            type: plainText
-            heading {
-                heading: Closing Debit
-                alignment: end
-            }
-            layout {
-                sequence: 80
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: S
-            }
-        )
-
-        column OPENING_CREDIT (
-            type: plainText
-            heading {
-                heading: Opening Credit
-                alignment: end
-            }
-            layout {
-                sequence: 50
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: P
-            }
-        )
-
-        column OPENING_DEBIT (
-            type: plainText
-            heading {
-                heading: Opening Debit
-                alignment: end
-            }
-            layout {
-                sequence: 40
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: O
-            }
-        )
-
-        column PERIOD_CREDIT (
-            type: plainText
-            heading {
-                heading: Period Credit
-                alignment: end
-            }
-            layout {
-                sequence: 70
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: R
-            }
-        )
-
-        column PERIOD_DEBIT (
-            type: plainText
-            heading {
-                heading: Period Debit
-                alignment: end
-            }
-            layout {
-                sequence: 60
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: Q
-            }
-        )
-
-        page {
-            borderWidth: 0.5
-            borderColor: #666666
-        }
-
-        savedReport primary (
-            visibility: primaryDefault
-            view {
-                rowsPerPage: 50
-            }
-
-            displayColumn ACCOUNT_CODE (
-                sequence: 1
-            )
-
-            displayColumn ACCOUNT_NAME (
-                sequence: 2
-            )
-
-            displayColumn BALANCE_TYPE (
-                sequence: 3
-            )
-
-            displayColumn CLOSING_CREDIT (
-                sequence: 4
-            )
-
-            displayColumn CLOSING_DEBIT (
-                sequence: 5
-            )
-
-            displayColumn OPENING_CREDIT (
-                sequence: 6
-            )
-
-            displayColumn OPENING_DEBIT (
-                sequence: 7
-            )
-
-            displayColumn PERIOD_CREDIT (
-                sequence: 8
-            )
-
-            displayColumn PERIOD_DEBIT (
-                sequence: 9
-            )
-
-        )
-
     )
 
     pageItem P309_FROM_DATE (

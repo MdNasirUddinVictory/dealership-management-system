@@ -27,6 +27,14 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry customer-register (
+        name: Customer Register
+        pageNumber: 8
+        execution {
+            sequence: 10
+        }
+    )
+
     entry customer-return (
         name: Customer Return
         pageNumber: 102
@@ -62,6 +70,45 @@ breadcrumb breadcrumb (
         link {
             target: {
                 page: 104
+            }
+        }
+    )
+
+    entry customer-setup (
+        name: Customer Setup
+        pageNumber: 25
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 25
+            }
+        }
+    )
+
+    entry daily-invoice (
+        name: Daily Invoice
+        pageNumber: 26
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 26
+            }
+        }
+    )
+
+    entry daily-invoice-2 (
+        name: Daily Invoice
+        pageNumber: 207
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 207
             }
         }
     )
@@ -140,6 +187,19 @@ breadcrumb breadcrumb (
         link {
             target: {
                 page: 1
+            }
+        }
+    )
+
+    entry invoice-approval (
+        name: Invoice Approval
+        pageNumber: 30
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 30
             }
         }
     )
@@ -275,7 +335,7 @@ breadcrumb breadcrumb (
     )
 
     entry profit-amp-amp-loss (
-        name: Profit &amp;amp; Loss
+        name: Profit & Loss
         pageNumber: 310
         execution {
             sequence: 10
@@ -456,6 +516,19 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry supplier-setup-2 (
+        name: Supplier Setup
+        pageNumber: 29
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 29
+            }
+        }
+    )
+
     entry tamplate (
         name: Tamplate
         pageNumber: 1000
@@ -483,7 +556,7 @@ breadcrumb breadcrumb (
     )
 
     entry transaction-request (
-        name: Transaction Request
+        name: Transaction Request (Customer)
         pageNumber: 304
         execution {
             sequence: 10
@@ -491,6 +564,19 @@ breadcrumb breadcrumb (
         link {
             target: {
                 page: 304
+            }
+        }
+    )
+
+    entry transaction-request-supplier (
+        name: Transaction Request (Supplier)
+        pageNumber: 27
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 27
             }
         }
     )

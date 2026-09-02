@@ -361,31 +361,115 @@ lov lov-12-product (
 
 )
 
+lov lov-12-supplier (
+    name: LOV_12_SUPPLIER
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            SELECT SUPPLIER_NAME,
+                   SUPPLIER_NO,
+                   CONTACT_PERSON,
+                   ADDRESS,
+                   MOBILE_NO
+            FROM MST_SUPPLIER
+            WHERE ACTIVE_FLAG=1
+            ORDER BY SUPPLIER_NAME
+            ```
+    }
+    columnMapping {
+        return: SUPPLIER_NO
+        display: SUPPLIER_NAME
+    }
+
+    column ADDRESS (
+        show: false
+        heading {
+            heading: Address
+        }
+        layout {
+            sequence: 40
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column CONTACT_PERSON (
+        heading {
+            heading: Supplier Name
+        }
+        layout {
+            sequence: 30
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column MOBILE_NO (
+        show: false
+        heading {
+            heading: Mobile No
+        }
+        layout {
+            sequence: 50
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column SUPPLIER_NAME (
+        heading {
+            heading: Shop Name
+        }
+        layout {
+            sequence: 20
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column SUPPLIER_NO (
+        show: false
+        layout {
+            sequence: 10
+        }
+        source {
+            dataType: number
+        }
+        advanced {
+            searchable: false
+        }
+    )
+
+)
+
 lov lov-17-customer-lov (
     name: LOV_17_CUSTOMER
     source {
         type: sqlQuery
         sqlQuery:
             ```sql
-            SELECT
-                   CUSTOMER_CODE
-                   || ' - '
-                   || CUSTOMER_NAME DISPLAY_VALUE,
-                   CUSTOMER_NO RETURN_VALUE,
-                   CUSTOMER_NAME,
-                   MOBILE_NO,
-                   ADDRESS
-            FROM MST_CUSTOMER
-            WHERE NVL(ACTIVE_FLAG,1) = 1
+              SELECT CUSTOMER_CODE || ' - ' || CUSTOMER_NAME     CUSTOMER_SHOP_NAME,
+                     CUSTOMER_NO,
+                     CONTACT_PERSON                              CUSTOMER_NAME,
+                     MOBILE_NO,
+                     ADDRESS
+                FROM MST_CUSTOMER
+               WHERE NVL (ACTIVE_FLAG, 1) = 1
             ORDER BY CUSTOMER_NAME;
             ```
     }
     columnMapping {
-        return: RETURN_VALUE
-        display: DISPLAY_VALUE
+        return: CUSTOMER_NO
+        display: CUSTOMER_SHOP_NAME
     }
 
     column ADDRESS (
+        show: false
         heading {
             heading: Address
         }
@@ -409,9 +493,22 @@ lov lov-17-customer-lov (
         }
     )
 
-    column DISPLAY_VALUE (
+    column CUSTOMER_NO (
+        show: false
+        layout {
+            sequence: 10
+        }
+        source {
+            dataType: number
+        }
+        advanced {
+            searchable: false
+        }
+    )
+
+    column CUSTOMER_SHOP_NAME (
         heading {
-            heading: Display Value
+            heading: Shop Name
         }
         layout {
             sequence: 20
@@ -422,6 +519,7 @@ lov lov-17-customer-lov (
     )
 
     column MOBILE_NO (
+        show: false
         heading {
             heading: Mobile No
         }
@@ -430,19 +528,6 @@ lov lov-17-customer-lov (
         }
         source {
             dataType: varchar2
-        }
-    )
-
-    column RETURN_VALUE (
-        show: false
-        layout {
-            sequence: 10
-        }
-        source {
-            dataType: number
-        }
-        advanced {
-            searchable: false
         }
     )
 
@@ -745,6 +830,358 @@ lov lov-21-invoice (
         }
         layout {
             sequence: 90
+        }
+        source {
+            dataType: number
+        }
+    )
+
+)
+
+lov lov-27-supplier-purchase (
+    name: LOV_27_SUPPLIER_PURCHASE
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            SELECT M.PURCHASE_NO                              AS INVOICE_NO,
+                   M.PURCHASE_CODE                            AS DOC_CODE,
+                   TO_CHAR(M.PURCHASE_DATE, 'DD-MON-YYYY')    AS DOC_DATE,
+                   M.TOTAL_AMOUNT                             AS INVOICE_AMOUNT,
+                   NVL(M.DUE_AMOUNT, 0)                       AS DUE_AMOUNT,
+                   NVL(M.PAID_AMOUNT, 0)                      AS PAYMENT_AMOUNT,
+                   NVL(M.DUE_AMOUNT, 0)                       AS PAY_DUE_AMOUNT
+              FROM TRN_PURCHASE_MST M
+             WHERE M.SUPPLIER_NO = :P27_PARTY_NO
+               AND NVL(M.DUE_AMOUNT, 0) > 0
+             ORDER BY M.PURCHASE_DATE DESC;
+            ```
+    }
+    columnMapping {
+        return: INVOICE_NO
+        display: DOC_CODE
+    }
+
+    column DOC_CODE (
+        heading {
+            heading: Doc Code
+        }
+        layout {
+            sequence: 20
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column DOC_DATE (
+        heading {
+            heading: Doc Date
+        }
+        layout {
+            sequence: 30
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column DUE_AMOUNT (
+        show: false
+        heading {
+            heading: Due Amount
+        }
+        layout {
+            sequence: 50
+        }
+        source {
+            dataType: number
+        }
+    )
+
+    column INVOICE_AMOUNT (
+        heading {
+            heading: Invoice Amount
+        }
+        layout {
+            sequence: 40
+        }
+        source {
+            dataType: number
+        }
+    )
+
+    column INVOICE_NO (
+        show: false
+        layout {
+            sequence: 10
+        }
+        source {
+            dataType: number
+        }
+        advanced {
+            searchable: false
+        }
+    )
+
+    column PAYMENT_AMOUNT (
+        show: false
+        heading {
+            heading: Payment Amount
+        }
+        layout {
+            sequence: 60
+        }
+        source {
+            dataType: number
+        }
+    )
+
+    column PAY_DUE_AMOUNT (
+        show: false
+        heading {
+            heading: Pay Due Amount
+        }
+        layout {
+            sequence: 70
+        }
+        source {
+            dataType: number
+        }
+    )
+
+)
+
+lov lov-302-voucher-list (
+    name: LOV_302_VOUCHER_LIST
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+              SELECT    M.VOUCHER_CODE
+                     || ' - '
+                     || TO_CHAR (M.VOUCHER_DATE, 'DD-MON-YYYY')
+                     || ' - '
+                     || M.VOUCHER_TYPE    AS DISPLAY_VALUE,
+                     M.VOUCHER_NO         AS RETURN_VALUE,
+                     M.VOUCHER_CODE,
+                     M.VOUCHER_DATE,
+                     M.VOUCHER_TYPE,
+                     M.NARRATION,
+                     CASE M.APPROVAL_STATUS
+                         WHEN 'A' THEN 'Approved'
+                         WHEN 'P' THEN 'Pending'
+                         WHEN 'R' THEN 'Rejected'
+                         ELSE M.APPROVAL_STATUS
+                     END                  AS STATUS
+                FROM ACC_VOUCHER_MST M
+               WHERE     (   :P302_FROM_DATE IS NULL
+                          OR M.VOUCHER_DATE >= TO_DATE ( :P302_FROM_DATE, 'MM/DD/YYYY'))
+                     AND (   :P302_TO_DATE IS NULL
+                          OR M.VOUCHER_DATE < TO_DATE ( :P302_TO_DATE, 'MM/DD/YYYY') + 1)
+                     AND (   :P302_VOUCHER_TYPE IS NULL
+                          OR M.VOUCHER_TYPE = :P302_VOUCHER_TYPE)
+            --   AND ( :P302_STATUS IS NULL OR M.APPROVAL_STATUS = :P302_STATUS)
+            ORDER BY M.VOUCHER_DATE DESC, M.VOUCHER_NO DESC;
+            ```
+    }
+    columnMapping {
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
+    }
+
+    column DISPLAY_VALUE (
+        heading {
+            heading: Display Value
+        }
+        layout {
+            sequence: 20
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column NARRATION (
+        heading {
+            heading: Narration
+        }
+        layout {
+            sequence: 60
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column RETURN_VALUE (
+        show: false
+        layout {
+            sequence: 10
+        }
+        source {
+            dataType: number
+        }
+        advanced {
+            searchable: false
+        }
+    )
+
+    column STATUS (
+        heading {
+            heading: Status
+        }
+        layout {
+            sequence: 70
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column VOUCHER_CODE (
+        heading {
+            heading: Voucher Code
+        }
+        layout {
+            sequence: 30
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column VOUCHER_DATE (
+        heading {
+            heading: Voucher Date
+        }
+        layout {
+            sequence: 40
+        }
+        source {
+            dataType: date
+        }
+    )
+
+    column VOUCHER_TYPE (
+        heading {
+            heading: Voucher Type
+        }
+        layout {
+            sequence: 50
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+)
+
+lov lov-304-invoice-list (
+    name: LOV_304_INVOICE_LIST
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            /* Formatted on 8/29/2026 5:47:36 PM (QP5 v5.388) */
+              SELECT M.INVOICE_NO                                AS INVOICE_NO,
+                     M.INVOICE_CODE                              AS DOC_CODE,
+                     TO_CHAR (M.INVOICE_DATE, 'DD-MON-YYYY')     AS DOC_DATE,
+                     M.TOTAL_AMOUNT                              AS INVOICE_AMOUNT,
+                     NVL (M.DUE_AMOUNT, 0)                       AS DUE_AMOUNT,
+                     NVL (M.DUE_AMOUNT, 0)                       AS PAYMENT_AMOUNT,
+                     M.RECEIVED_AMOUNT                           AS RECEIVED_AMOUNT
+                FROM TRN_SALES_INVOICE_MST M
+               WHERE M.CUSTOMER_NO = :P304_PARTY_NO AND NVL (M.DUE_AMOUNT, 0) > 0
+            ORDER BY M.INVOICE_DATE DESC
+            ```
+    }
+    columnMapping {
+        return: INVOICE_NO
+        display: DOC_CODE
+    }
+
+    column DOC_CODE (
+        heading {
+            heading: Doc Code
+        }
+        layout {
+            sequence: 20
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column DOC_DATE (
+        heading {
+            heading: Doc Date
+        }
+        layout {
+            sequence: 30
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column DUE_AMOUNT (
+        heading {
+            heading: Due Amount
+        }
+        layout {
+            sequence: 50
+        }
+        source {
+            dataType: number
+        }
+    )
+
+    column INVOICE_AMOUNT (
+        heading {
+            heading: Invoice Amount
+        }
+        layout {
+            sequence: 40
+        }
+        source {
+            dataType: number
+        }
+    )
+
+    column INVOICE_NO (
+        show: false
+        layout {
+            sequence: 10
+        }
+        source {
+            dataType: number
+        }
+        advanced {
+            searchable: false
+        }
+    )
+
+    column PAYMENT_AMOUNT (
+        show: false
+        heading {
+            heading: Payment Amount
+        }
+        layout {
+            sequence: 10
+        }
+        source {
+            dataType: number
+        }
+    )
+
+    column RECEIVED_AMOUNT (
+        show: false
+        heading {
+            heading: Received Amount
+        }
+        layout {
+            sequence: 60
         }
         source {
             dataType: number

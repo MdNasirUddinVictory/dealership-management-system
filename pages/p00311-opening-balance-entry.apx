@@ -333,28 +333,40 @@ page 311 (
                 rowsPerPage: 50
             }
 
-            displayColumn CREATED_BY (
-                sequence: 5
-            )
-
-            displayColumn CREATED_DATE (
-                sequence: 6
-            )
-
-            displayColumn FIN_YEAR (
-                sequence: 2
-            )
-
-            displayColumn OPENING_CREDIT (
+            displayColumn ACCOUNT_CODE (
                 sequence: 4
             )
 
-            displayColumn OPENING_DEBIT (
+            displayColumn ACCOUNT_NAME (
+                sequence: 5
+            )
+
+            displayColumn ACCOUNT_TYPE (
+                sequence: 6
+            )
+
+            displayColumn APPROVAL_STATUS (
+                sequence: 7
+            )
+
+            displayColumn BALANCE (
+                sequence: 9
+            )
+
+            displayColumn BALANCE_TYPE (
+                sequence: 8
+            )
+
+            displayColumn FIN_YEAR (
+                sequence: 1
+            )
+
+            displayColumn OPENING_CREDIT (
                 sequence: 3
             )
 
-            displayColumn OPENING_NO (
-                sequence: 1
+            displayColumn OPENING_DEBIT (
+                sequence: 2
             )
 
         )

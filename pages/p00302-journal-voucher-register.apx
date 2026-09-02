@@ -25,6 +25,330 @@ page 302 (
             }
             ```
     }
+    css {
+        inline:
+            ```css
+            #voucher_details .voucher-wrapper {
+                width: 100%;
+                box-sizing: border-box;
+                background: #ffffff;
+                border: 1px solid #e5e7eb;
+                border-radius: 14px;
+                overflow: hidden;
+                font-family: Arial, sans-serif;
+            }
+            
+            
+            /* ================= HEADER ================= */
+            
+            #voucher_details .voucher-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 18px 22px;
+                border-bottom: 1px solid #e5e7eb;
+                background: #fafafa;
+            }
+            
+            #voucher_details .voucher-title {
+                font-size: 20px;
+                font-weight: 700;
+            }
+            
+            #voucher_details .voucher-no {
+                margin-top: 5px;
+                font-size: 13px;
+                color: #6b7280;
+            }
+            
+            #voucher_details .voucher-total-box {
+                display: flex;
+                gap: 12px;
+            }
+            
+            #voucher_details .total-item {
+                min-width: 120px;
+                padding: 8px 12px;
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                background: #fff;
+                text-align: center;
+            }
+            
+            #voucher_details .total-label {
+                display: block;
+                font-size: 11px;
+                color: #6b7280;
+                margin-bottom: 3px;
+            }
+            
+            #voucher_details .total-dr {
+                font-weight: 700;
+            }
+            
+            #voucher_details .total-cr {
+                font-weight: 700;
+            }
+            
+            
+            /* ================= COLUMN HEADER ================= */
+            
+            #voucher_details .voucher-column-header {
+                display: grid;
+                grid-template-columns: 1fr 180px 1fr;
+                gap: 15px;
+                padding: 10px 15px;
+                background: #f8fafc;
+                border-bottom: 1px solid #e5e7eb;
+                font-size: 12px;
+                font-weight: 700;
+            }
+            
+            #voucher_details .cr-header {
+                display: flex;
+                justify-content: space-between;
+                color: #15803d;
+            }
+            
+            #voucher_details .dr-header {
+                display: flex;
+                justify-content: space-between;
+                color: #b45309;
+            }
+            
+            #voucher_details .particular-header {
+                text-align: center;
+                color: #6b7280;
+            }
+            
+            
+            /* ================= BODY ================= */
+            
+            #voucher_details .voucher-row {
+                display: grid;
+                grid-template-columns: 1fr 180px 1fr;
+                gap: 15px;
+                align-items: center;
+                padding: 12px 15px;
+                border-bottom: 1px solid #f0f0f0;
+            }
+            
+            #voucher_details .cr-side,
+            #voucher_details .dr-side {
+                min-width: 0;
+            }
+            
+            
+            /* ================= ACCOUNT CARD ================= */
+            
+            #voucher_details .account-card {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 10px;
+                padding: 11px 13px;
+                border-radius: 9px;
+                min-height: 52px;
+                box-sizing: border-box;
+            }
+            
+            #voucher_details .credit-card {
+                border-left: 4px solid #22c55e;
+                background: #f0fdf4;
+            }
+            
+            #voucher_details .debit-card {
+                border-right: 4px solid #f59e0b;
+                background: #fffbeb;
+            }
+            
+            #voucher_details .account-info {
+                min-width: 0;
+            }
+            
+            #voucher_details .account-code {
+                font-size: 11px;
+                color: #6b7280;
+                margin-bottom: 3px;
+            }
+            
+            #voucher_details .account-name {
+                font-size: 13px;
+                font-weight: 600;
+                word-break: break-word;
+            }
+            
+            #voucher_details .amount {
+                white-space: nowrap;
+                font-size: 14px;
+                font-weight: 700;
+            }
+            
+            #voucher_details .credit-amount {
+                color: #15803d;
+            }
+            
+            #voucher_details .debit-amount {
+                color: #b45309;
+            }
+            
+            
+            /* ================= PARTICULAR ================= */
+            
+            #voucher_details .particular-side {
+                position: relative;
+                text-align: center;
+                min-height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            #voucher_details .particular-line {
+                position: absolute;
+                width: 100%;
+                height: 1px;
+                background: #e5e7eb;
+                top: 50%;
+            }
+            
+            #voucher_details .particular-text {
+                position: relative;
+                z-index: 2;
+                background: #ffffff;
+                padding: 5px 10px;
+                font-size: 12px;
+                color: #6b7280;
+                max-width: 160px;
+                word-break: break-word;
+            }
+            
+            #voucher_details .no-particular {
+                color: #9ca3af;
+            }
+            
+            
+            /* ================= EMPTY ================= */
+            
+            #voucher_details .empty-side {
+                text-align: center;
+                color: #d1d5db;
+                font-size: 18px;
+            }
+            
+            
+            /* ================= FOOTER ================= */
+            
+            #voucher_details .voucher-footer {
+                display: grid;
+                grid-template-columns: 1fr 180px 1fr;
+                gap: 15px;
+                padding: 15px;
+                background: #fafafa;
+                border-top: 1px solid #e5e7eb;
+            }
+            
+            #voucher_details .footer-cr,
+            #voucher_details .footer-dr {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 10px 13px;
+                border-radius: 8px;
+                font-size: 13px;
+            }
+            
+            #voucher_details .footer-cr {
+                background: #f0fdf4;
+                color: #15803d;
+            }
+            
+            #voucher_details .footer-dr {
+                background: #fffbeb;
+                color: #b45309;
+            }
+            
+            #voucher_details .footer-status {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 6px;
+                font-size: 12px;
+                font-weight: 600;
+                color: #15803d;
+            }
+            
+            #voucher_details .balanced-icon {
+                display: inline-flex;
+                width: 20px;
+                height: 20px;
+                justify-content: center;
+                align-items: center;
+                border-radius: 50%;
+                background: #22c55e;
+                color: white;
+            }
+            
+            
+            /* ================= MOBILE ================= */
+            
+            @media (max-width: 768px) {
+            
+                #voucher_details .voucher-header {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 12px;
+                }
+            
+                #voucher_details .voucher-total-box {
+                    width: 100%;
+                }
+            
+                #voucher_details .total-item {
+                    flex: 1;
+                }
+            
+                #voucher_details .voucher-column-header {
+                    display: none;
+                }
+            
+                #voucher_details .voucher-row {
+                    display: grid;
+                    grid-template-columns: 1fr;
+                    gap: 8px;
+                    padding: 12px;
+                }
+            
+                #voucher_details .particular-side {
+                    order: 2;
+                }
+            
+                #voucher_details .cr-side {
+                    order: 1;
+                }
+            
+                #voucher_details .dr-side {
+                    order: 3;
+                }
+            
+                #voucher_details .particular-line {
+                    display: none;
+                }
+            
+                #voucher_details .particular-text {
+                    max-width: 100%;
+                    background: #f8fafc;
+                    border-radius: 6px;
+                }
+            
+                #voucher_details .voucher-footer {
+                    grid-template-columns: 1fr;
+                    gap: 8px;
+                }
+            
+            }
+            ```
+    }
     security {
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
@@ -232,6 +556,1769 @@ page 302 (
     )
 
     region voucher-mst (
+        name: "VOUCHER "
+        type: dynamicContent
+        source {
+            plsqlFunctionBody:
+                ```plsql
+                DECLARE
+                    v_html           CLOB;
+                
+                    v_voucher_no     VARCHAR2(100);
+                    v_voucher_code   VARCHAR2(100);
+                    v_voucher_date   VARCHAR2(50);
+                    v_voucher_type   VARCHAR2(100);
+                    v_narration      VARCHAR2(4000);
+                    v_created_by     VARCHAR2(200);
+                
+                    v_total_dr       NUMBER := 0;
+                    v_total_cr       NUMBER := 0;
+                
+                
+                    /* =========================================================
+                       NUMBER TO WORDS
+                       Bangladesh / Indian Numbering System
+                       Crore -> Lakh -> Thousand -> Hundred
+                       ========================================================= */
+                
+                    FUNCTION number_to_words(p_num NUMBER)
+                        RETURN VARCHAR2
+                    IS
+                        v_num   NUMBER := TRUNC(NVL(p_num, 0));
+                        v_words VARCHAR2(4000);
+                
+                
+                        /* =====================================================
+                           TWO DIGIT WORDS
+                           ===================================================== */
+                
+                        FUNCTION two_digit_words(p NUMBER)
+                            RETURN VARCHAR2
+                        IS
+                            v_result VARCHAR2(200);
+                            v_tens   NUMBER;
+                            v_ones   NUMBER;
+                        BEGIN
+                
+                            IF p < 20 THEN
+                
+                                v_result :=
+                                    CASE p
+                                        WHEN 0  THEN 'Zero'
+                                        WHEN 1  THEN 'One'
+                                        WHEN 2  THEN 'Two'
+                                        WHEN 3  THEN 'Three'
+                                        WHEN 4  THEN 'Four'
+                                        WHEN 5  THEN 'Five'
+                                        WHEN 6  THEN 'Six'
+                                        WHEN 7  THEN 'Seven'
+                                        WHEN 8  THEN 'Eight'
+                                        WHEN 9  THEN 'Nine'
+                                        WHEN 10 THEN 'Ten'
+                                        WHEN 11 THEN 'Eleven'
+                                        WHEN 12 THEN 'Twelve'
+                                        WHEN 13 THEN 'Thirteen'
+                                        WHEN 14 THEN 'Fourteen'
+                                        WHEN 15 THEN 'Fifteen'
+                                        WHEN 16 THEN 'Sixteen'
+                                        WHEN 17 THEN 'Seventeen'
+                                        WHEN 18 THEN 'Eighteen'
+                                        WHEN 19 THEN 'Nineteen'
+                                    END;
+                
+                            ELSE
+                
+                                v_tens := TRUNC(p / 10);
+                                v_ones := MOD(p, 10);
+                
+                                v_result :=
+                                    CASE v_tens
+                                        WHEN 2 THEN 'Twenty'
+                                        WHEN 3 THEN 'Thirty'
+                                        WHEN 4 THEN 'Forty'
+                                        WHEN 5 THEN 'Fifty'
+                                        WHEN 6 THEN 'Sixty'
+                                        WHEN 7 THEN 'Seventy'
+                                        WHEN 8 THEN 'Eighty'
+                                        WHEN 9 THEN 'Ninety'
+                                    END;
+                
+                                IF v_ones > 0 THEN
+                
+                                    v_result :=
+                                        v_result || ' ' ||
+                                        CASE v_ones
+                                            WHEN 1 THEN 'One'
+                                            WHEN 2 THEN 'Two'
+                                            WHEN 3 THEN 'Three'
+                                            WHEN 4 THEN 'Four'
+                                            WHEN 5 THEN 'Five'
+                                            WHEN 6 THEN 'Six'
+                                            WHEN 7 THEN 'Seven'
+                                            WHEN 8 THEN 'Eight'
+                                            WHEN 9 THEN 'Nine'
+                                        END;
+                
+                                END IF;
+                
+                            END IF;
+                
+                            RETURN v_result;
+                
+                        END two_digit_words;
+                
+                
+                        /* =====================================================
+                           THREE DIGIT WORDS
+                           ===================================================== */
+                
+                        FUNCTION three_digit_words(p NUMBER)
+                            RETURN VARCHAR2
+                        IS
+                            v_result   VARCHAR2(300);
+                            v_hundreds NUMBER;
+                            v_rem      NUMBER;
+                        BEGIN
+                
+                            v_hundreds := TRUNC(p / 100);
+                            v_rem      := MOD(p, 100);
+                
+                            IF v_hundreds > 0 THEN
+                
+                                v_result :=
+                                    CASE v_hundreds
+                                        WHEN 1 THEN 'One'
+                                        WHEN 2 THEN 'Two'
+                                        WHEN 3 THEN 'Three'
+                                        WHEN 4 THEN 'Four'
+                                        WHEN 5 THEN 'Five'
+                                        WHEN 6 THEN 'Six'
+                                        WHEN 7 THEN 'Seven'
+                                        WHEN 8 THEN 'Eight'
+                                        WHEN 9 THEN 'Nine'
+                                    END || ' Hundred';
+                
+                                IF v_rem > 0 THEN
+                
+                                    v_result :=
+                                        v_result || ' ' ||
+                                        two_digit_words(v_rem);
+                
+                                END IF;
+                
+                            ELSE
+                
+                                v_result := two_digit_words(v_rem);
+                
+                            END IF;
+                
+                            RETURN v_result;
+                
+                        END three_digit_words;
+                
+                
+                        /* =====================================================
+                           CONVERT NUMBER
+                           ===================================================== */
+                
+                        FUNCTION convert_number(p NUMBER)
+                            RETURN VARCHAR2
+                        IS
+                            v_result VARCHAR2(4000);
+                            v_part   NUMBER;
+                        BEGIN
+                
+                            IF p >= 10000000 THEN
+                
+                                v_part := TRUNC(p / 10000000);
+                
+                                v_result :=
+                                    convert_number(v_part) || ' Crore';
+                
+                                IF MOD(p, 10000000) > 0 THEN
+                
+                                    v_result :=
+                                        v_result || ' ' ||
+                                        convert_number(MOD(p, 10000000));
+                
+                                END IF;
+                
+                
+                            ELSIF p >= 100000 THEN
+                
+                                v_part := TRUNC(p / 100000);
+                
+                                v_result :=
+                                    convert_number(v_part) || ' Lakh';
+                
+                                IF MOD(p, 100000) > 0 THEN
+                
+                                    v_result :=
+                                        v_result || ' ' ||
+                                        convert_number(MOD(p, 100000));
+                
+                                END IF;
+                
+                
+                            ELSIF p >= 1000 THEN
+                
+                                v_part := TRUNC(p / 1000);
+                
+                                v_result :=
+                                    convert_number(v_part) || ' Thousand';
+                
+                                IF MOD(p, 1000) > 0 THEN
+                
+                                    v_result :=
+                                        v_result || ' ' ||
+                                        convert_number(MOD(p, 1000));
+                
+                                END IF;
+                
+                
+                            ELSIF p >= 100 THEN
+                
+                                v_result := three_digit_words(p);
+                
+                
+                            ELSE
+                
+                                v_result := two_digit_words(p);
+                
+                            END IF;
+                
+                            RETURN v_result;
+                
+                        END convert_number;
+                
+                    BEGIN
+                
+                        IF v_num = 0 THEN
+                            RETURN 'Zero';
+                        END IF;
+                
+                        RETURN convert_number(v_num);
+                
+                    END number_to_words;
+                
+                
+                BEGIN
+                
+                    /* =========================================================
+                       GET VOUCHER MASTER
+                       ========================================================= */
+                
+                    BEGIN
+                
+                        SELECT
+                            M.VOUCHER_NO,
+                            M.VOUCHER_CODE,
+                            TO_CHAR(M.VOUCHER_DATE, 'DD-Mon-YYYY'),
+                            M.VOUCHER_TYPE,
+                            M.NARRATION,
+                            M.CREATED_BY
+                
+                        INTO
+                            v_voucher_no,
+                            v_voucher_code,
+                            v_voucher_date,
+                            v_voucher_type,
+                            v_narration,
+                            v_created_by
+                
+                        FROM ACC_VOUCHER_MST M
+                
+                        WHERE M.VOUCHER_NO = :P302_VOUCHER_TYPE;
+                
+                
+                    EXCEPTION
+                
+                        WHEN NO_DATA_FOUND THEN
+                
+                            RETURN TO_CLOB(
+                                '<div style="
+                                    padding:30px;
+                                    text-align:center;
+                                    color:#b91c1c;
+                                    font-family:Arial,sans-serif;
+                                    font-size:16px;
+                                ">
+                                    Voucher not found.
+                                </div>'
+                            );
+                
+                    END;
+                
+                
+                    /* =========================================================
+                       GET TOTAL DEBIT / CREDIT
+                       ========================================================= */
+                
+                    SELECT
+                        NVL(SUM(DEBIT_AMOUNT), 0),
+                        NVL(SUM(CREDIT_AMOUNT), 0)
+                
+                    INTO
+                        v_total_dr,
+                        v_total_cr
+                
+                    FROM ACC_VOUCHER_DTL
+                
+                    WHERE VOUCHER_NO = :P302_VOUCHER_TYPE;
+                
+                
+                    /* =========================================================
+                       HTML START
+                       ========================================================= */
+                
+                    v_html := TO_CLOB('
+                
+                <style>
+                
+                /* =========================================================
+                   GLOBAL
+                   ========================================================= */
+                
+                * {
+                    box-sizing: border-box;
+                }
+                
+                
+                /* =========================================================
+                   MAIN VOUCHER
+                   ========================================================= */
+                
+                .voucher-print {
+                
+                    width: 100%;
+                    max-width: 1050px;
+                
+                    margin: 0 auto;
+                
+                    padding: 25px 35px;
+                
+                    background: #ffffff;
+                
+                    color: #111111;
+                
+                    font-family:
+                        Arial,
+                        "Noto Sans Bengali",
+                        sans-serif;
+                
+                    font-size: 13px;
+                
+                }
+                
+                
+                /* =========================================================
+                   HEADER
+                   ========================================================= */
+                
+                .voucher-top {
+                
+                    width: 100%;
+                
+                    display: grid;
+                
+                    grid-template-columns:
+                        22%
+                        56%
+                        22%;
+                
+                    align-items: start;
+                
+                    margin-bottom: 18px;
+                
+                }
+                
+                
+                .bank-left {
+                
+                    font-size: 12px;
+                
+                    padding-top: 8px;
+                
+                }
+                
+                
+                .bank-center {
+                
+                    text-align: center;
+                
+                }
+                
+                
+                .bank-logo {
+                
+                    width: 55px;
+                
+                    height: 55px;
+                
+                    margin:
+                        0 auto 4px auto;
+                
+                    border:
+                        1px solid #555;
+                
+                    border-radius: 50%;
+                
+                    display: flex;
+                
+                    align-items: center;
+                
+                    justify-content: center;
+                
+                    font-size: 24px;
+                
+                }
+                
+                
+                .bank-name {
+                
+                    font-size: 22px;
+                
+                    font-weight: 700;
+                
+                }
+                
+                
+                .branch-name {
+                
+                    font-size: 17px;
+                
+                    margin-top: 3px;
+                
+                }
+                
+                
+                .bank-right {
+                
+                    text-align: right;
+                
+                    font-size: 12px;
+                
+                    line-height: 1.8;
+                
+                }
+                
+                
+                /* =========================================================
+                   INFORMATION
+                   ========================================================= */
+                
+                .voucher-info {
+                
+                    width: 100%;
+                
+                    display: grid;
+                
+                    grid-template-columns:
+                        1fr
+                        1fr;
+                
+                    gap: 25px;
+                
+                    margin:
+                        15px 0 20px 0;
+                
+                }
+                
+                
+                .info-line {
+                
+                    border-bottom:
+                        1px dotted #222;
+                
+                    padding: 5px 0;
+                
+                    min-height: 27px;
+                
+                }
+                
+                
+                .info-label {
+                
+                    font-weight: 600;
+                
+                }
+                
+                
+                /* =========================================================
+                   MAIN TABLE
+                   ========================================================= */
+                
+                .voucher-table {
+                
+                    width: 100%;
+                
+                    border-collapse: collapse;
+                
+                    table-layout: fixed;
+                
+                }
+                
+                
+                .voucher-table th,
+                .voucher-table td {
+                
+                    border:
+                        1px solid #111;
+                
+                }
+                
+                
+                .voucher-table th {
+                
+                    text-align: center;
+                
+                    vertical-align: middle;
+                
+                    font-weight: 600;
+                
+                }
+                
+                
+                .group-header {
+                
+                    height: 40px;
+                
+                    font-size: 14px;
+                
+                }
+                
+                
+                .sub-header {
+                
+                    height: 58px;
+                
+                    font-size: 12px;
+                
+                }
+                
+                
+                .dr-group {
+                
+                    width: 30%;
+                
+                }
+                
+                
+                .particular-group {
+                
+                    width: 40%;
+                
+                }
+                
+                
+                .cr-group {
+                
+                    width: 30%;
+                
+                }
+                
+                
+                /* =========================================================
+                   COLUMNS
+                   ========================================================= */
+                
+                .amount-col {
+                
+                    width: 15%;
+                
+                    text-align: right;
+                
+                    padding: 7px;
+                
+                    vertical-align: middle;
+                
+                }
+                
+                
+                .account-col {
+                
+                    width: 15%;
+                
+                    padding: 7px;
+                
+                    vertical-align: middle;
+                
+                }
+                
+                
+                .particular-col {
+                
+                    width: 40%;
+                
+                    padding:
+                        7px 12px;
+                
+                    text-align: center;
+                
+                    vertical-align: middle;
+                
+                }
+                
+                
+                /* =========================================================
+                   ACCOUNT
+                   ========================================================= */
+                
+                .account-name {
+                
+                    font-size: 12px;
+                
+                    font-weight: 600;
+                
+                    line-height: 1.35;
+                
+                }
+                
+                
+                .account-code {
+                
+                    font-size: 11px;
+                
+                    margin-top: 3px;
+                
+                    color: #333333;
+                
+                }
+                
+                
+                .branch-code {
+                
+                    font-size: 10px;
+                
+                    color: #555555;
+                
+                }
+                
+                
+                /* =========================================================
+                   BODY
+                   ========================================================= */
+                
+                .voucher-row td {
+                
+                    height: 48px;
+                
+                }
+                
+                
+                .particular-text {
+                
+                    font-size: 12px;
+                
+                    line-height: 1.4;
+                
+                }
+                
+                
+                /* =========================================================
+                   TOTAL ROW
+                   ========================================================= */
+                
+                .total-row {
+                
+                    background:
+                        #f8fafc;
+                
+                    border-top:
+                        2px solid #111;
+                
+                    border-bottom:
+                        2px solid #111;
+                
+                }
+                
+                
+                .total-row td {
+                
+                    height: 58px;
+                
+                    vertical-align: middle;
+                
+                    font-weight: 700;
+                
+                }
+                
+                
+                /* Amount */
+                
+                .total-amount {
+                
+                    text-align: right;
+                
+                    padding:
+                        8px 12px;
+                
+                    font-size: 14px;
+                
+                    font-weight: 700;
+                
+                    white-space: nowrap;
+                
+                }
+                
+                
+                /* Debit / Credit small title */
+                
+                .total-side-label {
+                
+                    display: block;
+                
+                    font-size: 10px;
+                
+                    font-weight: 600;
+                
+                    color: #666;
+                
+                    margin-bottom: 3px;
+                
+                    letter-spacing: .4px;
+                
+                }
+                
+                
+                /* Center Total */
+                
+                .total-center {
+                
+                    text-align: center;
+                
+                    padding:
+                        7px 15px;
+                
+                    vertical-align: middle;
+                
+                }
+                
+                
+                .total-title {
+                
+                    font-size: 14px;
+                
+                    font-weight: 700;
+                
+                    margin-bottom: 4px;
+                
+                }
+                
+                
+                .amount-words {
+                
+                    font-size: 11px;
+                
+                    font-weight: 600;
+                
+                    line-height: 1.35;
+                
+                    color: #333;
+                
+                    text-transform: uppercase;
+                
+                }
+                
+                
+                /* =========================================================
+                   ATTACHMENT
+                   ========================================================= */
+                
+                .attachment {
+                
+                    margin-top: 12px;
+                
+                    font-size: 12px;
+                
+                }
+                
+                
+                /* =========================================================
+                   NARRATION
+                   ========================================================= */
+                
+                .narration {
+                
+                    margin-top: 12px;
+                
+                    font-size: 12px;
+                
+                    line-height: 1.5;
+                
+                }
+                
+                
+                /* =========================================================
+                   SIGNATURE
+                   ========================================================= */
+                
+                .signature-area {
+                
+                    margin-top: 55px;
+                
+                    display: grid;
+                
+                    grid-template-columns:
+                        1fr
+                        1fr
+                        1fr;
+                
+                    gap: 50px;
+                
+                    text-align: center;
+                
+                }
+                
+                
+                .signature-box {
+                
+                    min-height: 75px;
+                
+                }
+                
+                
+                .signature-name {
+                
+                    font-size: 12px;
+                
+                    margin-bottom: 4px;
+                
+                }
+                
+                
+                .signature-line {
+                
+                    border-top:
+                        1px solid #222;
+                
+                    padding-top: 7px;
+                
+                    font-weight: 600;
+                
+                }
+                
+                
+                /* =========================================================
+                   PRINT
+                   ========================================================= */
+                
+                @media print {
+                
+                    .voucher-print {
+                
+                        width: 100%;
+                
+                        max-width: none;
+                
+                        padding:
+                            10mm 12mm;
+                
+                    }
+                
+                
+                    @page {
+                
+                        size: A4 landscape;
+                
+                        margin: 8mm;
+                
+                    }
+                
+                }
+                
+                
+                /* =========================================================
+                   MOBILE
+                   ========================================================= */
+                
+                @media (max-width: 700px) {
+                
+                    .voucher-print {
+                
+                        padding: 10px;
+                
+                        overflow-x: auto;
+                
+                    }
+                
+                
+                    .voucher-top {
+                
+                        grid-template-columns: 1fr;
+                
+                        text-align: center;
+                
+                    }
+                
+                
+                    .bank-left {
+                
+                        display: none;
+                
+                    }
+                
+                
+                    .bank-right {
+                
+                        text-align: center;
+                
+                        margin-top: 8px;
+                
+                    }
+                
+                
+                    .bank-name {
+                
+                        font-size: 18px;
+                
+                    }
+                
+                
+                    .branch-name {
+                
+                        font-size: 15px;
+                
+                    }
+                
+                
+                    .voucher-info {
+                
+                        grid-template-columns: 1fr;
+                
+                        gap: 5px;
+                
+                    }
+                
+                
+                    .voucher-table {
+                
+                        min-width: 750px;
+                
+                    }
+                
+                
+                    .signature-area {
+                
+                        min-width: 750px;
+                
+                    }
+                
+                }
+                
+                </style>
+                
+                
+                <div class="voucher-print">
+                
+                
+                    <!-- =====================================================
+                         HEADER
+                         ===================================================== -->
+                
+                    <div class="voucher-top">
+                
+                
+                        <div class="bank-left">
+                
+                            পিএসবি-এফ - ১০
+                
+                        </div>
+                
+                
+                        <div class="bank-center">
+                
+                            <div class="bank-logo">
+                                🏦
+                            </div>
+                
+                
+                            <div class="bank-name">
+                
+                                Sales Management System
+                
+                            </div>
+                
+                
+                            <div class="branch-name">
+                
+                                Hizla, Barishal - 8261
+                
+                            </div>
+                
+                        </div>
+                
+                
+                        <div class="bank-right">
+                
+                            <div>
+                
+                                তারিখ:
+                
+                                <strong>' ||
+                
+                                apex_escape.html(
+                                    v_voucher_date
+                                ) ||
+                
+                                '</strong>
+                
+                            </div>
+                
+                
+                            <div>
+                
+                                নং:
+                
+                                <strong>' ||
+                
+                                apex_escape.html(
+                                    v_voucher_no
+                                ) ||
+                
+                                '</strong>
+                
+                            </div>
+                
+                        </div>
+                
+                
+                    </div>
+                
+                
+                    <!-- =====================================================
+                         VOUCHER INFORMATION
+                         ===================================================== -->
+                
+                    <div class="voucher-info">
+                
+                
+                        <div>
+                
+                            <div class="info-line">
+                
+                                <span class="info-label">
+                
+                                    প্রেরণ নং:
+                
+                                </span>
+                
+                            </div>
+                
+                
+                            <div class="info-line">
+                
+                                <span class="info-label">
+                
+                                    ভাউচার কোড:
+                
+                                </span>
+                
+                                ' ||
+                
+                                apex_escape.html(
+                                    NVL(
+                                        v_voucher_code,
+                                        ''
+                                    )
+                                ) ||
+                
+                                '
+                
+                            </div>
+                
+                        </div>
+                
+                
+                        <div>
+                
+                            <div class="info-line">
+                
+                                <span class="info-label">
+                
+                                    অনুমোদন নং:
+                
+                                </span>
+                
+                            </div>
+                
+                
+                            <div class="info-line">
+                
+                                <span class="info-label">
+                
+                                    ভাউচার টাইপ:
+                
+                                </span>
+                
+                                ' ||
+                
+                                apex_escape.html(
+                                    NVL(
+                                        v_voucher_type,
+                                        ''
+                                    )
+                                ) ||
+                
+                                '
+                
+                            </div>
+                
+                        </div>
+                
+                
+                    </div>
+                
+                
+                    <!-- =====================================================
+                         MAIN TABLE
+                         ===================================================== -->
+                
+                    <table class="voucher-table">
+                
+                
+                        <!-- GROUP HEADER -->
+                
+                        <tr>
+                
+                
+                            <th
+                                colspan="2"
+                                class="group-header">
+                
+                                ডেবিট
+                
+                            </th>
+                
+                
+                            <th
+                                rowspan="2"
+                                class="group-header">
+                
+                                বিবরণ
+                
+                            </th>
+                
+                
+                            <th
+                                colspan="2"
+                                class="group-header">
+                
+                                ক্রেডিট
+                
+                            </th>
+                
+                
+                        </tr>
+                
+                
+                        <!-- SUB HEADER -->
+                
+                        <tr>
+                
+                
+                            <th class="sub-header">
+                
+                                টাকা
+                
+                            </th>
+                
+                
+                            <th class="sub-header">
+                
+                                হিসাবের নাম, A/C No. ও<br>
+                                শাখা কোড
+                
+                            </th>
+                
+                
+                            <th class="sub-header">
+                
+                                হিসাবের নাম, A/C No. ও<br>
+                                শাখা কোড
+                
+                            </th>
+                
+                
+                            <th class="sub-header">
+                
+                                টাকা
+                
+                            </th>
+                
+                
+                        </tr>
+                ');
+                
+                
+                    /* =========================================================
+                       DETAIL DATA
+                       DEBIT + CREDIT SIDE BY SIDE
+                       ========================================================= */
+                
+                    FOR r IN (
+                
+                        SELECT
+                
+                            NVL(
+                                dr.rn,
+                                cr.rn
+                            ) AS rn,
+                
+                
+                            dr.account_code
+                                AS dr_account_code,
+                
+                            dr.account_name
+                                AS dr_account_name,
+                
+                            dr.amount
+                                AS dr_amount,
+                
+                
+                            cr.account_code
+                                AS cr_account_code,
+                
+                            cr.account_name
+                                AS cr_account_name,
+                
+                            cr.amount
+                                AS cr_amount,
+                
+                
+                            NVL(
+                                dr.particulars,
+                                cr.particulars
+                            ) AS particulars
+                
+                
+                        FROM
+                        (
+                
+                            /* =================================================
+                               DEBIT
+                               ================================================= */
+                
+                            SELECT
+                
+                                ROW_NUMBER() OVER (
+                                    ORDER BY
+                                        D.VOUCHER_DTL_NO
+                                ) AS rn,
+                
+                
+                                A.ACCOUNT_CODE,
+                
+                                A.ACCOUNT_NAME,
+                
+                                D.DEBIT_AMOUNT
+                                    AS amount,
+                
+                                D.PARTICULARS
+                
+                
+                            FROM ACC_VOUCHER_DTL D
+                
+                
+                            JOIN MST_ACCOUNT_HEAD A
+                
+                                ON A.ACCOUNT_NO =
+                                   D.ACCOUNT_NO
+                
+                
+                            WHERE D.VOUCHER_NO =
+                                  :P302_VOUCHER_TYPE
+                
+                              AND NVL(
+                                    D.DEBIT_AMOUNT,
+                                    0
+                                  ) > 0
+                
+                        ) dr
+                
+                
+                        FULL OUTER JOIN
+                
+                
+                        (
+                
+                            /* =================================================
+                               CREDIT
+                               ================================================= */
+                
+                            SELECT
+                
+                                ROW_NUMBER() OVER (
+                                    ORDER BY
+                                        D.VOUCHER_DTL_NO
+                                ) AS rn,
+                
+                
+                                A.ACCOUNT_CODE,
+                
+                                A.ACCOUNT_NAME,
+                
+                                D.CREDIT_AMOUNT
+                                    AS amount,
+                
+                                D.PARTICULARS
+                
+                
+                            FROM ACC_VOUCHER_DTL D
+                
+                
+                            JOIN MST_ACCOUNT_HEAD A
+                
+                                ON A.ACCOUNT_NO =
+                                   D.ACCOUNT_NO
+                
+                
+                            WHERE D.VOUCHER_NO =
+                                  :P302_VOUCHER_TYPE
+                
+                              AND NVL(
+                                    D.CREDIT_AMOUNT,
+                                    0
+                                  ) > 0
+                
+                        ) cr
+                
+                
+                        ON dr.rn = cr.rn
+                
+                
+                        ORDER BY
+                            NVL(
+                                dr.rn,
+                                cr.rn
+                            )
+                
+                    )
+                
+                    LOOP
+                
+                
+                        v_html :=
+                            v_html ||
+                            TO_CLOB('
+                
+                            <tr class="voucher-row">
+                
+                
+                                <!-- =========================================
+                                     DEBIT AMOUNT
+                                     ========================================= -->
+                
+                                <td class="amount-col">
+                        ');
+                
+                
+                        IF r.dr_amount IS NOT NULL THEN
+                
+                            v_html :=
+                                v_html ||
+                
+                                TO_CHAR(
+                                    r.dr_amount,
+                                    'FM999G999G999G999G990D00'
+                                );
+                
+                        END IF;
+                
+                
+                        v_html :=
+                            v_html ||
+                            TO_CLOB('
+                
+                                </td>
+                
+                
+                                <!-- =========================================
+                                     DEBIT ACCOUNT
+                                     ========================================= -->
+                
+                                <td class="account-col">
+                        ');
+                
+                
+                        IF r.dr_account_name IS NOT NULL THEN
+                
+                            v_html :=
+                                v_html ||
+                
+                                '<div class="account-name">' ||
+                
+                                apex_escape.html(
+                                    r.dr_account_name
+                                ) ||
+                
+                                '</div>' ||
+                
+                
+                                '<div class="account-code">' ||
+                
+                                apex_escape.html(
+                                    NVL(
+                                        r.dr_account_code,
+                                        ''
+                                    )
+                                ) ||
+                
+                                '</div>';
+                
+                        END IF;
+                
+                
+                        v_html :=
+                            v_html ||
+                            TO_CLOB('
+                
+                                </td>
+                
+                
+                                <!-- =========================================
+                                     PARTICULARS
+                                     ========================================= -->
+                
+                                <td class="particular-col">
+                
+                                    <div class="particular-text">
+                        ');
+                
+                
+                        IF r.particulars IS NOT NULL THEN
+                
+                            v_html :=
+                                v_html ||
+                
+                                apex_escape.html(
+                                    r.particulars
+                                );
+                
+                        END IF;
+                
+                
+                        v_html :=
+                            v_html ||
+                            TO_CLOB('
+                
+                                    </div>
+                
+                                </td>
+                
+                
+                                <!-- =========================================
+                                     CREDIT ACCOUNT
+                                     ========================================= -->
+                
+                                <td class="account-col">
+                        ');
+                
+                
+                        IF r.cr_account_name IS NOT NULL THEN
+                
+                            v_html :=
+                                v_html ||
+                
+                                '<div class="account-name">' ||
+                
+                                apex_escape.html(
+                                    r.cr_account_name
+                                ) ||
+                
+                                '</div>' ||
+                
+                
+                                '<div class="account-code">' ||
+                
+                                apex_escape.html(
+                                    NVL(
+                                        r.cr_account_code,
+                                        ''
+                                    )
+                                ) ||
+                
+                                '</div>';
+                
+                        END IF;
+                
+                
+                        v_html :=
+                            v_html ||
+                            TO_CLOB('
+                
+                                </td>
+                
+                
+                                <!-- =========================================
+                                     CREDIT AMOUNT
+                                     ========================================= -->
+                
+                                <td class="amount-col">
+                        ');
+                
+                
+                        IF r.cr_amount IS NOT NULL THEN
+                
+                            v_html :=
+                                v_html ||
+                
+                                TO_CHAR(
+                                    r.cr_amount,
+                                    'FM999G999G999G999G990D00'
+                                );
+                
+                        END IF;
+                
+                
+                        v_html :=
+                            v_html ||
+                            TO_CLOB('
+                
+                                </td>
+                
+                            </tr>
+                
+                        ');
+                
+                
+                    END LOOP;
+                
+                
+                    /* =========================================================
+                       TOTAL ROW
+                       ========================================================= */
+                
+                    v_html :=
+                        v_html ||
+                        TO_CLOB('
+                
+                        <tr class="total-row">
+                
+                
+                            <!-- =============================================
+                                 DEBIT TOTAL
+                                 ============================================= -->
+                
+                            <td class="total-amount">
+                
+                                <span class="total-side-label">
+                                    DEBIT TOTAL
+                                </span>
+                
+                                ' ||
+                
+                                TO_CHAR(
+                                    v_total_dr,
+                                    'FM999G999G999G999G990D00'
+                                ) ||
+                
+                                '
+                
+                            </td>
+                
+                
+                            <!-- =============================================
+                                 TOTAL / AMOUNT IN WORDS
+                                 ============================================= -->
+                
+                            <td
+                                colspan="3"
+                                class="total-center">
+                
+                
+                                <div class="total-title">
+                
+                                    সর্বমোট / TOTAL
+                
+                                </div>
+                
+                
+                                <div class="amount-words">
+                
+                                    TK. ' ||
+                
+                                    apex_escape.html(
+                                        number_to_words(
+                                            v_total_dr
+                                        )
+                                    ) ||
+                
+                                    ' ONLY
+                
+                                </div>
+                
+                
+                            </td>
+                
+                
+                            <!-- =============================================
+                                 CREDIT TOTAL
+                                 ============================================= -->
+                
+                            <td class="total-amount">
+                
+                                <span class="total-side-label">
+                                    CREDIT TOTAL
+                                </span>
+                
+                                ' ||
+                
+                                TO_CHAR(
+                                    v_total_cr,
+                                    'FM999G999G999G999G990D00'
+                                ) ||
+                
+                                '
+                
+                            </td>
+                
+                
+                        </tr>
+                
+                
+                    </table>
+                
+                
+                    <!-- =====================================================
+                         ATTACHMENT
+                         ===================================================== -->
+                
+                    <div class="attachment">
+                
+                        সংযুক্তি:
+                        ....................................................................................
+                
+                    </div>
+                
+                
+                    <!-- =====================================================
+                         NARRATION
+                         ===================================================== -->
+                
+                    <div class="narration">
+                
+                        <strong>বিবরণ:</strong>
+                
+                        ' ||
+                
+                        apex_escape.html(
+                            NVL(
+                                v_narration,
+                                ''
+                            )
+                        ) ||
+                
+                        '
+                
+                    </div>
+                
+                
+                    <!-- =====================================================
+                         SIGNATURE
+                         ===================================================== -->
+                
+                    <div class="signature-area">
+                
+                
+                        <!-- PREPARED BY -->
+                
+                        <div class="signature-box">
+                
+                            <div class="signature-name">
+                
+                                ' ||
+                
+                                apex_escape.html(
+                                    NVL(
+                                        v_created_by,
+                                        ''
+                                    )
+                                ) ||
+                
+                                '
+                
+                            </div>
+                
+                
+                            <div class="signature-line">
+                
+                                প্রস্তুতকারীর স্বাক্ষর
+                
+                            </div>
+                
+                        </div>
+                
+                
+                        <!-- APPROVED 1 -->
+                
+                        <div class="signature-box">
+                
+                            <div style="height:35px;"></div>
+                
+                
+                            <div class="signature-line">
+                
+                                ১) অনুমোদিত স্বাক্ষর
+                
+                            </div>
+                
+                        </div>
+                
+                
+                        <!-- APPROVED 2 -->
+                
+                        <div class="signature-box">
+                
+                            <div style="height:35px;"></div>
+                
+                
+                            <div class="signature-line">
+                
+                                ২) অনুমোদিত স্বাক্ষর
+                
+                            </div>
+                
+                        </div>
+                
+                
+                    </div>
+                
+                
+                </div>
+                
+                ');
+                
+                
+                    /* =========================================================
+                       RETURN HTML CLOB
+                       ========================================================= */
+                
+                    RETURN v_html;
+                
+                
+                END;
+                ```
+            pageItemsToSubmit: [
+                P302_FROM_DATE
+                P302_TO_DATE
+                P302_VOUCHER_TYPE
+            ]
+        }
+        layout {
+            sequence: 40
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+    )
+
+    region voucher-mst_1 (
         name: VOUCHER REGISTER
         type: interactiveReport
         source {
@@ -305,12 +2392,10 @@ page 302 (
             pageItemsToSubmit: [
                 P302_FROM_DATE
                 P302_TO_DATE
-                P302_VOUCHER_TYPE
-                P302_STATUS
             ]
         }
         layout {
-            sequence: 60
+            sequence: 50
             slot: body
         }
         appearance {
@@ -319,6 +2404,9 @@ page 302 (
                 #DEFAULT#
                 t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
             ]
+        }
+        config {
+            buildOption: @commented-out
         }
         pagination {
             type: rowRangesXToY
@@ -333,7 +2421,7 @@ page 302 (
                 heading: Created By
             }
             layout {
-                sequence: 100
+                sequence: 90
             }
             source {
                 dataType: STRING
@@ -349,7 +2437,7 @@ page 302 (
                 heading: Created Date
             }
             layout {
-                sequence: 110
+                sequence: 100
             }
             source {
                 dataType: DATE
@@ -365,7 +2453,7 @@ page 302 (
                 heading: Narration
             }
             layout {
-                sequence: 60
+                sequence: 50
             }
             source {
                 dataType: STRING
@@ -381,7 +2469,7 @@ page 302 (
                 heading: Status
             }
             layout {
-                sequence: 90
+                sequence: 80
             }
             source {
                 dataType: STRING
@@ -401,7 +2489,7 @@ page 302 (
                 alignment: end
             }
             layout {
-                sequence: 80
+                sequence: 70
                 columnAlignment: end
             }
             source {
@@ -419,7 +2507,7 @@ page 302 (
                 alignment: end
             }
             layout {
-                sequence: 70
+                sequence: 60
                 columnAlignment: end
             }
             source {
@@ -436,7 +2524,7 @@ page 302 (
                 heading: View Btn
             }
             layout {
-                sequence: 120
+                sequence: 110
             }
             link {
                 target: {
@@ -482,7 +2570,7 @@ page 302 (
                 dataType: DATE
             }
             advanced {
-                endUserAlias: C
+                endUserAlias: D
             }
         )
 
@@ -514,7 +2602,7 @@ page 302 (
                 dataType: STRING
             }
             advanced {
-                endUserAlias: D
+                endUserAlias: C
             }
         )
 
@@ -562,7 +2650,7 @@ page 302 (
             )
 
             displayColumn VOUCHER_DATE (
-                sequence: 3
+                sequence: 4
             )
 
             displayColumn VOUCHER_NO (
@@ -570,7 +2658,7 @@ page 302 (
             )
 
             displayColumn VOUCHER_TYPE (
-                sequence: 4
+                sequence: 3
             )
 
         )
@@ -581,7 +2669,7 @@ page 302 (
         name: VOUCHER_VIEW
         type: staticContent
         layout {
-            sequence: 70
+            sequence: 60
             slot: body
         }
         appearance {
@@ -642,30 +2730,6 @@ page 302 (
                 t-Form-fieldContainer--stretchInputs
                 t-Form-fieldContainer--large
             ]
-        }
-    )
-
-    pageItem P302_STATUS (
-        type: textField
-        label {
-            label: From Date
-            alignment: left
-        }
-        layout {
-            sequence: 40
-            slot: body
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
         }
     )
 
@@ -739,10 +2803,26 @@ page 302 (
     )
 
     pageItem P302_VOUCHER_TYPE (
-        type: textField
+        type: selectList
         label {
-            label: From Date
+            label: Voucher
             alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-302-voucher-list
+            displayExtraValues: false
+            nullDisplayValue: --Select Voucher--
+        }
+        cascadingLov {
+            parentItems: [
+                P302_FROM_DATE
+                P302_TO_DATE
+            ]
+            itemsToSubmit: [
+                P302_FROM_DATE
+                P302_TO_DATE
+            ]
         }
         layout {
             sequence: 30
@@ -758,7 +2838,10 @@ page 302 (
                 t-Form-fieldContainer--large
                 t-Form-fieldContainer--slimPadding
             ]
-            width: 30
+            height: 1
+        }
+        source {
+            used: always
         }
     )
 
@@ -902,6 +2985,30 @@ page 302 (
             htmlDomId: pb-update
             customAttributes: disabled
         }
+    )
+
+    dynamicAction new (
+        name: New
+        execution {
+            sequence: 10
+        }
+        when {
+            selectionType: items
+            items: P302_VOUCHER_TYPE
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @voucher-mst
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
     )
 
     process debit-and-credit-amount-must-be-equal (

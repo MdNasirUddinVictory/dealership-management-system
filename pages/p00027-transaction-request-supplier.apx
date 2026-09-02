@@ -1,295 +1,13 @@
-page 304 (
-    name: Transaction Request
-    alias: TRANSACTION-REQUEST
-    title: Transaction Request
+page 27 (
+    name: Transaction Request (Supplier)
+    alias: TRANSACTION-REQUEST-SUPPLIER
+    title: Transaction Request (Supplier)
     appearance {
         pageTemplate: @/standard
         templateOptions: #DEFAULT#
     }
     navigation {
         cursorFocus: doNotFocusCursor
-    }
-    javaScript {
-        functionAndGlobalVariableDeclaration:
-            ```javascript-browser
-            function saveReceiveTransaction() {
-            
-                var customerNo = $v("P304_PARTY_NO");
-            
-                if (!customerNo) {
-            
-                    apex.message.alert(
-                        "Please select a customer."
-                    );
-            
-                    return;
-                }
-            
-            
-                var totalReceive = parseFloat(
-                    $v("P304_TOTAL_AMOUNT") || 0
-                );
-            
-            
-                if (totalReceive <= 0) {
-            
-                    apex.message.alert(
-                        "Please enter receive amount."
-                    );
-            
-                    return;
-                }
-            
-            
-                var allocations = [];
-            
-            
-                $(".invoice-card").each(function() {
-            
-                    var card = $(this);
-            
-                    var invoiceNo =
-                        card.attr("data-invoice-no");
-            
-                    var due =
-                        parseFloat(
-                            card.attr("data-due") || 0
-                        );
-            
-                    var amount =
-                        parseFloat(
-                            card.find(".receive-input").val() || 0
-                        );
-            
-            
-                    if (amount > 0) {
-            
-                        if (amount > due) {
-            
-                            apex.message.alert(
-                                "Receive amount cannot exceed invoice due."
-                            );
-            
-                            return false;
-                        }
-            
-            
-                        allocations.push({
-                            invoice_no: Number(invoiceNo),
-                            amount: amount
-                        });
-            
-                    }
-            
-                });
-            
-            
-                if (allocations.length === 0) {
-            
-                    apex.message.alert(
-                        "Please allocate payment to at least one invoice."
-                    );
-            
-                    return;
-                }
-            
-            
-                apex.server.process(
-                    "SAVE_RECEIVE",
-                    {
-                        x01: JSON.stringify(allocations)
-                    },
-                    {
-                        dataType: "json",
-            
-                        success: function(data) {
-            
-                            if (data.status === "success") {
-            
-                                apex.message.showPageSuccess(
-                                    "Customer receive saved successfully. Transaction: "
-                                    + data.transaction_code
-                                );
-            
-                                setTimeout(function() {
-            
-                                    location.reload();
-            
-                                }, 1000);
-            
-                            } else {
-            
-                                apex.message.alert(
-                                    data.message || "Unable to save transaction."
-                                );
-            
-                            }
-            
-                        },
-            
-                        error: function(xhr) {
-            
-                            console.error(xhr.responseText);
-            
-                            apex.message.alert(
-                                "Error while saving receive transaction."
-                            );
-            
-                        }
-                    }
-                );
-            
-            }
-            
-            
-            
-            function populateTransaction() {
-            
-                if (!$v('P304_PARTY_NO')) {
-                    apex.message.alert('Please select party.');
-                    return;
-                }
-            
-                if (!$v('P304_TRANSACTION_TYPE')) {
-                    apex.message.alert('Please select transaction type.');
-                    return;
-                }
-            
-                var model = apex.region("transaction-dtl")
-                    .widget()
-                    .interactiveGrid("getViews", "grid")
-                    .model;
-            
-                // Already populated?
-                if (model.getTotalRecords() > 0) {
-                    apex.message.alert('Transaction details already exist.');
-                    return;
-                }
-            
-                apex.server.process(
-                    'TRANSACTION_POPULATE',
-                    {
-                        x01: $v('P304_PARTY_NO'),
-                        x02: $v('P304_TRANSACTION_TYPE')
-                    },
-                    {
-                        success: function (pData) {
-            
-                            var json = JSON.parse(pData);
-            
-                            if (!json || json.length === 0) {
-            
-                                apex.message.alert(
-                                    'No pending transaction found.'
-                                );
-            
-                                return;
-                            }
-            
-                            for (var key in json) {
-            
-                                if (json.hasOwnProperty(key)) {
-            
-                                    var rec = model.insertNewRecord();
-            
-                                    model.setRecordValue(
-                                        rec,
-                                        "REF_TYPE",
-                                        json[key].REF_TYPE.toString()
-                                    );
-            
-                                    model.setRecordValue(
-                                        rec,
-                                        "REF_NO",
-                                        json[key].REF_NO.toString()
-                                    );
-            
-                                    // model.setRecordValue(
-                                    //     rec,
-                                    //     "DOC_NO",
-                                    //     json[key].DOC_NO.toString()
-                                    // );
-            
-                                    model.setRecordValue(
-                                        rec,
-                                        "DOC_CODE",
-                                        json[key].DOC_CODE.toString()
-                                    );
-            
-                                    model.setRecordValue(
-                                        rec,
-                                        "DOC_DATE",
-                                        json[key].DOC_DATE
-                                    );
-            
-                                    model.setRecordValue(
-                                        rec,
-                                        "PRODUCT_NO",
-                                        json[key].PRODUCT_NO.toString()
-                                    );
-            
-                                    model.setRecordValue(
-                                        rec,
-                                        "PRODUCT_CODE",
-                                        json[key].PRODUCT_CODE
-                                    );
-            
-                                    model.setRecordValue(
-                                        rec,
-                                        "PRODUCT_NAME",
-                                        json[key].PRODUCT_NAME
-                                    );
-            
-                                    model.setRecordValue(
-                                        rec,
-                                        "INVOICE_AMOUNT",
-                                        json[key].INVOICE_AMOUNT.toString()
-                                    );
-            
-                                    model.setRecordValue(
-                                        rec,
-                                        "PREVIOUS_AMOUNT",
-                                        json[key].PREVIOUS_AMOUNT.toString()
-                                    );
-            
-                                    model.setRecordValue(
-                                        rec,
-                                        "DUE_AMOUNT",
-                                        json[key].DUE_AMOUNT.toString()
-                                    );
-            
-                                    model.setRecordValue(
-                                        rec,
-                                        "ALLOCATE_AMOUNT",
-                                        json[key].ALLOCATE_AMOUNT.toString()
-                                    );
-            
-                                }
-            
-                            }
-            
-                            apex.message.showPageSuccess(
-                                json.length + ' record(s) loaded successfully.'
-                            );
-            
-                        },
-            
-                        error: function () {
-            
-                            apex.message.alert(
-                                'Error loading transaction details.'
-                            );
-            
-                        },
-            
-                        dataType: "text"
-            
-                    }
-            
-                );
-            
-            }
-            ```
     }
     css {
         inline:
@@ -298,10 +16,10 @@ page 304 (
                CUSTOMER RECEIVED ITEMS
                ================================ */
             
-            #P304_TOTAL_AMOUNT,
-            #P304_PREVIOUS_PAYMNET,
-            #P304_DUE_AMOUNT,
-            #P304_PAYMENT_AMOUNT {
+            #P27_TOTAL_AMOUNT,
+            #P27_PREVIOUS_PAYMNET,
+            #P27_DUE_AMOUNT,
+            #P27_PAYMENT_AMOUNT {
                 height: 32PX;
                 border: 1px solid #d9dee5;
                 border-radius: 7px;
@@ -315,41 +33,41 @@ page 304 (
             }
             
             /* Label */
-            /* label[for="P304_TOTAL_AMOUNT"],
-            label[for="P304_PREVIOUS_PAYMNET"],
-            label[for="P304_DUE_AMOUNT"],
-            label[for="P304_PAYMENT_AMOUNT"] {
+            /* label[for="P27_TOTAL_AMOUNT"],
+            label[for="P27_PREVIOUS_PAYMNET"],
+            label[for="P27_DUE_AMOUNT"],
+            label[for="P27_PAYMENT_AMOUNT"] {
                 font-size: 12px;
                 font-weight: 600;
                 color: #667085;
             } */
             
             /* Total */
-            #P304_TOTAL_AMOUNT {
+            #P27_TOTAL_AMOUNT {
                 color: #344054;
             }
             
             /* Previous Payment */
-            #P304_PREVIOUS_PAYMNET {
+            #P27_PREVIOUS_PAYMNET {
                 color: #475467;
             }
             
             /* Due */
-            #P304_DUE_AMOUNT {
+            #P27_DUE_AMOUNT {
                 color: #dc2626;
                 background: #fff7f7;
                 border-color: #fecaca;
             }
             
             /* Received */
-            #P304_PAYMENT_AMOUNT {
+            #P27_PAYMENT_AMOUNT {
                 color: #15803d;
                 background: #f0fdf4;
                 border-color: #bbf7d0;
             }
             
             /* Focus */
-            #P304_PAYMENT_AMOUNT:focus {
+            #P27_PAYMENT_AMOUNT:focus {
                 border-color: #16a34a;
                 background: #ffffff;
                 box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.10);
@@ -358,10 +76,10 @@ page 304 (
             
             /* Mobile */
             @media (max-width: 600px) {
-                #P304_TOTAL_AMOUNT,
-                #P304_PREVIOUS_PAYMNET,
-                #P304_DUE_AMOUNT,
-                #P304_PAYMENT_AMOUNT {
+                #P27_TOTAL_AMOUNT,
+                #P27_PREVIOUS_PAYMNET,
+                #P27_DUE_AMOUNT,
+                #P27_PAYMENT_AMOUNT {
                     height: 40px;
                     font-size: 15px;
                 }
@@ -1553,8 +1271,8 @@ page 304 (
                        ===================================================== */
                 
                     SELECT
-                        CUSTOMER_NAME,
-                        CUSTOMER_CODE,
+                        SUPPLIER_NAME,
+                        SUPPLIER_CODE,
                         MOBILE_NO,
                         ADDRESS
                     INTO
@@ -1562,8 +1280,8 @@ page 304 (
                         l_customer_code,
                         l_mobile_no,
                         l_address
-                    FROM MST_CUSTOMER
-                    WHERE CUSTOMER_NO = :P304_PARTY_NO
+                    FROM MST_SUPPLIER
+                    WHERE SUPPLIER_NO = :P27_PARTY_NO
                       AND ACTIVE_FLAG = '1';
                 
                 
@@ -1574,7 +1292,7 @@ page 304 (
                     l_url := apex_page.get_url(
                         p_page   => 25,
                         p_items  => 'P25_CUSTOMER_NO',
-                        p_values => :P304_PARTY_NO
+                        p_values => :P27_PARTY_NO
                     );
                 
                 
@@ -1588,7 +1306,7 @@ page 304 (
                 
                 
                         <!-- =================================================
-                             LEFT : CUSTOMER / ADDRESS
+                             LEFT : SUPPLIER / ADDRESS
                              ================================================= -->
                 
                         <div class="customer-section">
@@ -1664,17 +1382,17 @@ page 304 (
                 
                 
                         <!-- =================================================
-                             MIDDLE : CUSTOMER RECEIVE
+                             MIDDLE : SUPPLIER RECEIVE
                              ================================================= -->
                 
                         <div class="receive-section">
                 
                             <div class="receive-title">
-                                Customer Receive
+                                Supplier Payment
                             </div>
                 
                             <div class="receive-subtitle">
-                                Receive payment against customer invoice
+                                Payment Supplier Against Purchase Invoice
                             </div>
                 
                         </div>
@@ -1751,7 +1469,7 @@ page 304 (
                                     <div class="customer-info">
                 
                                         <div class="customer-name">
-                                            No Customer
+                                            No Supplier
                                         </div>
                 
                                         <div class="customer-phone">
@@ -1766,7 +1484,7 @@ page 304 (
                                 <div class="address-bottom">
                 
                                     <span class="customer-address">
-                                        Please select a customer
+                                        Please select a Supplier
                                     </span>
                 
                                 </div>
@@ -1780,11 +1498,11 @@ page 304 (
                             <div class="receive-section">
                 
                                 <div class="receive-title">
-                                    Customer Receive
+                                   Supplier Payment
                                 </div>
                 
                                 <div class="receive-subtitle">
-                                    Receive payment against customer invoice
+                                    Payment Supplier Against Purchase Invoice
                                 </div>
                 
                             </div>
@@ -1820,7 +1538,7 @@ page 304 (
                 
                 END;
                 ```
-            pageItemsToSubmit: P304_PARTY_NO
+            pageItemsToSubmit: P27_PARTY_NO
         }
         layout {
             sequence: 1
@@ -1876,347 +1594,280 @@ page 304 (
     )
 
     region order-summery (
-        name: ORDER SUMMERY
+        name: PURCHASE SUMMERY
         type: dynamicContent
         source {
             plsqlFunctionBody:
                 ```plsql
-                /* Formatted on 8/30/2026 4:27:51 PM (QP5 v5.388) */
+                /* Formatted on 8/30/2026 6:21:47 PM (QP5 v5.388) */
                 DECLARE
-                    l_html              CLOB := '';
+                    l_html            CLOB := '';
                 
-                    l_invoice_code      VARCHAR2 (100);
-                    l_invoice_date      DATE;
-                    l_customer_name     VARCHAR2 (300);
+                    l_purchase_code   VARCHAR2 (100);
+                    l_purchase_date   DATE;
+                    l_supplier_name   VARCHAR2 (300);
                 
-                    l_item_count        NUMBER;
-                    l_grand_total       NUMBER;
+                    l_item_count      NUMBER := 0;
+                    l_grand_total     NUMBER := 0;
                 
-                    /* PAYMENT SUMMARY */
-                    l_received_amount   NUMBER := 0;
-                    l_due_amount        NUMBER := 0;
+                    l_paid_amount     NUMBER := 0;
+                    l_due_amount      NUMBER := 0;
                 BEGIN
                     /* =====================================================
-                       NO INVOICE SELECTED
+                       NO PURCHASE SELECTED
                        ===================================================== */
-                
-                    IF :P304_INVOICE IS NULL
+                    IF :P27_INVOICE IS NULL
                     THEN
                         RETURN '
                         <div class="invoice-history-empty">
-                
                             <i class="fa fa-file-text-o"></i>
-                
                             <div>
-                                Select an invoice to view product history
+                                Select a purchase invoice to view product history
                             </div>
                 
                         </div>';
                     END IF;
-                
-                
                     /* =====================================================
-                       INVOICE HEADER + PAYMENT
+                       PURCHASE HEADER
                        ===================================================== */
-                
-                    SELECT m.INVOICE_CODE,
-                           m.INVOICE_DATE,
-                           c.CUSTOMER_NAME,
-                           NVL (m.RECEIVED_AMOUNT, 0),
+                    SELECT m.PURCHASE_CODE,
+                           m.PURCHASE_DATE,
+                           s.SUPPLIER_NAME,
+                           NVL (m.PAID_AMOUNT, 0),
                            NVL (m.DUE_AMOUNT,
-                                NVL (m.TOTAL_AMOUNT, 0) - NVL (m.RECEIVED_AMOUNT, 0))
-                      INTO l_invoice_code,
-                           l_invoice_date,
-                           l_customer_name,
-                           l_received_amount,
+                                NVL (m.TOTAL_AMOUNT, 0) - NVL (m.PAID_AMOUNT, 0))
+                      INTO l_purchase_code,
+                           l_purchase_date,
+                           l_supplier_name,
+                           l_paid_amount,
                            l_due_amount
-                      FROM TRN_SALES_INVOICE_MST  m
-                           JOIN MST_CUSTOMER c ON c.CUSTOMER_NO = m.CUSTOMER_NO
-                     WHERE m.INVOICE_NO = :P304_INVOICE;
-                
-                
+                      FROM TRN_PURCHASE_MST  m
+                           JOIN MST_SUPPLIER s ON s.SUPPLIER_NO = m.SUPPLIER_NO
+                     WHERE m.PURCHASE_NO = :P27_INVOICE;
                     /* =====================================================
                        PRODUCT SUMMARY
                        ===================================================== */
-                
-                    SELECT COUNT (*), NVL (SUM (d.TOTAL_AMOUNT), 0)
+                    SELECT COUNT (*), NVL (SUM (NVL (d.TOTAL_AMOUNT, 0)), 0)
                       INTO l_item_count, l_grand_total
-                      FROM TRN_SALES_INVOICE_DTL d
-                     WHERE d.INVOICE_NO = :P304_INVOICE;
-                
-                
+                      FROM TRN_PURCHASE_DTL d
+                     WHERE d.PURCHASE_NO = :P27_INVOICE;
                     /* =====================================================
-                       PRODUCT HISTORY CARD
+                       MAIN CARD
                        ===================================================== */
-                
                     l_html :=
-                           '
-                
-                    <div class="invoice-history-card">
-                
-                
-                        <!-- =================================================
-                             HEADER
-                             ================================================= -->
-                
-                        <div class="history-header">
-                
-                            <div class="history-title-area">
-                
-                                <div class="history-title">
-                                    Product History
-                                </div>
-                
-                                <div class="history-subtitle">'
-                        || apex_escape.html (l_invoice_code)
+                           '<div class="invoice-history-card">
+                            <div class="history-header">
+                                <div class="history-title-area">
+                                    <div class="history-title">
+                                        Product History
+                                    </div>
+                                    <div class="history-subtitle">'
+                        || apex_escape.html (NVL (l_purchase_code, '-'))
                         || ' &nbsp;•&nbsp; '
-                        || apex_escape.html (l_customer_name)
-                        || '
+                        || apex_escape.html (NVL (l_supplier_name, '-'))
+                        || '</div>
                                 </div>
-                
+                                <div class="history-date">'
+                        || TO_CHAR (l_purchase_date,
+                                    'DD Mon YYYY',
+                                    'NLS_DATE_LANGUAGE=English')
+                        || '</div>
                             </div>
-                
-                            <div class="history-date">'
-                        || TO_CHAR (l_invoice_date, 'DD Mon YYYY')
-                        || '
-                            </div>
-                
-                        </div>
-                
-                
-                        <!-- =================================================
-                             TABLE HEADER
-                             ================================================= -->
-                
-                        <div class="product-head">
-                
-                            <div class="product-col">
-                                Product
-                            </div>
-                
-                            <div class="qty-col">
-                                Qty
-                            </div>
-                
-                            <div class="price-col">
-                                Price
-                            </div>
-                
-                            <div class="total-col">
-                                Total
-                            </div>
-                
-                        </div>';
-                
-                
+                            <!-- TABLE HEADER -->
+                            <div class="product-head">
+                                <div class="product-col">
+                                    Product
+                                </div>
+                                <div class="qty-col">
+                                    Qty
+                                </div>
+                                <div class="price-col">
+                                    Rate
+                                </div>
+                                <div class="total-col">
+                                    Total
+                                </div>
+                            </div>';
                     /* =====================================================
-                       PRODUCT ROWS
+                       PRODUCT ROW
                        ===================================================== */
-                
                     FOR r
                         IN (  SELECT d.PRODUCT_NO,
                                      p.PRODUCT_CODE,
                                      p.PRODUCT_NAME,
-                                     d.SALES_QTY,
-                                     d.SALES_RATE,
+                                     d.PURCHASE_QTY,
+                                     d.PURCHASE_RATE,
                                      d.TOTAL_AMOUNT
-                               FROM TRN_SALES_INVOICE_DTL d
+                               FROM TRN_PURCHASE_DTL d
                                     JOIN MST_PRODUCT p ON p.PRODUCT_NO = d.PRODUCT_NO
-                              WHERE d.INVOICE_NO = :P304_INVOICE
-                           ORDER BY d.INVOICE_DTL_NO)
+                              WHERE d.PURCHASE_NO = :P27_INVOICE
+                           ORDER BY d.PURCHASE_DTL_NO)
                     LOOP
                         l_html :=
                                l_html
-                            || '
-                
-                        <div class="product-row">
-                
-                
-                            <!-- PRODUCT -->
-                
-                            <div class="product-col">
-                
-                                <div class="product-name">'
-                            || apex_escape.html (r.PRODUCT_NAME)
-                            || '
+                            || '<div class="product-row">
+                                <!-- PRODUCT -->
+                                <div class="product-col">
+                                    <div class="product-name">'
+                            || apex_escape.html (NVL (r.PRODUCT_NAME, '-'))
+                            || '</div>
+                                    <div class="product-code">'
+                            || apex_escape.html (NVL (r.PRODUCT_CODE, '-'))
+                            || '</div>
                                 </div>
-                
-                                <div class="product-code">'
-                            || apex_escape.html (r.PRODUCT_CODE)
-                            || '
+                                <!-- QTY -->
+                                <div class="qty-col">
+                                    <span class="qty-value">'
+                            || NVL (
+                                   TO_CHAR (r.PURCHASE_QTY,
+                                            'FM999999999990D999',
+                                            'NLS_NUMERIC_CHARACTERS=''.,'''),
+                                   '0')
+                            || '</span>
                                 </div>
+                                <!-- RATE -->
+                                <div class="price-col">
+                                    <span class="price-value">
+                                        ৳ '
+                            || NVL (
+                                   TO_CHAR (r.PURCHASE_RATE,
+                                            'FM999999999990D00',
+                                            'NLS_NUMERIC_CHARACTERS=''.,'''),
+                                   '0.00')
+                            || '</span>
                 
-                            </div>
+                                </div>
+                                <!-- TOTAL -->
                 
+                                <div class="total-col">
                 
-                            <!-- QTY -->
-                
-                            <div class="qty-col">
-                
-                                <span class="qty-value">'
-                            || TO_CHAR (r.SALES_QTY, 'FM999999999990.999')
-                            || '
-                                </span>
-                
-                            </div>
-                
-                
-                            <!-- PRICE -->
-                
-                            <div class="price-col">
-                
-                                ৳ '
-                            || TO_CHAR (r.SALES_RATE, 'FM999999999990.00')
-                            || '
-                
-                            </div>
-                
-                
-                            <!-- TOTAL -->
-                
-                            <div class="total-col">
-                
-                                ৳ '
-                            || TO_CHAR (r.TOTAL_AMOUNT, 'FM999999999990.00')
-                            || '
-                
-                            </div>
-                
-                        </div>';
+                                    <span class="total-value">
+                                        ৳ '
+                            || NVL (
+                                   TO_CHAR (r.TOTAL_AMOUNT,
+                                            'FM999999999990D00',
+                                            'NLS_NUMERIC_CHARACTERS=''.,'''),
+                                   '0.00')
+                            || '</span>
+                                </div>
+                            </div>';
                     END LOOP;
                 
-                
                     /* =====================================================
-                       PRODUCT FOOTER
+                       FOOTER
                        ===================================================== */
-                
                     l_html :=
                            l_html
-                        || '
-                
-                        <div class="history-footer">
+                        || '<div class="history-footer">
                 
                             <div class="item-count">'
                         || l_item_count
                         || ' Item(s)
                             </div>
-                
                             <div class="history-total-label">
-                
                                 Total
-                
                                 <strong>
                                     ৳ '
-                        || TO_CHAR (l_grand_total, 'FM999999999990.00')
-                        || '
-                                </strong>
-                
-                            </div>
-                
+                        || NVL (
+                               TO_CHAR (l_grand_total,
+                                        'FM999999999990D00',
+                                        'NLS_NUMERIC_CHARACTERS=''.,'''),
+                               '0.00')
+                        || '</strong>
+                           </div>
                         </div>
-                
                     </div>';
-                
-                
                     /* =====================================================
-                       PAYMENT SUMMARY BLOCK
+                       PAYMENT SUMMARY
                        ===================================================== */
-                
                     l_html :=
                            l_html
-                        || '
+                        || '<div class="invoice-payment-summary">
                 
-                    <div class="invoice-payment-summary">
+                            <div class="payment-line">
                 
-                        <!-- PAYMENT -->
+                                <span class="payment-label">
+                                    Payment
+                                </span>
                 
-                        <div class="payment-line">
+                                <span class="payment-value payment-received">
+                                    ৳ '
+                        || NVL (
+                               TO_CHAR (l_paid_amount,
+                                        'FM999999999990D00',
+                                        'NLS_NUMERIC_CHARACTERS=''.,'''),
+                               '0.00')
+                        || '</span>
                 
-                            <span class="payment-label">
-                                Payment
-                            </span>
+                            </div>
+                            <div class="payment-line">
                 
-                            <span class="payment-value payment-received">
-                                ৳ '
-                        || TO_CHAR (l_received_amount, 'FM999999999990.00')
-                        || '
-                            </span>
+                                <span class="payment-label">
+                                    Due
+                                </span>
                 
-                        </div>
+                                <span class="payment-value payment-due">
+                                    ৳ '
+                        || NVL (
+                               TO_CHAR (l_due_amount,
+                                        'FM999999999990D00',
+                                        'NLS_NUMERIC_CHARACTERS=''.,'''),
+                               '0.00')
+                        || '</span>
+                            </div>
+                            <div class="payment-line payment-status-row">
                 
-                
-                        <!-- DUE -->
-                
-                        <div class="payment-line">
-                
-                            <span class="payment-label">
-                                Due
-                            </span>
-                
-                            <span class="payment-value payment-due">
-                                ৳ '
-                        || TO_CHAR (l_due_amount, 'FM999999999990.00')
-                        || '
-                            </span>
-                
-                        </div>
-                
-                
-                        <!-- STATUS -->
-                
-                        <div class="payment-line payment-status-row">
-                
-                            <span class="payment-label">
-                                Status
-                            </span>
-                
-                            <span class="payment-status '
+                                <span class="payment-label">
+                                    Status
+                                </span>
+                                <span class="payment-status '
                         || CASE
-                               WHEN l_due_amount = 0 THEN 'status-paid'
-                               WHEN l_received_amount > 0 THEN 'status-partial'
+                               WHEN NVL (l_due_amount, 0) <= 0 THEN 'status-paid'
+                               WHEN NVL (l_paid_amount, 0) > 0 THEN 'status-partial'
                                ELSE 'status-unpaid'
                            END
-                        || '">
-                
-                                '
+                        || '">'
                         || CASE
-                               WHEN l_due_amount = 0
+                               WHEN NVL (l_due_amount, 0) <= 0
                                THEN
                                    '<i class="fa fa-check-circle"></i> PAID'
-                               WHEN l_received_amount > 0
+                               WHEN NVL (l_paid_amount, 0) > 0
                                THEN
                                    '<i class="fa fa-adjust"></i> PARTIAL'
                                ELSE
                                    '<i class="fa fa-clock-o"></i> UNPAID'
                            END
-                        || '
+                        || '</span>
                 
-                            </span>
+                            </div>
                 
-                        </div>
-                
-                
-                    </div>';
-                
-                
+                        </div>';
                     RETURN l_html;
                 EXCEPTION
                     WHEN NO_DATA_FOUND
                     THEN
                         RETURN '
-                
                         <div class="invoice-history-empty">
                 
                             <i class="fa fa-file-o"></i>
                 
                             <div>
-                                Invoice information not found
+                                Purchase invoice information not found
                             </div>
                 
                         </div>';
+                    WHEN OTHERS
+                    THEN
+                        RETURN '
+                        <div class="invoice-history-empty">
+                            <i class="fa fa-exclamation-triangle"></i>
+                            <div>
+                                Unable to load purchase information
+                            </div>
+                        </div>';
                 END;
                 ```
-            pageItemsToSubmit: P304_INVOICE
+            pageItemsToSubmit: P27_INVOICE
         }
         layout {
             sequence: 2
@@ -2231,6 +1882,180 @@ page 304 (
                 t-Region--removeHeader js-removeLandmark
                 t-Region--scrollBody
             ]
+        }
+    )
+
+    region supplier-summery (
+        name: SUPPLIER SUMMERY
+        type: dynamicContent
+        source {
+            plsqlFunctionBody:
+                ```plsql
+                /* Formatted on 8/25/2026 4:45:21 PM (QP5 v5.388) */
+                DECLARE
+                    v_html   CLOB;
+                BEGIN
+                    SELECT    '<div id="supplier_summary"
+                                 style="
+                                    width:100%;
+                                    max-width:240px;
+                                    box-sizing:border-box;
+                                    padding:6px 9px;
+                                    border:1px solid #e1e5e9;
+                                    border-radius:5px;
+                                    background:#fff;
+                                    font-size:11px;
+                                    line-height:1.55;
+                                 ">
+                
+                                <!-- Supplier -->
+                                <div style="
+                                    font-size:12px;
+                                    font-weight:600;
+                                    color:#333;
+                                    margin-bottom:5px;
+                                    white-space:nowrap;
+                                    overflow:hidden;
+                                    text-overflow:ellipsis;
+                                ">
+                                    Supplier:
+                                    '
+                           || NVL (S.SUPPLIER_NAME, 'N/A')
+                           || '
+                                </div>
+                
+                                <!-- PREVIOUS -->
+                                <div style="
+                                    margin-top:2px;
+                                    margin-bottom:4px;
+                                    padding:3px 6px;
+                                    border-left:3px solid #7b8794;
+                                    background:#f4f6f8;
+                                    color:#5f6b76;
+                                    font-size:10px;
+                                    font-weight:700;
+                                    text-transform:uppercase;
+                                    letter-spacing:.5px;
+                                ">
+                                    Previous
+                                </div>
+                
+                                <!-- Purchase -->
+                                <div style="
+                                    display:flex;
+                                    justify-content:space-between;
+                                    align-items:center;
+                                ">
+                                    <span>Purchase</span>
+                
+                                    <b>
+                                        ৳ '
+                           || TO_CHAR (NVL (X.PURCHASE_AMOUNT, 0), 'FM999G999G999G990D00')
+                           || '</b>
+                                </div>
+                
+                                <!-- Paid -->
+                                <div style="
+                                    display:flex;
+                                    justify-content:space-between;
+                                    align-items:center;
+                                ">
+                                    <span>Paid</span>
+                
+                                    <b>
+                                        ৳ '
+                           || TO_CHAR (NVL (X.PAID_AMOUNT, 0), 'FM999G999G999G990D00')
+                           || '</b>
+                                </div>
+                
+                                <!-- Due -->
+                                <div style="
+                                    display:flex;
+                                    justify-content:space-between;
+                                    align-items:center;
+                                    border-top:1px solid #eee;
+                                    margin-top:2px;
+                                    padding-top:2px;
+                                ">
+                                    <span>Due</span>
+                
+                                    <b style="
+                                        color:#c0392b;
+                                        font-weight:700;
+                                    ">
+                                        ৳ '
+                           || TO_CHAR (NVL (X.DUE_AMOUNT, 0), 'FM999G999G999G990D00')
+                           || '</b>
+                                </div>
+                
+                                <!-- Payment Status -->
+                                <div style="
+                                    display:flex;
+                                    justify-content:space-between;
+                                    align-items:center;
+                                ">
+                                    <span>Status</span>
+                
+                                    <b style="
+                                        color:'
+                           || CASE X.PAYMENT_STATUS
+                                  WHEN 'Paid' THEN '#27ae60'
+                                  WHEN 'Unpaid' THEN '#c0392b'
+                                  ELSE '#e67e22'
+                              END
+                           || ';
+                                        font-weight:700;
+                                    ">
+                                        '
+                           || NVL (X.PAYMENT_STATUS, 'Unpaid')
+                           || '
+                                    </b>
+                                </div>
+                
+                           </div>'
+                      INTO v_html
+                      FROM MST_SUPPLIER  S
+                           LEFT JOIN
+                           (  SELECT M.SUPPLIER_NO,
+                                     SUM (NVL (M.TOTAL_AMOUNT, 0))    AS PURCHASE_AMOUNT,
+                                     SUM (NVL (M.PAID_AMOUNT, 0))     AS PAID_AMOUNT,
+                                     SUM (NVL (M.DUE_AMOUNT, 0))      AS DUE_AMOUNT,
+                                     CASE
+                                         WHEN SUM (NVL (M.DUE_AMOUNT, 0)) = 0 THEN 'Paid'
+                                         WHEN SUM (NVL (M.PAID_AMOUNT, 0)) = 0 THEN 'Unpaid'
+                                         ELSE 'Partially Paid'
+                                     END                              AS PAYMENT_STATUS
+                                FROM TRN_PURCHASE_MST M
+                            GROUP BY M.SUPPLIER_NO) X
+                               ON X.SUPPLIER_NO = S.SUPPLIER_NO
+                     WHERE S.SUPPLIER_NO = :P27_PARTY_NO;
+                
+                
+                    RETURN v_html;
+                EXCEPTION
+                    WHEN OTHERS
+                    THEN
+                        RETURN '<div style="
+                            font-size:11px;
+                            color:#777;
+                            padding:6px;
+                        ">
+                            Supplier summary unavailable.
+                         </div>';
+                END;
+                ```
+            pageItemsToSubmit: P27_PARTY_NO
+        }
+        layout {
+            sequence: 40
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        config {
+            buildOption: @commented-out
         }
     )
 
@@ -2291,7 +2116,7 @@ page 304 (
         }
     )
 
-    pageItem P304_APPROVAL_STATUS (
+    pageItem P27_APPROVAL_STATUS (
         type: hidden
         settings {
             valueProtected: false
@@ -2308,7 +2133,7 @@ page 304 (
         }
     )
 
-    pageItem P304_APPROVED_BY (
+    pageItem P27_APPROVED_BY (
         type: hidden
         settings {
             valueProtected: false
@@ -2325,12 +2150,12 @@ page 304 (
         }
         serverSideCondition {
             type: item=value
-            item: P304_APPROVAL_STATUS
+            item: P27_APPROVAL_STATUS
             value: A
         }
     )
 
-    pageItem P304_APPROVED_DATE (
+    pageItem P27_APPROVED_DATE (
         type: hidden
         settings {
             valueProtected: false
@@ -2347,12 +2172,12 @@ page 304 (
         }
         serverSideCondition {
             type: item=value
-            item: P304_APPROVAL_STATUS
+            item: P27_APPROVAL_STATUS
             value: A
         }
     )
 
-    pageItem P304_BANK_ACCOUNT_NO (
+    pageItem P27_BANK_ACCOUNT_NO (
         type: numberField
         label {
             label: Bank Account No
@@ -2385,7 +2210,7 @@ page 304 (
         }
     )
 
-    pageItem P304_CREATED_BY (
+    pageItem P27_CREATED_BY (
         type: hidden
         settings {
             valueProtected: false
@@ -2402,7 +2227,7 @@ page 304 (
         }
     )
 
-    pageItem P304_CREATED_DATE (
+    pageItem P27_CREATED_DATE (
         type: hidden
         settings {
             valueProtected: false
@@ -2419,7 +2244,7 @@ page 304 (
         }
     )
 
-    pageItem P304_DUE_AMOUNT (
+    pageItem P27_DUE_AMOUNT (
         type: textField
         label {
             label: Due Amount
@@ -2446,25 +2271,26 @@ page 304 (
         }
     )
 
-    pageItem P304_INVOICE (
+    pageItem P27_INVOICE (
         type: popupLov
         label {
-            label: Invoice
+            label: Purchase Order
             alignment: left
         }
         settings {
             fetchOnSearch: true
             popupWidth: 500
-            additionalOutputs: PAYMENT_AMOUNT:P304_PAYMENT_AMOUNT,INVOICE_AMOUNT:P304_TOTAL_AMOUNT,RECEIVED_AMOUNT:P304_PREVIOUS_PAYMNET,DUE_AMOUNT:P304_DUE_AMOUNT
+            additionalOutputs: PAY_DUE_AMOUNT:P27_PAYMENT_AMOUNT,INVOICE_AMOUNT:P27_TOTAL_AMOUNT,PAYMENT_AMOUNT:P27_PREVIOUS_PAYMNET,DUE_AMOUNT:P27_DUE_AMOUNT
         }
         lov {
             type: sharedComponent
-            lov: @lov-304-invoice-list
+            lov: @lov-27-supplier-purchase
             displayExtraValues: false
+            displayNullValue: false
         }
         cascadingLov {
-            parentItems: P304_PARTY_NO
-            itemsToSubmit: P304_PARTY_NO
+            parentItems: P27_PARTY_NO
+            itemsToSubmit: P27_PARTY_NO
         }
         layout {
             sequence: 140
@@ -2484,12 +2310,15 @@ page 304 (
             ]
             width: 30
         }
+        source {
+            used: always
+        }
     )
 
-    pageItem P304_PARTY_NO (
+    pageItem P27_PARTY_NO (
         type: popupLov
         label {
-            label: Customer/Supplier
+            label: Supplier Shop Name
             alignment: left
         }
         settings {
@@ -2501,23 +2330,14 @@ page 304 (
                 ```sql
                   SELECT PARTY_NAME AS D, PARTY_NO AS R
                     FROM (
-                          SELECT C.CUSTOMER_NAME AS PARTY_NAME, C.CUSTOMER_NO AS PARTY_NO
-                            FROM MST_CUSTOMER C
+                          
+                          SELECT S.SUPPLIER_NAME AS PARTY_NAME, S.SUPPLIER_NO AS PARTY_NO
+                            FROM MST_SUPPLIER S
                                  WHERE EXISTS
                                          (SELECT 1
-                                            FROM TRN_SALES_INVOICE_MST I
-                                           WHERE     I.CUSTOMER_NO = C.CUSTOMER_NO
-                                                 AND NVL (I.DUE_AMOUNT, 0) > 0))
-                        --   UNION ALL
-                
-                        --   SELECT S.SUPPLIER_NAME AS PARTY_NAME, S.SUPPLIER_NO AS PARTY_NO
-                        --     FROM MST_SUPPLIER S
-                        --    WHERE     :P304_TRANSACTION_TYPE = 'P'
-                        --          AND EXISTS
-                        --                  (SELECT 1
-                        --                     FROM TRN_PURCHASE_MST P
-                        --                    WHERE     P.SUPPLIER_NO = S.SUPPLIER_NO
-                        --                          AND NVL (P.DUE_AMOUNT, 0) > 0))
+                                            FROM TRN_PURCHASE_MST P
+                                           WHERE     P.SUPPLIER_NO = S.SUPPLIER_NO
+                                                 AND NVL (P.DUE_AMOUNT, 0) > 0))
                 ORDER BY PARTY_NAME;
                 ```
             displayExtraValues: false
@@ -2549,7 +2369,7 @@ page 304 (
         }
     )
 
-    pageItem P304_PARTY_TYPE (
+    pageItem P27_PARTY_TYPE (
         type: hidden
         settings {
             valueProtected: false
@@ -2570,7 +2390,7 @@ page 304 (
         }
     )
 
-    pageItem P304_PAYMENT_AMOUNT (
+    pageItem P27_PAYMENT_AMOUNT (
         type: textField
         label {
             label: Payment Amount
@@ -2594,7 +2414,7 @@ page 304 (
         }
     )
 
-    pageItem P304_PAY_MODE (
+    pageItem P27_PAY_MODE (
         type: radioGroup
         label {
             label: Payment method
@@ -2635,7 +2455,7 @@ page 304 (
         }
     )
 
-    pageItem P304_PREVIOUS_PAYMNET (
+    pageItem P27_PREVIOUS_PAYMNET (
         type: textField
         label {
             label: Previous Paymnet
@@ -2662,7 +2482,7 @@ page 304 (
         }
     )
 
-    pageItem P304_REMARKS (
+    pageItem P27_REMARKS (
         type: hidden
         settings {
             valueProtected: false
@@ -2679,7 +2499,7 @@ page 304 (
         }
     )
 
-    pageItem P304_STATUS (
+    pageItem P27_STATUS (
         type: hidden
         settings {
             valueProtected: false
@@ -2696,12 +2516,12 @@ page 304 (
         }
         serverSideCondition {
             type: item=value
-            item: P304_APPROVAL_STATUS
+            item: P27_APPROVAL_STATUS
             value: A
         }
     )
 
-    pageItem P304_TOTAL_AMOUNT (
+    pageItem P27_TOTAL_AMOUNT (
         type: textField
         label {
             label: Product price
@@ -2737,7 +2557,7 @@ page 304 (
         }
     )
 
-    pageItem P304_TRANSACTION_CODE (
+    pageItem P27_TRANSACTION_CODE (
         type: displayOnly
         label {
             label: Transaction Code
@@ -2768,19 +2588,31 @@ page 304 (
         }
         serverSideCondition {
             type: itemIsNotNull
-            item: P304_TRANSACTION_NO
+            item: P27_TRANSACTION_NO
         }
     )
 
-    pageItem P304_TRANSACTION_DATE (
-        type: hidden
-        settings {
-            valueProtected: false
+    pageItem P27_TRANSACTION_DATE (
+        type: datePicker
+        label {
+            label: Transaction Date
+            alignment: left
         }
         layout {
             sequence: 70
             region: @trn-mst
             slot: regionBody
+            alignment: left
+            labelColumnSpan: 4
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+            ]
+            width: 30
         }
         source {
             formRegion: @trn-mst
@@ -2793,7 +2625,7 @@ page 304 (
         }
     )
 
-    pageItem P304_TRANSACTION_NO (
+    pageItem P27_TRANSACTION_NO (
         type: hidden
         layout {
             sequence: 10
@@ -2811,7 +2643,7 @@ page 304 (
         }
     )
 
-    pageItem P304_TRANSACTION_TYPE (
+    pageItem P27_TRANSACTION_TYPE (
         type: hidden
         settings {
             valueProtected: false
@@ -2832,7 +2664,7 @@ page 304 (
         }
     )
 
-    pageItem P304_UPDATED_BY (
+    pageItem P27_UPDATED_BY (
         type: hidden
         settings {
             valueProtected: false
@@ -2849,7 +2681,7 @@ page 304 (
         }
     )
 
-    pageItem P304_UPDATED_DATE (
+    pageItem P27_UPDATED_DATE (
         type: hidden
         settings {
             valueProtected: false
@@ -2866,7 +2698,7 @@ page 304 (
         }
     )
 
-    pageItem P304_VOUCHER_NUMBER (
+    pageItem P27_VOUCHER_NUMBER (
         type: hidden
         settings {
             valueProtected: false
@@ -2883,7 +2715,7 @@ page 304 (
         }
         serverSideCondition {
             type: itemIsNotNull
-            item: P304_TRANSACTION_NO
+            item: P27_TRANSACTION_NO
         }
     )
 
@@ -2935,7 +2767,7 @@ page 304 (
         behavior {
             action: redirectThisApp
             target: {
-                page: 304
+                page: 27
                 clearCache: 17
                 action: clearRegions
             }
@@ -2946,8 +2778,8 @@ page 304 (
     )
 
     button payment-now_1 (
-        buttonName: Received_Now
-        label: Received Now
+        buttonName: Payment_Now
+        label: Payment Now
         layout {
             sequence: 210
             region: @trn-mst
@@ -3031,11 +2863,11 @@ page 304 (
         }
         when {
             selectionType: items
-            items: P304_PAY_MODE
+            items: P27_PAY_MODE
         }
         clientSideCondition {
             type: item=value
-            item: P304_PAY_MODE
+            item: P27_PAY_MODE
             value: B
         }
 
@@ -3043,7 +2875,7 @@ page 304 (
             action: hide
             affectedElements {
                 selectionType: items
-                items: P304_BANK_ACCOUNT_NO
+                items: P27_BANK_ACCOUNT_NO
             }
             execution {
                 sequence: 10
@@ -3055,7 +2887,7 @@ page 304 (
             action: show
             affectedElements {
                 selectionType: items
-                items: P304_BANK_ACCOUNT_NO
+                items: P27_BANK_ACCOUNT_NO
             }
             execution {
                 sequence: 10
@@ -3065,13 +2897,13 @@ page 304 (
     )
 
     dynamicAction new_4 (
-        name: da_refresh
+        name: New
         execution {
             sequence: 60
         }
         when {
             selectionType: items
-            items: P304_INVOICE
+            items: P27_INVOICE
         }
 
         action native-refresh (
@@ -3089,13 +2921,13 @@ page 304 (
     )
 
     dynamicAction new_5 (
-        name: da_refresh
+        name: New
         execution {
             sequence: 70
         }
         when {
             selectionType: items
-            items: P304_PARTY_NO
+            items: P27_PARTY_NO
         }
 
         action native-refresh (
@@ -3121,7 +2953,7 @@ page 304 (
             event: custom
             customEvent: input
             selectionType: items
-            items: P304_PAYMENT_AMOUNT
+            items: P27_PAYMENT_AMOUNT
         }
 
         action native-javascript-code (
@@ -3129,8 +2961,8 @@ page 304 (
             settings {
                 jsCode:
                     ```javascript-browser
-                    var due = parseFloat($v("P304_DUE_AMOUNT")) || 0;
-                    var payment = parseFloat($v("P304_PAYMENT_AMOUNT")) || 0;
+                    var due = parseFloat($v("P27_DUE_AMOUNT")) || 0;
+                    var payment = parseFloat($v("P27_PAYMENT_AMOUNT")) || 0;
                     
                     if (payment <= 0) {
                     
@@ -3138,13 +2970,13 @@ page 304 (
                             {
                                 type: "error",
                                 location: ["inline"],
-                                pageItem: "P304_PAYMENT_AMOUNT",
+                                pageItem: "P27_PAYMENT_AMOUNT",
                                 message: "Please enter a valid payment amount.",
                                 unsafe: false
                             }
                         ]);
                     
-                        apex.item("P304_PAYMENT_AMOUNT").setValue("");
+                        apex.item("P27_PAYMENT_AMOUNT").setValue("");
                     
                         return false;
                     }
@@ -3155,13 +2987,13 @@ page 304 (
                             {
                                 type: "error",
                                 location: ["inline"],
-                                pageItem: "P304_PAYMENT_AMOUNT",
+                                pageItem: "P27_PAYMENT_AMOUNT",
                                 message: "Payment cannot be greater than Due Amount.",
                                 unsafe: false
                             }
                         ]);
                     
-                        apex.item("P304_PAYMENT_AMOUNT").setValue("");
+                        apex.item("P27_PAYMENT_AMOUNT").setValue("");
                     
                         return false;
                     }
@@ -3186,7 +3018,7 @@ page 304 (
             point: beforeHeader
         }
         advanced {
-            executionMappingIdentifier: 14627660159935207234
+            executionMappingIdentifier: 12164750793465742
         }
     )
 
@@ -3200,9 +3032,9 @@ page 304 (
                   SELECT M.INVOICE_NO                                AS INVOICE_NO,
                          M.TOTAL_AMOUNT                              AS INVOICE_AMOUNT,
                          NVL (M.DUE_AMOUNT, 0)                       AS DUE_AMOUNT,
-                         M.RECEIVED_AMOUNT                           AS RECEIVED_AMOUNT INTO :P304_INVOICE ,:P304_TOTAL_AMOUNT,:P304_DUE_AMOUNT,:P304_PREVIOUS_PAYMNET
+                         M.RECEIVED_AMOUNT                           AS RECEIVED_AMOUNT INTO :P27_INVOICE ,:P27_TOTAL_AMOUNT,:P27_DUE_AMOUNT,:P27_PREVIOUS_PAYMNET
                     FROM TRN_SALES_INVOICE_MST M
-                   WHERE M.CUSTOMER_NO = :P304_PARTY_NO AND NVL (M.DUE_AMOUNT, 0) > 0
+                   WHERE M.CUSTOMER_NO = :P27_PARTY_NO AND NVL (M.DUE_AMOUNT, 0) > 0
                 ORDER BY M.INVOICE_DATE DESC;
                 EXCEPTION 
                 WHEN NO_DATA_FOUND
@@ -3215,7 +3047,7 @@ page 304 (
             point: beforeHeader
         }
         advanced {
-            executionMappingIdentifier: 12000002336732018
+            executionMappingIdentifier: 12166989474465764
         }
     )
 
@@ -3225,9 +3057,9 @@ page 304 (
         source {
             plsqlCode:
                 ```plsql
-                /* Formatted on 8/30/2026 4:50:52 PM (QP5 v5.388) */
+                /* Formatted on 8/30/2026 6:29:40 PM (QP5 v5.388) */
                 /* =====================================================
-                   CUSTOMER PAYMENT - PAGE SUBMIT PROCESS
+                   SUPPLIER PAYMENT - PAGE SUBMIT PROCESS
                    ===================================================== */
                 
                 DECLARE
@@ -3242,15 +3074,15 @@ page 304 (
                        VALIDATION
                        ===================================================== */
                 
-                
+                    /* Check existing pending payment request */
                     SELECT COUNT (*)
                       INTO l_pending_count
                       FROM TRN_TRANSACTION_DTL  d
                            JOIN TRN_TRANSACTION_MST m ON m.TRANSACTION_NO = d.TRANSACTION_NO
-                     WHERE     d.REF_TYPE = 'INVOICE'
-                           AND d.REF_NO = :P304_INVOICE
-                           AND m.PARTY_NO = :P304_PARTY_NO
-                           AND m.TRANSACTION_TYPE = 'R'
+                     WHERE     d.REF_TYPE = 'PURCHASE'
+                           AND d.REF_NO = :P27_INVOICE
+                           AND m.PARTY_NO = :P27_PARTY_NO
+                           AND m.TRANSACTION_TYPE = 'P'
                            AND m.APPROVAL_STATUS = 'P';
                 
                 
@@ -3258,23 +3090,26 @@ page 304 (
                     THEN
                         RAISE_APPLICATION_ERROR (
                             -20007,
-                            'A payment request for this invoice is already pending approval. Please wait until it is approved.');
+                            'A payment request for this purchase invoice is already pending approval. Please wait until it is approved.');
                     END IF;
                 
                 
-                    IF :P304_PARTY_NO IS NULL
+                    /* Supplier validation */
+                    IF :P27_PARTY_NO IS NULL
                     THEN
-                        RAISE_APPLICATION_ERROR (-20001, 'Please select customer.');
+                        RAISE_APPLICATION_ERROR (-20001, 'Please select supplier.');
                     END IF;
                 
                 
-                    IF :P304_INVOICE IS NULL
+                    /* Purchase invoice validation */
+                    IF :P27_INVOICE IS NULL
                     THEN
-                        RAISE_APPLICATION_ERROR (-20002, 'Please select invoice.');
+                        RAISE_APPLICATION_ERROR (-20002, 'Please select purchase invoice.');
                     END IF;
                 
                 
-                    IF NVL ( :P304_PAYMENT_AMOUNT, 0) <= 0
+                    /* Payment amount validation */
+                    IF NVL ( :P27_PAYMENT_AMOUNT, 0) <= 0
                     THEN
                         RAISE_APPLICATION_ERROR (-20003,
                                                  'Payment amount must be greater than zero.');
@@ -3289,30 +3124,33 @@ page 304 (
                       INTO l_previous_amount
                       FROM TRN_TRANSACTION_DTL  t
                            JOIN TRN_TRANSACTION_MST h ON h.TRANSACTION_NO = t.TRANSACTION_NO
-                     WHERE     t.REF_TYPE = 'INVOICE'
-                           AND t.REF_NO = :P304_INVOICE
+                     WHERE     t.REF_TYPE = 'PURCHASE'
+                           AND t.REF_NO = :P27_INVOICE
+                           AND h.PARTY_NO = :P27_PARTY_NO
+                           AND h.TRANSACTION_TYPE = 'P'
                            AND h.APPROVAL_STATUS = 'A';
                 
                 
                     /* =====================================================
-                       GET CURRENT INVOICE DUE
+                       GET CURRENT PURCHASE DUE
                        ===================================================== */
                 
                     SELECT NVL (TOTAL_AMOUNT, 0) - l_previous_amount
                       INTO l_due_amount
-                      FROM TRN_SALES_INVOICE_MST
-                     WHERE INVOICE_NO = :P304_INVOICE AND CUSTOMER_NO = :P304_PARTY_NO
+                      FROM TRN_PURCHASE_MST
+                     WHERE PURCHASE_NO = :P27_INVOICE AND SUPPLIER_NO = :P27_PARTY_NO
                     FOR UPDATE;
                 
                 
                     /* =====================================================
-                       VALIDATE INVOICE DUE
+                       VALIDATE PURCHASE DUE
                        ===================================================== */
                 
                     IF l_due_amount <= 0
                     THEN
-                        RAISE_APPLICATION_ERROR (-20004,
-                                                 'This invoice is already fully paid.');
+                        RAISE_APPLICATION_ERROR (
+                            -20004,
+                            'This purchase invoice is already fully paid.');
                     END IF;
                 
                 
@@ -3320,11 +3158,11 @@ page 304 (
                        PAYMENT CANNOT EXCEED DUE
                        ===================================================== */
                 
-                    IF :P304_PAYMENT_AMOUNT > l_due_amount
+                    IF :P27_PAYMENT_AMOUNT > l_due_amount
                     THEN
                         RAISE_APPLICATION_ERROR (
                             -20005,
-                               'Payment amount cannot be greater than invoice due. '
+                               'Payment amount cannot be greater than purchase due. '
                             || 'Current due: '
                             || TO_CHAR (l_due_amount, 'FM999999999990.00'));
                     END IF;
@@ -3338,7 +3176,7 @@ page 304 (
                 
                     l_txn_code := 'TRN-' || LPAD (l_txn_no, 6, '0');
                 
-                    :P304_TRANSACTION_NO := l_txn_no;
+                    :P27_TRANSACTION_NO := l_txn_no;
                 
                 
                     /* =====================================================
@@ -3357,11 +3195,11 @@ page 304 (
                                                      CREATED_DATE)
                          VALUES (l_txn_no,
                                  l_txn_code,
-                                 :P304_PARTY_NO,
-                                 :P304_PAY_MODE,
-                                 'R',
-                                 SYSDATE,
-                                 :P304_PAYMENT_AMOUNT,
+                                 :P27_PARTY_NO,
+                                 :P27_PAY_MODE,
+                                 'P',
+                                 :P27_TRANSACTION_DATE,
+                                 :P27_PAYMENT_AMOUNT,
                                  'P',
                                  :APP_USER,
                                  SYSDATE);
@@ -3369,7 +3207,7 @@ page 304 (
                 
                     /* =====================================================
                        TRANSACTION DETAIL
-                       ONE ROW PER INVOICE
+                       ONE ROW PER PURCHASE INVOICE
                        ===================================================== */
                 
                     INSERT INTO TRN_TRANSACTION_DTL (TRANSACTION_DTL_NO,
@@ -3388,21 +3226,21 @@ page 304 (
                                                      CREATED_DATE)
                         SELECT SEQ_TRANSACTION_DTL_NO.NEXTVAL,
                                l_txn_no,
-                               'INVOICE',
-                               m.INVOICE_NO,
-                               m.INVOICE_NO,
-                               m.INVOICE_CODE,
-                               m.INVOICE_DATE,
+                               'PURCHASE',
+                               m.PURCHASE_NO,
+                               m.PURCHASE_NO,
+                               m.PURCHASE_CODE,
+                               m.PURCHASE_DATE,
                                NULL,
                                m.TOTAL_AMOUNT,
                                l_previous_amount,
                                l_due_amount,
-                               :P304_PAYMENT_AMOUNT,
+                               :P27_PAYMENT_AMOUNT,
                                :APP_USER,
                                SYSDATE
-                          FROM TRN_SALES_INVOICE_MST m
-                         WHERE     m.INVOICE_NO = :P304_INVOICE
-                               AND m.CUSTOMER_NO = :P304_PARTY_NO;
+                          FROM TRN_PURCHASE_MST m
+                         WHERE     m.PURCHASE_NO = :P27_INVOICE
+                               AND m.SUPPLIER_NO = :P27_PARTY_NO;
                 
                 
                     /* =====================================================
@@ -3411,27 +3249,32 @@ page 304 (
                 
                     APEX_APPLICATION.g_print_success_message :=
                            '<div class="payment-success-message">
-                            <div class="payment-success-content">
+                                <span class="payment-success-icon">
+                                    <i class="fa fa-check-circle"></i>
+                                </span>
                 
-                                <div class="payment-success-title">
-                                    Payment Transaction Created
-                                </div>
+                                <div class="payment-success-content">
                 
-                                <div class="payment-success-text">
-                                    Transaction <strong>'
+                                    <div class="payment-success-title">
+                                        Supplier Payment Transaction Created
+                                    </div>
+                
+                                    <div class="payment-success-text">
+                                        Transaction <strong>'
                         || apex_escape.html (l_txn_code)
                         || '</strong>
-                                    created successfully and is
-                                    <strong>Pending Approval</strong>.
-                                </div>
+                                        created successfully and is
+                                        <strong>Pending Approval</strong>.
+                                    </div>
                 
-                            </div>
-                        </div>';
+                                </div>
+                            </div>';
                 EXCEPTION
                     WHEN NO_DATA_FOUND
                     THEN
-                        RAISE_APPLICATION_ERROR (-20006,
-                                                 'Invoice not found for selected customer.');
+                        RAISE_APPLICATION_ERROR (
+                            -20006,
+                            'Purchase invoice not found for selected supplier.');
                 END;
                 ```
         }
@@ -3442,175 +3285,10 @@ page 304 (
             errorMessage: #SQLERRM_TEXT#
         }
         advanced {
-            executionMappingIdentifier: 11998308407732001
+            executionMappingIdentifier: 12166121144465762
         }
         serverSideCondition {
             whenButtonPressed: @payment-now_1
-        }
-    )
-
-    process populate-invoice (
-        name: TRANSACTION_POPULATE
-        type: executeCode
-        source {
-            plsqlCode:
-                ```plsql
-                /* Formatted on 8/24/2026 4:31:33 PM (QP5 v5.388) */
-                DECLARE
-                    V_DATA   CLOB;
-                BEGIN
-                    ------------------------------------------------------------------
-                    -- RECEIVE
-                    ------------------------------------------------------------------
-                
-                    IF APEX_APPLICATION.G_X02 = 'R'
-                    THEN
-                        SELECT JSON_ARRAYAGG (
-                                   JSON_OBJECT (
-                                       'REF_TYPE' VALUE 'INVOICE',
-                                       'REF_NO' VALUE M.INVOICE_NO,
-                                       --'DOC_NO' VALUE M.INVOICE_NO,
-                
-                                       'DOC_CODE' VALUE M.INVOICE_CODE,
-                                       'DOC_DATE' VALUE
-                                           TO_CHAR (M.INVOICE_DATE, 'MM/DD/YYYY'),
-                                       'PRODUCT_NO' VALUE D.PRODUCT_NO,
-                                       'PRODUCT_NAME' VALUE P.PRODUCT_NAME,
-                                       'PRODUCT_CODE' VALUE P.PRODUCT_CODE,
-                                       'INVOICE_AMOUNT' VALUE D.TOTAL_AMOUNT,
-                                       'PREVIOUS_AMOUNT' VALUE
-                                           NVL (
-                                               (SELECT SUM (T.ALLOCATE_AMOUNT)
-                                                 FROM TRN_TRANSACTION_DTL  T
-                                                      JOIN TRN_TRANSACTION_MST H
-                                                          ON H.TRANSACTION_NO =
-                                                             T.TRANSACTION_NO
-                                                WHERE     T.REF_TYPE = 'INVOICE'
-                                                      AND T.REF_NO = D.INVOICE_DTL_NO
-                                                      AND H.APPROVAL_STATUS = 'A'),
-                                               0),
-                                       'DUE_AMOUNT' VALUE
-                                             D.TOTAL_AMOUNT
-                                           - NVL (
-                                                 (SELECT SUM (T.ALLOCATE_AMOUNT)
-                                                   FROM TRN_TRANSACTION_DTL  T
-                                                        JOIN TRN_TRANSACTION_MST H
-                                                            ON H.TRANSACTION_NO =
-                                                               T.TRANSACTION_NO
-                                                  WHERE     T.REF_TYPE = 'INVOICE'
-                                                        AND T.REF_NO = D.INVOICE_DTL_NO
-                                                        AND H.APPROVAL_STATUS = 'A'),
-                                                 0),
-                                       'ALLOCATE_AMOUNT' VALUE 0)
-                                   RETURNING CLOB)
-                          INTO V_DATA
-                          FROM TRN_SALES_INVOICE_MST  M
-                               JOIN TRN_SALES_INVOICE_DTL D ON D.INVOICE_NO = M.INVOICE_NO
-                               JOIN MST_PRODUCT P ON P.PRODUCT_NO = D.PRODUCT_NO
-                         WHERE     M.CUSTOMER_NO = APEX_APPLICATION.G_X01
-                               AND (  D.TOTAL_AMOUNT
-                                    - NVL (
-                                          (SELECT SUM (T.ALLOCATE_AMOUNT)
-                                            FROM TRN_TRANSACTION_DTL  T
-                                                 JOIN TRN_TRANSACTION_MST H
-                                                     ON H.TRANSACTION_NO = T.TRANSACTION_NO
-                                           WHERE     T.REF_TYPE = 'INVOICE'
-                                                 AND T.REF_NO = D.INVOICE_DTL_NO
-                                                 AND H.APPROVAL_STATUS = 'A'),
-                                          0)) >
-                                   0;
-                    ------------------------------------------------------------------
-                    -- PAYMENT
-                    ------------------------------------------------------------------
-                
-                    ELSIF APEX_APPLICATION.G_X02 = 'P'
-                    THEN
-                        SELECT JSON_ARRAYAGG (
-                                   JSON_OBJECT (
-                                       'REF_TYPE' VALUE 'PURCHASE',
-                                       'REF_NO' VALUE D.PURCHASE_NO,
-                                       -- 'DOC_NO' VALUE M.PURCHASE_NO,
-                
-                                       'DOC_CODE' VALUE M.PURCHASE_CODE,
-                                       'DOC_DATE' VALUE
-                                           TO_CHAR (M.PURCHASE_DATE, 'MM/DD/YYYY'),
-                                       'PRODUCT_NO' VALUE D.PRODUCT_NO,
-                                       'PRODUCT_NAME' VALUE P.PRODUCT_NAME,
-                                       'PRODUCT_CODE' VALUE P.PRODUCT_CODE,
-                                       'INVOICE_AMOUNT' VALUE D.TOTAL_AMOUNT,
-                                       'PREVIOUS_AMOUNT' VALUE
-                                           NVL (
-                                               (SELECT SUM (T.ALLOCATE_AMOUNT)
-                                                 FROM TRN_TRANSACTION_DTL  T
-                                                      JOIN TRN_TRANSACTION_MST H
-                                                          ON H.TRANSACTION_NO =
-                                                             T.TRANSACTION_NO
-                                                WHERE     T.REF_TYPE = 'PURCHASE'
-                                                      AND T.PRODUCT_NO = D.PRODUCT_NO
-                                                      AND H.APPROVAL_STATUS = 'A'),
-                                               0),
-                                       'DUE_AMOUNT' VALUE
-                                             D.TOTAL_AMOUNT
-                                           - NVL (
-                                                 (SELECT SUM (T.ALLOCATE_AMOUNT)
-                                                   FROM TRN_TRANSACTION_DTL  T
-                                                        JOIN TRN_TRANSACTION_MST H
-                                                            ON H.TRANSACTION_NO =
-                                                               T.TRANSACTION_NO
-                                                  WHERE     T.REF_TYPE = 'PURCHASE'
-                                                        AND T.PRODUCT_NO = D.PRODUCT_NO
-                                                        AND H.APPROVAL_STATUS = 'A'),
-                                                 0),
-                                       'ALLOCATE_AMOUNT' VALUE   D.TOTAL_AMOUNT
-                                           - NVL (
-                                                 (SELECT SUM (T.ALLOCATE_AMOUNT)
-                                                   FROM TRN_TRANSACTION_DTL  T
-                                                        JOIN TRN_TRANSACTION_MST H
-                                                            ON H.TRANSACTION_NO =
-                                                               T.TRANSACTION_NO
-                                                  WHERE     T.REF_TYPE = 'PURCHASE'
-                                                        AND T.PRODUCT_NO = D.PRODUCT_NO
-                                                        AND H.APPROVAL_STATUS = 'A'),
-                                                 0))
-                                   RETURNING CLOB)
-                          INTO V_DATA
-                          FROM TRN_PURCHASE_MST  M
-                               JOIN TRN_PURCHASE_DTL D ON D.PURCHASE_NO = M.PURCHASE_NO
-                               JOIN MST_PRODUCT P ON P.PRODUCT_NO = D.PRODUCT_NO
-                         WHERE     M.SUPPLIER_NO = APEX_APPLICATION.G_X01
-                         AND M.APPROVAL_STATUS = 'A'
-                               AND (  D.TOTAL_AMOUNT
-                                    - NVL (
-                                          (SELECT SUM (T.ALLOCATE_AMOUNT)
-                                            FROM TRN_TRANSACTION_DTL  T
-                                                 JOIN TRN_TRANSACTION_MST H
-                                                     ON H.TRANSACTION_NO = T.TRANSACTION_NO
-                                           WHERE     T.REF_TYPE = 'PURCHASE'
-                                                 AND T.REF_NO = D.PURCHASE_DTL_NO
-                                                 AND H.APPROVAL_STATUS = 'A'),
-                                          0)) >
-                                   0;
-                    END IF;
-                
-                    IF V_DATA IS NULL
-                    THEN
-                        V_DATA := '[]';
-                    END IF;
-                
-                    HTP.PRN (V_DATA);
-                EXCEPTION
-                    WHEN OTHERS
-                    THEN
-                        HTP.PRN ('[]');
-                END;
-                ```
-        }
-        execution {
-            sequence: 10
-            point: ajaxCallback
-        }
-        advanced {
-            executionMappingIdentifier: 14788393078656363429
         }
     )
 

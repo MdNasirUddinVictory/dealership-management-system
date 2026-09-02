@@ -367,6 +367,7 @@ page 305 (
             displayColumn (
                 column: @PRODUCT_CODE
                 layout {
+                    show: false
                     width: 80
                     sequence: 1
                 }
@@ -375,6 +376,7 @@ page 305 (
             displayColumn (
                 column: @PRODUCT_NAME
                 layout {
+                    show: false
                     width: 111
                     sequence: 2
                 }
@@ -944,7 +946,7 @@ page 305 (
                     type: url
                     url: javascript:f_openModal('#TRANSACTION_NO#','#TRANSACTION_TYPE#','#APPROVAL_STATUS#')
                 }
-                linkText: <span class="t-Button-label">Details</span>
+                linkText: <span class="t-Button-label">Approved</span>
                 linkAttributes: class="t-Button t-Button--hot t-Button--small t-Button--primary t-Button--stretch"
             }
             source {
@@ -1206,7 +1208,7 @@ page 305 (
                 sequence: 2
             )
 
-            displayColumn TRANSACTION_TYPE (
+            displayColumn TRAN_TYPE (
                 sequence: 4
             )
 
@@ -1438,32 +1440,50 @@ page 305 (
         source {
             plsqlCode:
                 ```plsql
+                /* Formatted on 9/1/2026 12:31:01 PM (QP5 v5.388) */
                 DECLARE
-                
-                    V_TRANSACTION_NO   NUMBER      := APEX_APPLICATION.G_X01;
-                    V_TRANSACTION_TYPE VARCHAR2(1) := APEX_APPLICATION.G_X02;
-                
+                    V_TRANSACTION_NO     NUMBER;
+                    V_TRANSACTION_TYPE   VARCHAR2 (1);
                 BEGIN
+                    -- Get AJAX parameters
+                    V_TRANSACTION_NO := TO_NUMBER (APEX_APPLICATION.G_X01);
+                    V_TRANSACTION_TYPE := UPPER (TRIM (APEX_APPLICATION.G_X02));
                 
-                    PKG_FINANCE.POST_TRANSACTION
-                    (
-                        P_TRANSACTION_NO   => V_TRANSACTION_NO,
-                        P_TRANSACTION_TYPE => V_TRANSACTION_TYPE
-                    );
+                    -- Validation
+                    IF V_TRANSACTION_NO IS NULL
+                    THEN
+                        RAISE_APPLICATION_ERROR (-20001, 'Transaction No is required.');
+                    END IF;
                 
+                    IF V_TRANSACTION_TYPE NOT IN ('P', 'R')
+                    THEN
+                        RAISE_APPLICATION_ERROR (-20002, 'Invalid transaction type.');
+                    END IF;
+                
+                    -- Post Transaction
+                    IF V_TRANSACTION_TYPE = 'P'
+                    THEN
+                        PKG_FINANCE.POST_PAYMENT (P_TRANSACTION_NO => V_TRANSACTION_NO);
+                    ELSE
+                        PKG_FINANCE.POST_RECEIVE (P_TRANSACTION_NO => V_TRANSACTION_NO);
+                    END IF;
+                
+                    -- Success Response
                     APEX_JSON.OPEN_OBJECT;
-                    APEX_JSON.WRITE('status','SUCCESS');
-                    APEX_JSON.WRITE('message','Transaction approved successfully.');
+                
+                    APEX_JSON.WRITE ('status', 'SUCCESS');
+                    APEX_JSON.WRITE ('message', 'Transaction approved successfully.');
+                
                     APEX_JSON.CLOSE_OBJECT;
-                
                 EXCEPTION
-                    WHEN OTHERS THEN
-                
+                    WHEN OTHERS
+                    THEN
                         APEX_JSON.OPEN_OBJECT;
-                        APEX_JSON.WRITE('status','ERROR');
-                        APEX_JSON.WRITE('message',SQLERRM);
-                        APEX_JSON.CLOSE_OBJECT;
                 
+                        APEX_JSON.WRITE ('status', 'ERROR');
+                        APEX_JSON.WRITE ('message', SQLERRM);
+                
+                        APEX_JSON.CLOSE_OBJECT;
                 END;
                 ```
         }

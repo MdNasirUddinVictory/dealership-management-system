@@ -10,7 +10,6 @@ page 301 (
         cursorFocus: doNotFocusCursor
     }
     security {
-        pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
 
@@ -566,6 +565,9 @@ page 301 (
 
     pageItem P301_VOUCHER_NO (
         type: hidden
+        settings {
+            valueProtected: false
+        }
         layout {
             sequence: 10
             region: @register
@@ -963,21 +965,21 @@ page 301 (
                     -------------------------------------------------
                     -- Approved Check
                     -------------------------------------------------
-                
+                begin
                     SELECT APPROVAL_STATUS
                       INTO v_status
                       FROM ACC_VOUCHER_MST
                      WHERE VOUCHER_NO = :P301_VOUCHER_NO;
-                
                     IF v_status = 'A' THEN
-                
                         RAISE_APPLICATION_ERROR(
                             -20001,
                             'Approved voucher cannot be modified.'
                         );
-                
                     END IF;
-                
+                    EXCEPTION 
+                    WHEN NO_DATA_FOUND THEN NULL;
+                    
+                end;
                     -------------------------------------------------
                     -- Validation
                     -------------------------------------------------

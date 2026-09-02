@@ -61,245 +61,1362 @@ page 303 (
 
     region voucher-mst (
         name: General Ledger
-        type: interactiveReport
+        type: dynamicContent
         source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                WITH TXN AS
-                (
-                    SELECT
-                           D.VOUCHER_DTL_NO,
-                           D.ACCOUNT_NO,
-                           H.ACCOUNT_CODE,
-                           H.ACCOUNT_NAME,
-                           H.ACCOUNT_TYPE,
+            plsqlFunctionBody:
+                ```plsql
+                DECLARE
+                    v_html              CLOB;
                 
-                           M.VOUCHER_NO,
-                           M.VOUCHER_DATE,
-                           M.VOUCHER_CODE,
-                           M.VOUCHER_TYPE,
+                    v_last_account      VARCHAR2(100) := NULL;
+                    v_account_type      VARCHAR2(10)  := NULL;
+                    v_account_code      VARCHAR2(100) := NULL;
+                    v_account_name      VARCHAR2(500) := NULL;
                 
-                           D.REF_TYPE,
-                           D.REF_NO,
-                           D.PARTICULARS,
+                    v_account_opening   NUMBER := 0;
+                    v_account_total_dr  NUMBER := 0;
+                    v_account_total_cr  NUMBER := 0;
+                    v_account_closing   NUMBER := 0;
                 
-                           NVL(D.DEBIT_AMOUNT, 0)  AS DEBIT_AMOUNT,
-                           NVL(D.CREDIT_AMOUNT, 0) AS CREDIT_AMOUNT
+                BEGIN
                 
-                      FROM ACC_VOUCHER_MST M
+                    /* =========================================================
+                       HTML HEADER + CSS
+                       ========================================================= */
                 
-                      JOIN ACC_VOUCHER_DTL D
-                        ON D.VOUCHER_NO = M.VOUCHER_NO
+                    v_html := q'[
+                <style>
                 
-                      JOIN MST_ACCOUNT_HEAD H
-                        ON H.ACCOUNT_NO = D.ACCOUNT_NO
+                .gl-container {
+                    width:100%;
+                    box-sizing:border-box;
+                    font-family:Arial,sans-serif;
+                    background:#fff;
+                    border:1px solid #e1e5e9;
+                    border-radius:8px;
+                    overflow:hidden;
+                }
                 
-                     WHERE M.APPROVAL_STATUS = 'A'
+                .gl-header {
+                    padding:15px 18px;
+                    background:#fafbfc;
+                    border-bottom:1px solid #e5e9ed;
+                }
                 
-                       /* ACCOUNT */
-                       AND (
-                              :P303_ACCOUNT_NO IS NULL
-                              OR D.ACCOUNT_NO = :P303_ACCOUNT_NO
-                           )
+                .gl-title {
+                    font-size:20px;
+                    font-weight:700;
+                    color:#26343f;
+                }
                 
-                       /* FROM DATE */
-                       AND (
-                              :P303_FROM_DATE IS NULL
-                              OR M.VOUCHER_DATE >=
-                                 TO_DATE(:P303_FROM_DATE, 'DD-MON-YYYY')
-                           )
+                .gl-subtitle {
+                    margin-top:4px;
+                    font-size:11px;
+                    color:#7a8793;
+                }
                 
-                       /* TO DATE */
-                       AND (
-                              :P303_TO_DATE IS NULL
-                              OR M.VOUCHER_DATE <
-                                 TO_DATE(:P303_TO_DATE, 'DD-MON-YYYY') + 1
-                           )
+                .gl-account {
+                    margin:12px;
+                    border:1px solid #dce4ea;
+                    border-radius:7px;
+                    overflow:hidden;
+                }
                 
-                       /* VOUCHER TYPE */
-                       AND (
-                              :P303_VOUCHER_TYPE IS NULL
-                              OR M.VOUCHER_TYPE = :P303_VOUCHER_TYPE
-                           )
-                ),
+                .gl-account-header {
+                    padding:10px 12px;
+                    background:#f1f4f7;
+                    border-bottom:1px solid #dce4ea;
+                }
                 
-                /* =========================================================
-                   OPENING BALANCE
-                   ONLY TRANSACTIONS BEFORE FROM DATE
-                   ========================================================= */
-                OPENING AS
-                (
-                    SELECT
-                           H.ACCOUNT_NO,
-                           H.ACCOUNT_TYPE,
+                .gl-account-code {
+                    font-size:10px;
+                    color:#71808d;
+                }
                 
-                           CASE
-                               /* ASSET / EXPENSE */
-                               WHEN H.ACCOUNT_TYPE IN ('A', 'E')
-                               THEN
-                                   NVL
-                                   (
-                                       SUM
-                                       (
-                                           CASE
-                                               WHEN M.VOUCHER_NO IS NOT NULL
-                                               THEN
-                                                   NVL(D.DEBIT_AMOUNT, 0)
-                                                 - NVL(D.CREDIT_AMOUNT, 0)
-                                               ELSE
-                                                   0
-                                           END
-                                       ),
-                                       0
+                .gl-account-name {
+                    margin-top:2px;
+                    font-size:14px;
+                    font-weight:700;
+                    color:#26343f;
+                }
+                
+                .gl-opening {
+                    margin-top:4px;
+                    font-size:11px;
+                    color:#526170;
+                }
+                
+                .gl-table-wrapper {
+                    width:100%;
+                    overflow-x:auto;
+                }
+                
+                .gl-table {
+                    width:100%;
+                    min-width:900px;
+                    border-collapse:collapse;
+                    table-layout:fixed;
+                }
+                
+                .gl-table th {
+                    padding:8px 7px;
+                    background:#f8fafb;
+                    border-bottom:1px solid #e5e9ed;
+                    font-size:10px;
+                    color:#526170;
+                    font-weight:700;
+                    text-align:left;
+                }
+                
+                .gl-table td {
+                    padding:7px;
+                    border-bottom:1px solid #f0f2f4;
+                    font-size:10px;
+                    color:#34424d;
+                    vertical-align:top;
+                }
+                
+                .gl-table .right {
+                    text-align:right;
+                }
+                
+                .gl-table .center {
+                    text-align:center;
+                }
+                
+                .gl-date {
+                    white-space:nowrap;
+                    color:#667684;
+                }
+                
+                .gl-voucher {
+                    font-weight:600;
+                    color:#286090;
+                }
+                
+                .gl-particular {
+                    line-height:1.35;
+                }
+                
+                .gl-ref {
+                    margin-top:2px;
+                    font-size:9px;
+                    color:#7a8793;
+                }
+                
+                .gl-dr {
+                    color:#286090 !important;
+                    font-weight:600;
+                }
+                
+                .gl-cr {
+                    color:#c0392b !important;
+                    font-weight:600;
+                }
+                
+                .gl-balance {
+                    font-weight:700;
+                }
+                
+                .gl-total {
+                    background:#fafbfc;
+                }
+                
+                .gl-total td {
+                    padding:8px 7px;
+                    border-top:1px solid #dfe5ea;
+                    font-weight:700;
+                }
+                
+                .gl-footer {
+                    padding:8px 12px;
+                    background:#fafbfc;
+                    border-top:1px solid #e5e9ed;
+                    font-size:10px;
+                    color:#71808d;
+                    text-align:right;
+                }
+                
+                .gl-no-data {
+                    padding:35px 15px;
+                    text-align:center;
+                    color:#7a8793;
+                    font-size:12px;
+                }
+                
+                @media(max-width:768px) {
+                
+                    .gl-container {
+                        border-radius:5px;
+                    }
+                
+                    .gl-account {
+                        margin:7px;
+                    }
+                
+                    .gl-title {
+                        font-size:17px;
+                    }
+                
+                }
+                
+                </style>
+                
+                <div class="gl-container">
+                
+                    <div class="gl-header">
+                
+                        <div class="gl-title">
+                            General Ledger
+                        </div>
+                
+                        <div class="gl-subtitle">
+                            Account Transaction Statement
+                ]';
+                
+                
+                    /* =========================================================
+                       DATE
+                       ========================================================= */
+                
+                    IF :P303_FROM_DATE IS NOT NULL
+                    THEN
+                
+                        v_html :=
+                            v_html
+                            || ' | From: '
+                            || APEX_ESCAPE.HTML(
+                                   TO_CHAR(:P303_FROM_DATE)
+                               );
+                
+                    END IF;
+                
+                
+                    IF :P303_TO_DATE IS NOT NULL
+                    THEN
+                
+                        v_html :=
+                            v_html
+                            || ' | To: '
+                            || APEX_ESCAPE.HTML(
+                                   TO_CHAR(:P303_TO_DATE)
+                               );
+                
+                    END IF;
+                
+                
+                    v_html :=
+                        v_html
+                        || q'[
+                        </div>
+                
+                    </div>
+                ]';
+                
+                
+                    /* =========================================================
+                       MAIN LOOP
+                       ========================================================= */
+                
+                    FOR R IN
+                    (
+                        WITH TXN AS
+                        (
+                            SELECT
+                                D.VOUCHER_DTL_NO,
+                                D.ACCOUNT_NO,
+                
+                                H.ACCOUNT_CODE,
+                                H.ACCOUNT_NAME,
+                                H.ACCOUNT_TYPE,
+                
+                                M.VOUCHER_NO,
+                                M.VOUCHER_DATE,
+                                M.VOUCHER_CODE,
+                                M.VOUCHER_TYPE,
+                
+                                D.REF_TYPE,
+                                D.REF_NO,
+                                D.PARTICULARS,
+                
+                                NVL(D.DEBIT_AMOUNT,0) AS DEBIT_AMOUNT,
+                                NVL(D.CREDIT_AMOUNT,0) AS CREDIT_AMOUNT
+                
+                            FROM ACC_VOUCHER_MST M
+                
+                            JOIN ACC_VOUCHER_DTL D
+                              ON D.VOUCHER_NO = M.VOUCHER_NO
+                
+                            JOIN MST_ACCOUNT_HEAD H
+                              ON H.ACCOUNT_NO = D.ACCOUNT_NO
+                
+                            WHERE M.APPROVAL_STATUS = 'A'
+                
+                              /* ============================================
+                                 ACCOUNT FILTER
+                                 Explicit character comparison
+                                 ============================================ */
+                
+                              AND
+                              (
+                                  :P303_ACCOUNT_NO IS NULL
+                                  OR TO_CHAR(D.ACCOUNT_NO) =
+                                     TO_CHAR(:P303_ACCOUNT_NO)
+                              )
+                
+                              /* ============================================
+                                 FROM DATE
+                                 ============================================ */
+                
+                              AND
+                              (
+                                  :P303_FROM_DATE IS NULL
+                
+                                  OR M.VOUCHER_DATE >=
+                                     TO_DATE(
+                                         :P303_FROM_DATE,
+                                         'DD-MON-YYYY'
+                                     )
+                              )
+                
+                              /* ============================================
+                                 TO DATE
+                                 ============================================ */
+                
+                              AND
+                              (
+                                  :P303_TO_DATE IS NULL
+                
+                                  OR M.VOUCHER_DATE <
+                                     TO_DATE(
+                                         :P303_TO_DATE,
+                                         'DD-MON-YYYY'
+                                     ) + 1
+                              )
+                
+                              /* ============================================
+                                 VOUCHER TYPE
+                                 ============================================ */
+                
+                              AND
+                              (
+                                  :P303_VOUCHER_TYPE IS NULL
+                                  OR M.VOUCHER_TYPE =
+                                     :P303_VOUCHER_TYPE
+                              )
+                        ),
+                
+                
+                        /* =====================================================
+                           OPENING BALANCE
+                           ===================================================== */
+                
+                        OPENING AS
+                        (
+                            SELECT
+                                ACCOUNT_NO,
+                                ACCOUNT_TYPE,
+                
+                                SUM(OPENING_BALANCE)
+                                    AS OPENING_BALANCE
+                
+                            FROM
+                            (
+                
+                                /* =============================================
+                                   ACCOUNT OPENING
+                                   ============================================= */
+                
+                                SELECT
+                                    O.ACCOUNT_NO,
+                                    H.ACCOUNT_TYPE,
+                
+                                    CASE
+                
+                                        WHEN H.ACCOUNT_TYPE IN ('A','E')
+                                        THEN
+                                            NVL(O.OPENING_DEBIT,0)
+                                            -
+                                            NVL(O.OPENING_CREDIT,0)
+                
+                                        WHEN H.ACCOUNT_TYPE IN ('L','C','I')
+                                        THEN
+                                            NVL(O.OPENING_CREDIT,0)
+                                            -
+                                            NVL(O.OPENING_DEBIT,0)
+                
+                                        ELSE
+                                            0
+                
+                                    END AS OPENING_BALANCE
+                
+                                FROM ACC_OPENING_BALANCE O
+                
+                                JOIN MST_ACCOUNT_HEAD H
+                                  ON H.ACCOUNT_NO = O.ACCOUNT_NO
+                
+                                WHERE O.APPROVAL_STATUS = 'A'
+                
+                                  AND
+                                  (
+                                      :P303_ACCOUNT_NO IS NULL
+                
+                                      OR TO_CHAR(O.ACCOUNT_NO) =
+                                         TO_CHAR(:P303_ACCOUNT_NO)
+                                  )
+                
+                
+                                UNION ALL
+                
+                
+                                /* =============================================
+                                   PREVIOUS TRANSACTIONS
+                                   ============================================= */
+                
+                                SELECT
+                                    D.ACCOUNT_NO,
+                                    H.ACCOUNT_TYPE,
+                
+                                    CASE
+                
+                                        WHEN H.ACCOUNT_TYPE IN ('A','E')
+                                        THEN
+                                            NVL(D.DEBIT_AMOUNT,0)
+                                            -
+                                            NVL(D.CREDIT_AMOUNT,0)
+                
+                                        WHEN H.ACCOUNT_TYPE IN ('L','C','I')
+                                        THEN
+                                            NVL(D.CREDIT_AMOUNT,0)
+                                            -
+                                            NVL(D.DEBIT_AMOUNT,0)
+                
+                                        ELSE
+                                            0
+                
+                                    END AS OPENING_BALANCE
+                
+                                FROM ACC_VOUCHER_MST M
+                
+                                JOIN ACC_VOUCHER_DTL D
+                                  ON D.VOUCHER_NO = M.VOUCHER_NO
+                
+                                JOIN MST_ACCOUNT_HEAD H
+                                  ON H.ACCOUNT_NO = D.ACCOUNT_NO
+                
+                                WHERE M.APPROVAL_STATUS = 'A'
+                
+                                  AND :P303_FROM_DATE IS NOT NULL
+                
+                                  AND M.VOUCHER_DATE <
+                                      TO_DATE(
+                                          :P303_FROM_DATE,
+                                          'DD-MON-YYYY'
+                                      )
+                
+                                  AND
+                                  (
+                                      :P303_ACCOUNT_NO IS NULL
+                
+                                      OR TO_CHAR(D.ACCOUNT_NO) =
+                                         TO_CHAR(:P303_ACCOUNT_NO)
+                                  )
+                
+                            )
+                
+                            GROUP BY
+                                ACCOUNT_NO,
+                                ACCOUNT_TYPE
+                        ),
+                
+                
+                        /* =====================================================
+                           RUNNING BALANCE
+                           ===================================================== */
+                
+                        RUNNING AS
+                        (
+                            SELECT
+                                T.*,
+                
+                                NVL(
+                                    O.OPENING_BALANCE,
+                                    0
+                                ) AS OPENING_BALANCE,
+                
+                
+                                SUM(
+                
+                                    CASE
+                
+                                        WHEN T.ACCOUNT_TYPE IN ('A','E')
+                                        THEN
+                                            T.DEBIT_AMOUNT
+                                            -
+                                            T.CREDIT_AMOUNT
+                
+                                        WHEN T.ACCOUNT_TYPE IN ('L','C','I')
+                                        THEN
+                                            T.CREDIT_AMOUNT
+                                            -
+                                            T.DEBIT_AMOUNT
+                
+                                        ELSE
+                                            0
+                
+                                    END
+                
+                                )
+                                OVER
+                                (
+                                    PARTITION BY T.ACCOUNT_NO
+                
+                                    ORDER BY
+                                        T.VOUCHER_DATE,
+                                        T.VOUCHER_NO,
+                                        T.VOUCHER_DTL_NO
+                
+                                    ROWS BETWEEN
+                                        UNBOUNDED PRECEDING
+                                        AND CURRENT ROW
+                
+                                ) AS MOVEMENT_BALANCE
+                
+                            FROM TXN T
+                
+                            LEFT JOIN OPENING O
+                              ON O.ACCOUNT_NO = T.ACCOUNT_NO
+                        )
+                
+                
+                        /* =====================================================
+                           FINAL DATA
+                           ===================================================== */
+                
+                        SELECT
+                
+                            ROW_NUMBER()
+                            OVER
+                            (
+                                ORDER BY
+                                    ACCOUNT_NO,
+                                    VOUCHER_DATE,
+                                    VOUCHER_NO,
+                                    VOUCHER_DTL_NO
+                            ) AS SL,
+                
+                            VOUCHER_NO,
+                            VOUCHER_CODE,
+                            VOUCHER_DATE,
+                            VOUCHER_TYPE,
+                
+                            ACCOUNT_NO,
+                            ACCOUNT_CODE,
+                            ACCOUNT_NAME,
+                            ACCOUNT_TYPE,
+                
+                            REF_TYPE,
+                            REF_NO,
+                            PARTICULARS,
+                
+                            DEBIT_AMOUNT,
+                            CREDIT_AMOUNT,
+                
+                            OPENING_BALANCE,
+                
+                            OPENING_BALANCE
+                            +
+                            MOVEMENT_BALANCE
+                                AS RUNNING_BALANCE,
+                
+                
+                            CASE
+                
+                                WHEN
+                                    OPENING_BALANCE
+                                    +
+                                    MOVEMENT_BALANCE >= 0
+                
+                                THEN
+                
+                                    CASE
+                
+                                        WHEN ACCOUNT_TYPE IN ('A','E')
+                                        THEN 'DR'
+                
+                                        ELSE 'CR'
+                
+                                    END
+                
+                                ELSE
+                
+                                    CASE
+                
+                                        WHEN ACCOUNT_TYPE IN ('A','E')
+                                        THEN 'CR'
+                
+                                        ELSE 'DR'
+                
+                                    END
+                
+                            END AS BALANCE_TYPE
+                
+                        FROM RUNNING
+                
+                        ORDER BY
+                            ACCOUNT_NO,
+                            VOUCHER_DATE,
+                            VOUCHER_NO,
+                            VOUCHER_DTL_NO
+                
+                    )
+                
+                    LOOP
+                
+                
+                        /* =====================================================
+                           ACCOUNT CHANGE
+                           ===================================================== */
+                
+                        IF v_last_account IS NULL
+                           OR v_last_account <>
+                              TO_CHAR(R.ACCOUNT_NO)
+                        THEN
+                
+                
+                            /* ================================================
+                               CLOSE PREVIOUS ACCOUNT
+                               ================================================ */
+                
+                            IF v_last_account IS NOT NULL
+                            THEN
+                
+                                v_html :=
+                                    v_html
+                                    || q'[
+                                        </tbody>
+                
+                                        <tfoot>
+                
+                                            <tr class="gl-total">
+                
+                                                <td colspan="4">
+                                                    Account Total
+                                                </td>
+                
+                                                <td class="right gl-dr">
+                                                    ৳ ]'
+                                    || TO_CHAR(
+                                           v_account_total_dr,
+                                           'FM999G999G999G990D00'
+                                       )
+                                    || q'[</td>
+                
+                                                <td class="right gl-cr">
+                                                    ৳ ]'
+                                    || TO_CHAR(
+                                           v_account_total_cr,
+                                           'FM999G999G999G990D00'
+                                       )
+                                    || q'[</td>
+                
+                                                <td class="right">
+                                                    ৳ ]'
+                                    || TO_CHAR(
+                                           ABS(v_account_closing),
+                                           'FM999G999G999G990D00'
+                                       )
+                                    || q'[</td>
+                
+                                                <td class="center ]'
+                
+                                    || CASE
+                
+                                           WHEN v_account_closing >= 0
+                                           THEN
+                
+                                               CASE
+                
+                                                   WHEN v_account_type IN ('A','E')
+                                                   THEN 'gl-dr'
+                
+                                                   ELSE 'gl-cr'
+                
+                                               END
+                
+                                           ELSE
+                
+                                               CASE
+                
+                                                   WHEN v_account_type IN ('A','E')
+                                                   THEN 'gl-cr'
+                
+                                                   ELSE 'gl-dr'
+                
+                                               END
+                
+                                       END
+                
+                                    || q'[">
+                
+                                                ]'
+                
+                                    || CASE
+                
+                                           WHEN v_account_closing >= 0
+                                           THEN
+                
+                                               CASE
+                
+                                                   WHEN v_account_type IN ('A','E')
+                                                   THEN 'DR'
+                
+                                                   ELSE 'CR'
+                
+                                               END
+                
+                                           ELSE
+                
+                                               CASE
+                
+                                                   WHEN v_account_type IN ('A','E')
+                                                   THEN 'CR'
+                
+                                                   ELSE 'DR'
+                
+                                               END
+                
+                                       END
+                
+                                    || q'[
+                
+                                                </td>
+                
+                                            </tr>
+                
+                                        </tfoot>
+                
+                                    </table>
+                
+                                    </div>
+                
+                                </div>
+                ]';
+                
+                            END IF;
+                
+                
+                            /* ================================================
+                               SAVE CURRENT ACCOUNT
+                               ================================================ */
+                
+                            v_last_account :=
+                                TO_CHAR(R.ACCOUNT_NO);
+                
+                            v_account_type :=
+                                TO_CHAR(R.ACCOUNT_TYPE);
+                
+                            v_account_code :=
+                                TO_CHAR(R.ACCOUNT_CODE);
+                
+                            v_account_name :=
+                                TO_CHAR(R.ACCOUNT_NAME);
+                
+                            v_account_opening :=
+                                NVL(R.OPENING_BALANCE,0);
+                
+                            v_account_total_dr :=
+                                0;
+                
+                            v_account_total_cr :=
+                                0;
+                
+                            v_account_closing :=
+                                NVL(R.OPENING_BALANCE,0);
+                
+                
+                            /* ================================================
+                               ACCOUNT HEADER
+                               ================================================ */
+                
+                            v_html :=
+                                v_html
+                                || q'[
+                
+                                <div class="gl-account">
+                
+                                    <div class="gl-account-header">
+                
+                                        <div class="gl-account-code">
+                
+                                            Account Code:
+                                            ]'
+                                || APEX_ESCAPE.HTML(
+                                       NVL(
+                                           TO_CHAR(R.ACCOUNT_CODE),
+                                           '-'
+                                       )
                                    )
+                                || q'[
                 
-                               /* LIABILITY / CAPITAL / INCOME */
-                               WHEN H.ACCOUNT_TYPE IN ('L', 'C', 'I')
-                               THEN
-                                   NVL
-                                   (
-                                       SUM
-                                       (
-                                           CASE
-                                               WHEN M.VOUCHER_NO IS NOT NULL
-                                               THEN
-                                                   NVL(D.CREDIT_AMOUNT, 0)
-                                                 - NVL(D.DEBIT_AMOUNT, 0)
-                                               ELSE
-                                                   0
-                                           END
-                                       ),
-                                       0
+                                        </div>
+                
+                                        <div class="gl-account-name">
+                
+                                            ]'
+                                || APEX_ESCAPE.HTML(
+                                       NVL(
+                                           TO_CHAR(R.ACCOUNT_NAME),
+                                           '-'
+                                       )
                                    )
+                                || q'[
                 
-                               ELSE
-                                   0
-                           END AS OPENING_BALANCE
+                                        </div>
                 
-                      FROM MST_ACCOUNT_HEAD H
+                                        <div class="gl-opening">
                 
-                      LEFT JOIN ACC_VOUCHER_DTL D
-                        ON D.ACCOUNT_NO = H.ACCOUNT_NO
+                                            Opening Balance:
                 
-                      LEFT JOIN ACC_VOUCHER_MST M
-                        ON M.VOUCHER_NO = D.VOUCHER_NO
-                       AND M.APPROVAL_STATUS = 'A'
-                       AND (
-                              :P303_FROM_DATE IS NOT NULL
-                              AND M.VOUCHER_DATE <
-                                  TO_DATE(:P303_FROM_DATE, 'DD-MON-YYYY')
-                           )
+                                            <b>
                 
-                     WHERE (
-                              :P303_ACCOUNT_NO IS NULL
-                              OR H.ACCOUNT_NO = :P303_ACCOUNT_NO
-                           )
+                                                ৳ ]'
+                                || TO_CHAR(
+                                       ABS(
+                                           NVL(
+                                               R.OPENING_BALANCE,
+                                               0
+                                           )
+                                       ),
+                                       'FM999G999G999G990D00'
+                                   )
+                                || ' '
                 
-                     GROUP BY
-                           H.ACCOUNT_NO,
-                           H.ACCOUNT_TYPE
-                ),
+                                || CASE
                 
-                /* =========================================================
-                   RUNNING BALANCE
-                   ========================================================= */
-                RUNNING AS
-                (
-                    SELECT
-                           T.*,
+                                       WHEN NVL(
+                                                R.OPENING_BALANCE,
+                                                0
+                                            ) >= 0
                 
-                           NVL(O.OPENING_BALANCE, 0) AS OPENING_BALANCE,
+                                       THEN
                 
-                           SUM
-                           (
-                               CASE
-                                   /* ASSET / EXPENSE */
-                                   WHEN T.ACCOUNT_TYPE IN ('A', 'E')
+                                           CASE
+                
+                                               WHEN R.ACCOUNT_TYPE IN ('A','E')
+                                               THEN 'DR'
+                
+                                               ELSE 'CR'
+                
+                                           END
+                
+                                       ELSE
+                
+                                           CASE
+                
+                                               WHEN R.ACCOUNT_TYPE IN ('A','E')
+                                               THEN 'CR'
+                
+                                               ELSE 'DR'
+                
+                                           END
+                
+                                   END
+                
+                                || q'[
+                
+                                            </b>
+                
+                                        </div>
+                
+                                    </div>
+                
+                
+                                    <div class="gl-table-wrapper">
+                
+                                        <table class="gl-table">
+                
+                                            <thead>
+                
+                                                <tr>
+                
+                                                    <th style="width:35px;">
+                                                        #
+                                                    </th>
+                
+                                                    <th style="width:75px;">
+                                                        Date
+                                                    </th>
+                
+                                                    <th style="width:85px;">
+                                                        Voucher
+                                                    </th>
+                
+                                                    <th>
+                                                        Particulars
+                                                    </th>
+                
+                                                    <th style="width:110px;text-align:right;">
+                                                        Debit
+                                                    </th>
+                
+                                                    <th style="width:110px;text-align:right;">
+                                                        Credit
+                                                    </th>
+                
+                                                    <th style="width:120px;text-align:right;">
+                                                        Balance
+                                                    </th>
+                
+                                                    <th style="width:45px;text-align:center;">
+                                                        Type
+                                                    </th>
+                
+                                                </tr>
+                
+                                            </thead>
+                
+                                            <tbody>
+                ]';
+                
+                        END IF;
+                
+                
+                        /* =====================================================
+                           TOTAL DEBIT
+                           ===================================================== */
+                
+                        v_account_total_dr :=
+                            v_account_total_dr
+                            +
+                            NVL(
+                                R.DEBIT_AMOUNT,
+                                0
+                            );
+                
+                
+                        /* =====================================================
+                           TOTAL CREDIT
+                           ===================================================== */
+                
+                        v_account_total_cr :=
+                            v_account_total_cr
+                            +
+                            NVL(
+                                R.CREDIT_AMOUNT,
+                                0
+                            );
+                
+                
+                        /* =====================================================
+                           CLOSING BALANCE
+                           ===================================================== */
+                
+                        v_account_closing :=
+                            NVL(
+                                R.RUNNING_BALANCE,
+                                0
+                            );
+                
+                
+                        /* =====================================================
+                           TRANSACTION ROW
+                           ===================================================== */
+                
+                        v_html :=
+                            v_html
+                            || q'[
+                
+                                <tr>
+                
+                                    <td class="center">
+                                        ]'
+                            || TO_CHAR(R.SL)
+                            || q'[
+                                    </td>
+                
+                
+                                    <td class="gl-date">
+                                        ]'
+                            || TO_CHAR(
+                                   R.VOUCHER_DATE,
+                                   'DD-MON-YY'
+                               )
+                            || q'[
+                                    </td>
+                
+                
+                                    <td>
+                
+                                        <div class="gl-voucher">
+                                            ]'
+                            || APEX_ESCAPE.HTML(
+                                   NVL(
+                                       TO_CHAR(R.VOUCHER_CODE),
+                                       '-'
+                                   )
+                               )
+                            || q'[
+                                        </div>
+                
+                                        <div class="gl-ref">
+                                            #]'
+                            || APEX_ESCAPE.HTML(
+                                   TO_CHAR(R.VOUCHER_NO)
+                               )
+                            || q'[
+                                        </div>
+                
+                                    </td>
+                
+                
+                                    <td>
+                
+                                        <div class="gl-particular">
+                                            ]'
+                            || APEX_ESCAPE.HTML(
+                                   NVL(
+                                       TO_CHAR(R.PARTICULARS),
+                                       '-'
+                                   )
+                               )
+                            || q'[
+                                        </div>
+                
+                                        <div class="gl-ref">
+                                            ]'
+                            || CASE
+                
+                                   WHEN R.REF_TYPE IS NOT NULL
                                    THEN
-                                       T.DEBIT_AMOUNT - T.CREDIT_AMOUNT
                 
-                                   /* LIABILITY / CAPITAL / INCOME */
-                                   WHEN T.ACCOUNT_TYPE IN ('L', 'C', 'I')
-                                   THEN
-                                       T.CREDIT_AMOUNT - T.DEBIT_AMOUNT
+                                       APEX_ESCAPE.HTML(
+                                           TO_CHAR(R.REF_TYPE)
+                                       )
+                
+                                       || ' : '
+                
+                                       || APEX_ESCAPE.HTML(
+                                           NVL(
+                                               TO_CHAR(R.REF_NO),
+                                               '-'
+                                           )
+                                       )
                 
                                    ELSE
-                                       0
+                                       ''
+                
                                END
-                           )
-                           OVER
-                           (
-                               PARTITION BY T.ACCOUNT_NO
+                            || q'[
                 
-                               ORDER BY
-                                   T.VOUCHER_DATE,
-                                   T.VOUCHER_NO,
-                                   T.VOUCHER_DTL_NO
+                                        </div>
                 
-                               ROWS BETWEEN UNBOUNDED PRECEDING
-                                        AND CURRENT ROW
-                           ) AS MOVEMENT_BALANCE
+                                    </td>
                 
-                      FROM TXN T
                 
-                      LEFT JOIN OPENING O
-                        ON O.ACCOUNT_NO = T.ACCOUNT_NO
-                )
+                                    <td class="right gl-dr">
                 
-                /* =========================================================
-                   FINAL RESULT
-                   ========================================================= */
-                SELECT
-                       ROW_NUMBER()
-                       OVER
-                       (
-                           ORDER BY
-                               VOUCHER_DATE,
-                               VOUCHER_NO,
-                               VOUCHER_DTL_NO
-                       ) AS SL,
+                                        ]'
+                            || CASE
                 
-                       VOUCHER_NO,
-                       VOUCHER_DATE,
+                                   WHEN NVL(
+                                            R.DEBIT_AMOUNT,
+                                            0
+                                        ) <> 0
                 
-                       ACCOUNT_NO,
-                       ACCOUNT_CODE,
-                       ACCOUNT_NAME,
-                       ACCOUNT_TYPE,
+                                   THEN
                 
-                       REF_TYPE,
-                       REF_NO,
-                       PARTICULARS,
+                                       '৳ '
+                                       ||
+                                       TO_CHAR(
+                                           R.DEBIT_AMOUNT,
+                                           'FM999G999G999G990D00'
+                                       )
                 
-                       DEBIT_AMOUNT,
-                       CREDIT_AMOUNT,
+                                   ELSE
+                                       '-'
                 
-                       OPENING_BALANCE,
+                               END
+                            || q'[
                 
-                       OPENING_BALANCE + MOVEMENT_BALANCE
-                           AS RUNNING_BALANCE,
+                                    </td>
                 
-                       CASE
-                    WHEN OPENING_BALANCE + MOVEMENT_BALANCE >= 0 THEN
-                        CASE
-                            WHEN ACCOUNT_TYPE IN ('A', 'E') THEN 'DR'
-                            ELSE 'CR'
-                        END
+                
+                                    <td class="right gl-cr">
+                
+                                        ]'
+                            || CASE
+                
+                                   WHEN NVL(
+                                            R.CREDIT_AMOUNT,
+                                            0
+                                        ) <> 0
+                
+                                   THEN
+                
+                                       '৳ '
+                                       ||
+                                       TO_CHAR(
+                                           R.CREDIT_AMOUNT,
+                                           'FM999G999G999G990D00'
+                                       )
+                
+                                   ELSE
+                                       '-'
+                
+                               END
+                            || q'[
+                
+                                    </td>
+                
+                
+                                    <td class="right gl-balance ]'
+                
+                            || CASE
+                
+                                   WHEN R.BALANCE_TYPE = 'DR'
+                                   THEN 'gl-dr'
+                
+                                   ELSE 'gl-cr'
+                
+                               END
+                
+                            || q'[">
+                
+                                        ৳ ]'
+                            || TO_CHAR(
+                                   ABS(
+                                       NVL(
+                                           R.RUNNING_BALANCE,
+                                           0
+                                       )
+                                   ),
+                                   'FM999G999G999G990D00'
+                               )
+                            || q'[
+                
+                                    </td>
+                
+                
+                                    <td class="center ]'
+                
+                            || CASE
+                
+                                   WHEN R.BALANCE_TYPE = 'DR'
+                                   THEN 'gl-dr'
+                
+                                   ELSE 'gl-cr'
+                
+                               END
+                
+                            || q'[">
+                
+                                        ]'
+                            || APEX_ESCAPE.HTML(
+                                   TO_CHAR(R.BALANCE_TYPE)
+                               )
+                            || q'[
+                
+                                    </td>
+                
+                                </tr>
+                ]';
+                
+                    END LOOP;
+                
+                
+                    /* =========================================================
+                       CLOSE LAST ACCOUNT
+                       ========================================================= */
+                
+                    IF v_last_account IS NOT NULL
+                    THEN
+                
+                        v_html :=
+                            v_html
+                            || q'[
+                
+                                    </tbody>
+                
+                                    <tfoot>
+                
+                                        <tr class="gl-total">
+                
+                                            <td colspan="4">
+                                                Account Total
+                                            </td>
+                
+                                            <td class="right gl-dr">
+                                                ৳ ]'
+                            || TO_CHAR(
+                                   v_account_total_dr,
+                                   'FM999G999G999G990D00'
+                               )
+                            || q'[
+                                            </td>
+                
+                                            <td class="right gl-cr">
+                                                ৳ ]'
+                            || TO_CHAR(
+                                   v_account_total_cr,
+                                   'FM999G999G999G990D00'
+                               )
+                            || q'[
+                                            </td>
+                
+                                            <td class="right">
+                                                ৳ ]'
+                            || TO_CHAR(
+                                   ABS(
+                                       NVL(
+                                           v_account_closing,
+                                           0
+                                       )
+                                   ),
+                                   'FM999G999G999G990D00'
+                               )
+                            || q'[
+                                            </td>
+                
+                                            <td class="center ]'
+                
+                            || CASE
+                
+                                   WHEN v_account_closing >= 0
+                                   THEN
+                
+                                       CASE
+                
+                                           WHEN v_account_type IN ('A','E')
+                                           THEN 'gl-dr'
+                
+                                           ELSE 'gl-cr'
+                
+                                       END
+                
+                                   ELSE
+                
+                                       CASE
+                
+                                           WHEN v_account_type IN ('A','E')
+                                           THEN 'gl-cr'
+                
+                                           ELSE 'gl-dr'
+                
+                                       END
+                
+                               END
+                
+                            || q'[">
+                
+                                                ]'
+                
+                            || CASE
+                
+                                   WHEN v_account_closing >= 0
+                                   THEN
+                
+                                       CASE
+                
+                                           WHEN v_account_type IN ('A','E')
+                                           THEN 'DR'
+                
+                                           ELSE 'CR'
+                
+                                       END
+                
+                                   ELSE
+                
+                                       CASE
+                
+                                           WHEN v_account_type IN ('A','E')
+                                           THEN 'CR'
+                
+                                           ELSE 'DR'
+                
+                                       END
+                
+                               END
+                
+                            || q'[
+                
+                                            </td>
+                
+                                        </tr>
+                
+                                    </tfoot>
+                
+                                </table>
+                
+                            </div>
+                
+                        </div>
+                ]';
+                
                     ELSE
-                        CASE
-                            WHEN ACCOUNT_TYPE IN ('A', 'E') THEN 'CR'
-                            ELSE 'DR'
-                        END
-                END AS BALANCE_TYPE
                 
-                  FROM RUNNING
+                        /* =====================================================
+                           NO DATA
+                           ===================================================== */
                 
-                 ORDER BY
-                       VOUCHER_DATE,
-                       VOUCHER_NO,
-                       VOUCHER_DTL_NO;
+                        v_html :=
+                            v_html
+                            || q'[
+                
+                            <div class="gl-no-data">
+                
+                                No ledger transactions found.
+                
+                            </div>
+                ]';
+                
+                    END IF;
+                
+                
+                    /* =========================================================
+                       FOOTER
+                       ========================================================= */
+                
+                    v_html :=
+                        v_html
+                        || q'[
+                
+                        <div class="gl-footer">
+                
+                            General Ledger Report
+                
+                        </div>
+                
+                    </div>
+                ]';
+                
+                
+                    RETURN v_html;
+                
+                
+                EXCEPTION
+                
+                    WHEN OTHERS
+                    THEN
+                
+                        RETURN
+                            '<div style="
+                                padding:12px;
+                                border:1px solid #f1cccc;
+                                border-radius:6px;
+                                background:#fff5f5;
+                                color:#c0392b;
+                                font-size:12px;
+                            ">
+                                <b>General Ledger Error</b>
+                                <br><br>'
+                            || APEX_ESCAPE.HTML(
+                                   SQLERRM
+                               )
+                            || '
+                            </div>';
+                
+                END;
                 ```
             pageItemsToSubmit: [
                 P303_FROM_DATE
@@ -319,6 +1436,174 @@ page 303 (
                 t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
             ]
         }
+    )
+
+    region voucher-mst_1 (
+        name: General Ledger
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                /* Formatted on 8/27/2026 3:01:31 PM (QP5 v5.388) */
+                WITH
+                    TXN
+                    AS
+                        (SELECT D.VOUCHER_DTL_NO,
+                                D.ACCOUNT_NO,
+                                H.ACCOUNT_CODE,
+                                H.ACCOUNT_NAME,
+                                H.ACCOUNT_TYPE,
+                                M.VOUCHER_NO,
+                                M.VOUCHER_DATE,
+                                M.VOUCHER_CODE,
+                                M.VOUCHER_TYPE,
+                                D.REF_TYPE,
+                                D.REF_NO,
+                                D.PARTICULARS,
+                                NVL (D.DEBIT_AMOUNT, 0)      AS DEBIT_AMOUNT,
+                                NVL (D.CREDIT_AMOUNT, 0)     AS CREDIT_AMOUNT
+                           FROM ACC_VOUCHER_MST  M
+                                JOIN ACC_VOUCHER_DTL D ON D.VOUCHER_NO = M.VOUCHER_NO
+                                JOIN MST_ACCOUNT_HEAD H ON H.ACCOUNT_NO = D.ACCOUNT_NO
+                          WHERE     M.APPROVAL_STATUS = 'A'
+                                AND (   :P303_ACCOUNT_NO IS NULL
+                                     OR D.ACCOUNT_NO = :P303_ACCOUNT_NO)
+                                AND (   :P303_FROM_DATE IS NULL
+                                     OR M.VOUCHER_DATE >=
+                                        TO_DATE ( :P303_FROM_DATE, 'DD-MON-YYYY'))
+                                AND (   :P303_TO_DATE IS NULL
+                                     OR M.VOUCHER_DATE <
+                                        TO_DATE ( :P303_TO_DATE, 'DD-MON-YYYY') + 1)
+                                AND (   :P303_VOUCHER_TYPE IS NULL
+                                     OR M.VOUCHER_TYPE = :P303_VOUCHER_TYPE)),
+                    /* Opening balance = entered opening balance
+                       + approved transactions before From Date */
+                    OPENING
+                    AS
+                        (  SELECT ACCOUNT_NO,
+                                  ACCOUNT_TYPE,
+                                  SUM (OPENING_BALANCE)     AS OPENING_BALANCE
+                             FROM (/* Account opening balance */
+                                   SELECT O.ACCOUNT_NO,
+                                          H.ACCOUNT_TYPE,
+                                          CASE
+                                              WHEN H.ACCOUNT_TYPE IN ('A', 'E')
+                                              THEN
+                                                    NVL (O.OPENING_DEBIT, 0)
+                                                  - NVL (O.OPENING_CREDIT, 0)
+                                              WHEN H.ACCOUNT_TYPE IN ('L', 'C', 'I')
+                                              THEN
+                                                    NVL (O.OPENING_CREDIT, 0)
+                                                  - NVL (O.OPENING_DEBIT, 0)
+                                              ELSE
+                                                  0
+                                          END    AS OPENING_BALANCE
+                                     FROM ACC_OPENING_BALANCE O
+                                          JOIN MST_ACCOUNT_HEAD H
+                                              ON H.ACCOUNT_NO = O.ACCOUNT_NO
+                                    WHERE     O.APPROVAL_STATUS = 'A'
+                                          AND (   :P303_ACCOUNT_NO IS NULL
+                                               OR O.ACCOUNT_NO = :P303_ACCOUNT_NO)
+                                   UNION ALL
+                                   /* Previous approved transactions */
+                                   SELECT D.ACCOUNT_NO,
+                                          H.ACCOUNT_TYPE,
+                                          CASE
+                                              WHEN H.ACCOUNT_TYPE IN ('A', 'E')
+                                              THEN
+                                                    NVL (D.DEBIT_AMOUNT, 0)
+                                                  - NVL (D.CREDIT_AMOUNT, 0)
+                                              WHEN H.ACCOUNT_TYPE IN ('L', 'C', 'I')
+                                              THEN
+                                                    NVL (D.CREDIT_AMOUNT, 0)
+                                                  - NVL (D.DEBIT_AMOUNT, 0)
+                                              ELSE
+                                                  0
+                                          END    AS OPENING_BALANCE
+                                     FROM ACC_VOUCHER_MST M
+                                          JOIN ACC_VOUCHER_DTL D ON D.VOUCHER_NO = M.VOUCHER_NO
+                                          JOIN MST_ACCOUNT_HEAD H
+                                              ON H.ACCOUNT_NO = D.ACCOUNT_NO
+                                    WHERE     M.APPROVAL_STATUS = 'A'
+                                          AND :P303_FROM_DATE IS NOT NULL
+                                          AND M.VOUCHER_DATE <
+                                              TO_DATE ( :P303_FROM_DATE, 'DD-MON-YYYY')
+                                          AND (   :P303_ACCOUNT_NO IS NULL
+                                               OR D.ACCOUNT_NO = :P303_ACCOUNT_NO))
+                         GROUP BY ACCOUNT_NO, ACCOUNT_TYPE),
+                    RUNNING
+                    AS
+                        (SELECT T.*,
+                                NVL (O.OPENING_BALANCE, 0)                                   AS OPENING_BALANCE,
+                                SUM (
+                                    CASE
+                                        WHEN T.ACCOUNT_TYPE IN ('A', 'E')
+                                        THEN
+                                            T.DEBIT_AMOUNT - T.CREDIT_AMOUNT
+                                        WHEN T.ACCOUNT_TYPE IN ('L', 'C', 'I')
+                                        THEN
+                                            T.CREDIT_AMOUNT - T.DEBIT_AMOUNT
+                                        ELSE
+                                            0
+                                    END)
+                                    OVER (
+                                        PARTITION BY T.ACCOUNT_NO
+                                        ORDER BY
+                                            T.VOUCHER_DATE, T.VOUCHER_NO, T.VOUCHER_DTL_NO
+                                        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)    AS MOVEMENT_BALANCE
+                           FROM TXN T LEFT JOIN OPENING O ON O.ACCOUNT_NO = T.ACCOUNT_NO)
+                  SELECT ROW_NUMBER () OVER (ORDER BY VOUCHER_DATE, VOUCHER_NO, VOUCHER_DTL_NO)
+                             AS SL,
+                         VOUCHER_NO,
+                         VOUCHER_CODE,
+                         VOUCHER_DATE,
+                         VOUCHER_TYPE,
+                         ACCOUNT_NO,
+                         ACCOUNT_CODE,
+                         ACCOUNT_NAME,
+                         ACCOUNT_TYPE,
+                         REF_TYPE,
+                         REF_NO,
+                         PARTICULARS,
+                         DEBIT_AMOUNT,
+                         CREDIT_AMOUNT,
+                         OPENING_BALANCE,
+                         OPENING_BALANCE + MOVEMENT_BALANCE
+                             AS RUNNING_BALANCE,
+                         CASE
+                             WHEN OPENING_BALANCE + MOVEMENT_BALANCE >= 0
+                             THEN
+                                 CASE WHEN ACCOUNT_TYPE IN ('A', 'E') THEN 'DR' ELSE 'CR' END
+                             ELSE
+                                 CASE WHEN ACCOUNT_TYPE IN ('A', 'E') THEN 'CR' ELSE 'DR' END
+                         END
+                             AS BALANCE_TYPE
+                    FROM RUNNING
+                ORDER BY VOUCHER_DATE, VOUCHER_NO, VOUCHER_DTL_NO;
+                ```
+            pageItemsToSubmit: [
+                P303_FROM_DATE
+                P303_TO_DATE
+                P303_ACCOUNT_NO
+                P303_VOUCHER_TYPE
+            ]
+        }
+        layout {
+            sequence: 60
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        config {
+            buildOption: @commented-out
+        }
         pagination {
             type: rowRangesXToY
         }
@@ -332,13 +1617,13 @@ page 303 (
                 heading: Account Code
             }
             layout {
-                sequence: 220
+                sequence: 110
             }
             source {
                 dataType: STRING
             }
             advanced {
-                endUserAlias: AG
+                endUserAlias: K
             }
         )
 
@@ -348,13 +1633,13 @@ page 303 (
                 heading: Account Name
             }
             layout {
-                sequence: 230
+                sequence: 120
             }
             source {
                 dataType: STRING
             }
             advanced {
-                endUserAlias: AH
+                endUserAlias: L
             }
         )
 
@@ -365,14 +1650,14 @@ page 303 (
                 alignment: end
             }
             layout {
-                sequence: 210
+                sequence: 100
                 columnAlignment: end
             }
             source {
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: AF
+                endUserAlias: J
             }
         )
 
@@ -382,13 +1667,13 @@ page 303 (
                 heading: Account Type
             }
             layout {
-                sequence: 250
+                sequence: 140
             }
             source {
                 dataType: STRING
             }
             advanced {
-                endUserAlias: AJ
+                endUserAlias: N
             }
         )
 
@@ -398,13 +1683,13 @@ page 303 (
                 heading: Balance Type
             }
             layout {
-                sequence: 100
+                sequence: 10
             }
             source {
                 dataType: STRING
             }
             advanced {
-                endUserAlias: U
+                endUserAlias: A
             }
         )
 
@@ -415,14 +1700,14 @@ page 303 (
                 alignment: end
             }
             layout {
-                sequence: 190
+                sequence: 80
                 columnAlignment: end
             }
             source {
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: AD
+                endUserAlias: H
             }
         )
 
@@ -433,14 +1718,14 @@ page 303 (
                 alignment: end
             }
             layout {
-                sequence: 180
+                sequence: 70
                 columnAlignment: end
             }
             source {
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: AC
+                endUserAlias: G
             }
         )
 
@@ -451,14 +1736,14 @@ page 303 (
                 alignment: end
             }
             layout {
-                sequence: 240
+                sequence: 130
                 columnAlignment: end
             }
             source {
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: AI
+                endUserAlias: M
             }
         )
 
@@ -468,13 +1753,13 @@ page 303 (
                 heading: Particulars
             }
             layout {
-                sequence: 170
+                sequence: 60
             }
             source {
                 dataType: STRING
             }
             advanced {
-                endUserAlias: AB
+                endUserAlias: F
             }
         )
 
@@ -485,14 +1770,14 @@ page 303 (
                 alignment: end
             }
             layout {
-                sequence: 160
+                sequence: 50
                 columnAlignment: end
             }
             source {
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: AA
+                endUserAlias: E
             }
         )
 
@@ -502,13 +1787,13 @@ page 303 (
                 heading: Ref Type
             }
             layout {
-                sequence: 150
+                sequence: 40
             }
             source {
                 dataType: STRING
             }
             advanced {
-                endUserAlias: Z
+                endUserAlias: D
             }
         )
 
@@ -519,14 +1804,14 @@ page 303 (
                 alignment: end
             }
             layout {
-                sequence: 200
+                sequence: 90
                 columnAlignment: end
             }
             source {
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: AE
+                endUserAlias: I
             }
         )
 
@@ -537,14 +1822,30 @@ page 303 (
                 alignment: end
             }
             layout {
-                sequence: 110
+                sequence: 20
                 columnAlignment: end
             }
             source {
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: V
+                endUserAlias: B
+            }
+        )
+
+        column VOUCHER_CODE (
+            type: plainText
+            heading {
+                heading: Voucher Code
+            }
+            layout {
+                sequence: 160
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: P
             }
         )
 
@@ -554,13 +1855,13 @@ page 303 (
                 heading: Voucher Date
             }
             layout {
-                sequence: 120
+                sequence: 30
             }
             source {
                 dataType: DATE
             }
             advanced {
-                endUserAlias: W
+                endUserAlias: C
             }
         )
 
@@ -571,14 +1872,30 @@ page 303 (
                 alignment: end
             }
             layout {
-                sequence: 260
+                sequence: 150
                 columnAlignment: end
             }
             source {
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: AK
+                endUserAlias: O
+            }
+        )
+
+        column VOUCHER_TYPE (
+            type: plainText
+            heading {
+                heading: Voucher Type
+            }
+            layout {
+                sequence: 170
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: Q
             }
         )
 
@@ -594,15 +1911,23 @@ page 303 (
             }
 
             displayColumn ACCOUNT_CODE (
-                sequence: 4
+                sequence: 11
+            )
+
+            displayColumn ACCOUNT_NAME (
+                sequence: 12
+            )
+
+            displayColumn ACCOUNT_NO (
+                sequence: 10
             )
 
             displayColumn ACCOUNT_TYPE (
-                sequence: 5
+                sequence: 14
             )
 
             displayColumn BALANCE_TYPE (
-                sequence: 3
+                sequence: 1
             )
 
             displayColumn CREDIT_AMOUNT (
@@ -613,12 +1938,20 @@ page 303 (
                 sequence: 7
             )
 
+            displayColumn OPENING_BALANCE (
+                sequence: 13
+            )
+
             displayColumn PARTICULARS (
-                sequence: 10
+                sequence: 6
+            )
+
+            displayColumn REF_NO (
+                sequence: 5
             )
 
             displayColumn REF_TYPE (
-                sequence: 6
+                sequence: 4
             )
 
             displayColumn RUNNING_BALANCE (
@@ -626,11 +1959,23 @@ page 303 (
             )
 
             displayColumn SL (
-                sequence: 1
+                sequence: 2
+            )
+
+            displayColumn VOUCHER_CODE (
+                sequence: 16
             )
 
             displayColumn VOUCHER_DATE (
-                sequence: 2
+                sequence: 3
+            )
+
+            displayColumn VOUCHER_NO (
+                sequence: 15
+            )
+
+            displayColumn VOUCHER_TYPE (
+                sequence: 17
             )
 
         )

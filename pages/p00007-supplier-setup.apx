@@ -9,6 +9,25 @@ page 7 (
     navigation {
         cursorFocus: doNotFocusCursor
     }
+    javaScript {
+        executeWhenPageLoads:
+            ```javascript-browser
+            var btn = $("#DUE_FILTER_BTN");
+            
+            // Default = Show Due Supplier
+            $s("P7_DUE_FILTER", "");
+            
+            btn.css({
+                "background-color": "#dc3545",
+                "border-color": "#dc3545",
+                "color": "#ffffff",
+                "font-weight": "600",
+                "box-shadow": "0 2px 5px rgba(0,0,0,0.15)"
+            });
+            
+            btn.find(".t-Button-label").text("Show Due Supplier");
+            ```
+    }
     security {
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
@@ -44,26 +63,342 @@ page 7 (
     )
 
     region entry (
-        name: Entry
-        type: form
+        name: SUPPLIER SUMMERY
+        type: dynamicContent
         source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select SUPPLIER_NO,
-                       SUPPLIER_CODE,
-                       SUPPLIER_NAME,
-                       CONTACT_PERSON,
-                       MOBILE_NO,
-                       EMAIL_ADDRESS,
-                       ADDRESS,
-                       ACTIVE_FLAG,
-                       CREATED_BY,
-                       CREATED_DATE,
-                       UPDATED_BY,
-                       UPDATED_DATE
-                  from MST_SUPPLIER
+            plsqlFunctionBody:
+                ```plsql
+                /* Formatted on 9/1/2026 4:19:12 PM (QP5 v5.388) */
+                DECLARE
+                    v_html                CLOB;
+                
+                    v_total_supplier      NUMBER := 0;
+                    v_active_supplier     NUMBER := 0;
+                    v_inactive_supplier   NUMBER := 0;
+                    v_total_due           NUMBER := 0;
+                    v_total_payment       NUMBER := 0;
+                BEGIN
+                    /* ============================================================
+                       SUPPLIER COUNT
+                       ============================================================ */
+                
+                    SELECT COUNT (*),
+                           NVL (SUM (CASE WHEN ACTIVE_FLAG = 1 THEN 1 ELSE 0 END), 0),
+                           NVL (SUM (CASE WHEN ACTIVE_FLAG = 0 THEN 1 ELSE 0 END), 0)
+                      INTO v_total_supplier, v_active_supplier, v_inactive_supplier
+                      FROM MST_SUPPLIER;
+                
+                
+                    /* ============================================================
+                       TOTAL DUE & TOTAL PAYMENT
+                       ============================================================ */
+                
+                    SELECT NVL (SUM (DUE_AMOUNT), 0), NVL (SUM (PAID_AMOUNT), 0)
+                      INTO v_total_due, v_total_payment
+                      FROM TRN_PURCHASE_MST;
+                
+                
+                    /* ============================================================
+                       HTML
+                       ============================================================ */
+                
+                    v_html :=
+                           '<style>
+                
+                        .cust-kpi-wrapper {
+                            display:grid;
+                            grid-template-columns:repeat(5,1fr);
+                            gap:12px;
+                            width:100%;
+                            box-sizing:border-box;
+                        }
+                
+                        .cust-kpi-card {
+                            height:64px;
+                            min-height:64px;
+                            border:1px solid #dfe5eb;
+                            border-radius:8px;
+                            padding:8px 13px;
+                            box-sizing:border-box;
+                
+                            display:flex;
+                            align-items:center;
+                            gap:11px;
+                
+                            background:#fff;
+                        }
+                
+                        .cust-kpi-icon {
+                            width:34px;
+                            height:34px;
+                            min-width:34px;
+                
+                            border-radius:7px;
+                
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                
+                            font-size:15px;
+                        }
+                
+                        .cust-kpi-content {
+                            min-width:0;
+                        }
+                
+                        .cust-kpi-title {
+                            font-size:12px;
+                            line-height:15px;
+                            color:#6b7a8c;
+                            margin:0 0 2px 0;
+                            font-weight:400;
+                        }
+                
+                        .cust-kpi-value {
+                            font-size:19px;
+                            line-height:21px;
+                            font-weight:700;
+                            margin:0;
+                        }
+                
+                
+                        /* TOTAL SUPPLIERS */
+                
+                        .cust-total {
+                            background:#f7fafc;
+                        }
+                
+                        .cust-total .cust-kpi-icon {
+                            background:#e8f1fa;
+                            color:#286596;
+                        }
+                
+                        .cust-total .cust-kpi-value {
+                            color:#286596;
+                        }
+                
+                
+                        /* ACTIVE SUPPLIERS */
+                
+                        .cust-active {
+                            background:#f7fbf8;
+                        }
+                
+                        .cust-active .cust-kpi-icon {
+                            background:#e8f6ec;
+                            color:#21894d;
+                        }
+                
+                        .cust-active .cust-kpi-value {
+                            color:#21894d;
+                        }
+                
+                
+                        /* INACTIVE SUPPLIERS */
+                
+                        .cust-inactive {
+                            background:#fff8f8;
+                        }
+                
+                        .cust-inactive .cust-kpi-icon {
+                            background:#fdeaea;
+                            color:#d03930;
+                        }
+                
+                        .cust-inactive .cust-kpi-value {
+                            color:#d03930;
+                        }
+                
+                
+                        /* TOTAL DUE */
+                
+                        .cust-due {
+                            background:#fffdf7;
+                        }
+                
+                        .cust-due .cust-kpi-icon {
+                            background:#fff3d6;
+                            color:#bd7b16;
+                        }
+                
+                        .cust-due .cust-kpi-value {
+                            color:#bd7b16;
+                        }
+                
+                
+                        /* TOTAL PAYMENT */
+                
+                        .cust-payment {
+                            background:#f7f9ff;
+                        }
+                
+                        .cust-payment .cust-kpi-icon {
+                            background:#e9edff;
+                            color:#4b5fc4;
+                        }
+                
+                        .cust-payment .cust-kpi-value {
+                            color:#4b5fc4;
+                        }
+                
+                
+                        /* RESPONSIVE */
+                
+                        @media(max-width:1100px) {
+                
+                            .cust-kpi-wrapper {
+                                grid-template-columns:repeat(3,1fr);
+                            }
+                
+                        }
+                
+                        @media(max-width:700px) {
+                
+                            .cust-kpi-wrapper {
+                                grid-template-columns:repeat(2,1fr);
+                            }
+                
+                        }
+                
+                        @media(max-width:550px) {
+                
+                            .cust-kpi-wrapper {
+                                grid-template-columns:1fr;
+                            }
+                
+                        }
+                
+                    </style>
+                
+                
+                    <div class="cust-kpi-wrapper">
+                
+                
+                        <!-- TOTAL SUPPLIERS -->
+                
+                        <div class="cust-kpi-card cust-total">
+                
+                            <div class="cust-kpi-icon">
+                                <i class="fa fa-users"></i>
+                            </div>
+                
+                            <div class="cust-kpi-content">
+                
+                                <div class="cust-kpi-title">
+                                    Total Suppliers
+                                </div>
+                
+                                <div class="cust-kpi-value">'
+                        || TO_CHAR (v_total_supplier, 'FM999999999999990')
+                        || '</div>
+                
+                            </div>
+                
+                        </div>
+                
+                
+                        <!-- ACTIVE SUPPLIERS -->
+                
+                        <div class="cust-kpi-card cust-active">
+                
+                            <div class="cust-kpi-icon">
+                                <i class="fa fa-user"></i>
+                            </div>
+                
+                            <div class="cust-kpi-content">
+                
+                                <div class="cust-kpi-title">
+                                    Active Suppliers
+                                </div>
+                
+                                <div class="cust-kpi-value">'
+                        || TO_CHAR (v_active_supplier, 'FM999999999999990')
+                        || '</div>
+                
+                            </div>
+                
+                        </div>
+                
+                
+                        <!-- INACTIVE SUPPLIERS -->
+                
+                        <div class="cust-kpi-card cust-inactive">
+                
+                            <div class="cust-kpi-icon">
+                                <i class="fa fa-user-times"></i>
+                            </div>
+                
+                            <div class="cust-kpi-content">
+                
+                                <div class="cust-kpi-title">
+                                    Inactive Suppliers
+                                </div>
+                
+                                <div class="cust-kpi-value">'
+                        || TO_CHAR (v_inactive_supplier, 'FM999999999999990')
+                        || '</div>
+                
+                            </div>
+                
+                        </div>
+                
+                
+                        <!-- TOTAL DUE -->
+                
+                        <div class="cust-kpi-card cust-due">
+                
+                            <div class="cust-kpi-icon">
+                                <i class="fa fa-money"></i>
+                            </div>
+                
+                            <div class="cust-kpi-content">
+                
+                                <div class="cust-kpi-title">
+                                    Total Due
+                                </div>
+                
+                                <div class="cust-kpi-value">
+                                    ৳ '
+                        || TO_CHAR (v_total_due,
+                                    'FM999999999999990D00',
+                                    'NLS_NUMERIC_CHARACTERS=''.,''')
+                        || '</div>
+                
+                            </div>
+                
+                        </div>
+                
+                
+                        <!-- TOTAL PAYMENT -->
+                
+                        <div class="cust-kpi-card cust-payment">
+                
+                            <div class="cust-kpi-icon">
+                                <i class="fa fa-credit-card"></i>
+                            </div>
+                
+                            <div class="cust-kpi-content">
+                
+                                <div class="cust-kpi-title">
+                                    Total Payment
+                                </div>
+                
+                                <div class="cust-kpi-value">
+                                    ৳ '
+                        || TO_CHAR (v_total_payment,
+                                    'FM999999999999990D00',
+                                    'NLS_NUMERIC_CHARACTERS=''.,''')
+                        || '</div>
+                
+                            </div>
+                
+                        </div>
+                
+                
+                    </div>';
+                
+                    RETURN v_html;
+                END;
                 ```
         }
         layout {
@@ -71,268 +406,653 @@ page 7 (
             slot: body
         }
         appearance {
-            template: @/standard
-            templateOptions: [
-                #DEFAULT#
-                t-Region--removeHeader js-removeLandmark
-                t-Region--noBorder
-                t-Region--hiddenOverflow
-                t-Form--slimPadding
-                t-Form--large
-                margin-top-none
-                margin-bottom-none
-            ]
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
         }
-        edit {
-            enabled: true
-            allowedOperations: [
-                add
-                update
-                delete
-            ]
+    )
+
+    region new (
+        name: SUPPLIER SUMMERY
+        type: dynamicContent
+        source {
+            plsqlFunctionBody:
+                ```plsql
+                /* Formatted on 9/1/2026 4:32:11 PM (QP5 v5.388) */
+                /* ============================================================
+                   SUPPLIER DETAILS CARD
+                   ============================================================ */
+                
+                DECLARE
+                    v_html             CLOB;
+                
+                    v_supplier_name    VARCHAR2 (300);
+                    v_supplier_code    VARCHAR2 (50);
+                    v_mobile           VARCHAR2 (50);
+                    v_email            VARCHAR2 (200);
+                    v_address          VARCHAR2 (500);
+                    v_status           VARCHAR2 (20);
+                    v_since            VARCHAR2 (30);
+                
+                    v_orders           NUMBER := 0;
+                    v_total_purchase   NUMBER := 0;
+                    v_due_amount       NUMBER := 0;
+                BEGIN
+                    /* ============================================================
+                       NO SUPPLIER SELECTED
+                       ============================================================ */
+                
+                    IF :P7_SUPPLIER_NO IS NULL
+                    THEN
+                        RETURN '
+                        <style>
+                
+                            .cust-empty{
+                                height:150px;
+                                display:flex;
+                                flex-direction:column;
+                                align-items:center;
+                                justify-content:center;
+                                color:#9aa5b1;
+                                font-size:13px;
+                                text-align:center;
+                            }
+                
+                            .cust-empty i{
+                                font-size:30px;
+                                margin-bottom:8px;
+                                color:#cbd2da;
+                            }
+                
+                        </style>
+                
+                        <div class="cust-empty">
+                
+                            <i class="fa fa-user"></i>
+                
+                            <div>Select a Supplier to view details</div>
+                
+                        </div>';
+                    END IF;
+                
+                
+                    /* ============================================================
+                       SUPPLIER INFORMATION
+                       ============================================================ */
+                
+                    SELECT SUPPLIER_NAME,
+                           SUPPLIER_CODE,
+                           MOBILE_NO,
+                           EMAIL_ADDRESS,
+                           ADDRESS,
+                           CASE WHEN ACTIVE_FLAG = 1 THEN 'ACTIVE' ELSE 'INACTIVE' END,
+                           TO_CHAR (CREATED_DATE, 'DD-Mon-YYYY')
+                      INTO v_supplier_name,
+                           v_supplier_code,
+                           v_mobile,
+                           v_email,
+                           v_address,
+                           v_status,
+                           v_since
+                      FROM MST_SUPPLIER
+                     WHERE SUPPLIER_NO = :P7_SUPPLIER_NO;
+                
+                
+                    /* ============================================================
+                       PURCHASE SUMMARY
+                       ============================================================ */
+                
+                    SELECT COUNT (*), NVL (SUM (TOTAL_AMOUNT), 0), NVL (SUM (DUE_AMOUNT), 0)
+                      INTO v_orders, v_total_purchase, v_due_amount
+                      FROM TRN_PURCHASE_MST
+                     WHERE SUPPLIER_NO = :P7_SUPPLIER_NO;
+                
+                
+                    /* ============================================================
+                       HTML
+                       ============================================================ */
+                
+                    v_html :=
+                           '<style>
+                
+                        .customer-mini-card{
+                            width:100%;
+                            background:#ffffff;
+                            border:1px solid #e3e7ec;
+                            border-radius:9px;
+                            overflow:hidden;
+                            box-sizing:border-box;
+                            font-family:Arial,sans-serif;
+                        }
+                
+                
+                        /* EMPTY */
+                
+                        .cust-empty{
+                            height:150px;
+                            display:flex;
+                            flex-direction:column;
+                            align-items:center;
+                            justify-content:center;
+                            color:#9aa5b1;
+                            font-size:13px;
+                            text-align:center;
+                        }
+                
+                        .cust-empty i{
+                            font-size:30px;
+                            margin-bottom:8px;
+                            color:#cbd2da;
+                        }
+                
+                
+                        /* HEADER */
+                
+                        .cust-head{
+                            padding:10px 12px;
+                            border-bottom:1px solid #edf0f3;
+                            display:flex;
+                            align-items:center;
+                            justify-content:space-between;
+                            gap:8px;
+                        }
+                
+                
+                        .cust-profile{
+                            display:flex;
+                            align-items:center;
+                            min-width:0;
+                        }
+                
+                
+                        .cust-avatar{
+                            width:38px;
+                            height:38px;
+                            min-width:38px;
+                            border-radius:50%;
+                            background:#e5f7f4;
+                            color:#14877f;
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                            font-size:14px;
+                            font-weight:700;
+                            margin-right:9px;
+                        }
+                
+                
+                        .cust-name{
+                            font-size:14px;
+                            font-weight:700;
+                            color:#172033;
+                            white-space:nowrap;
+                            overflow:hidden;
+                            text-overflow:ellipsis;
+                        }
+                
+                
+                        .cust-code{
+                            font-size:10px;
+                            color:#8a94a3;
+                            margin-top:2px;
+                        }
+                
+                
+                        /* STATUS */
+                
+                        .cust-status{
+                            font-size:9px;
+                            font-weight:700;
+                            padding:4px 8px;
+                            border-radius:10px;
+                            white-space:nowrap;
+                        }
+                
+                
+                        .cust-active{
+                            background:#e5f8ee;
+                            color:#16834b;
+                        }
+                
+                
+                        .cust-inactive{
+                            background:#fdecec;
+                            color:#c93636;
+                        }
+                
+                
+                        /* INFORMATION */
+                
+                        .cust-info{
+                            padding:7px 12px;
+                            border-bottom:1px solid #edf0f3;
+                        }
+                
+                
+                        .cust-info-row{
+                            display:flex;
+                            align-items:center;
+                            gap:8px;
+                            margin:6px 0;
+                            color:#5f6b79;
+                            font-size:11px;
+                        }
+                
+                
+                        .cust-info-row i{
+                            width:15px;
+                            text-align:center;
+                            color:#8c98a7;
+                            font-size:11px;
+                        }
+                
+                
+                        .cust-info-text{
+                            overflow:hidden;
+                            text-overflow:ellipsis;
+                            white-space:nowrap;
+                        }
+                
+                
+                        /* SUMMARY */
+                
+                        .cust-summary{
+                            display:grid;
+                            grid-template-columns:1fr 1fr 1fr;
+                            gap:7px;
+                            padding:8px 12px;
+                        }
+                
+                
+                        .cust-stat{
+                            background:#f7f9fc;
+                            border-radius:6px;
+                            padding:7px 9px;
+                        }
+                
+                
+                        .cust-stat-label{
+                            font-size:8px;
+                            color:#7b8796;
+                            font-weight:700;
+                            text-transform:uppercase;
+                            letter-spacing:.3px;
+                        }
+                
+                
+                        .cust-stat-value{
+                            margin-top:3px;
+                            font-size:12px;
+                            font-weight:700;
+                            color:#172033;
+                        }
+                
+                
+                        /* PURCHASE */
+                
+                        .cust-purchase{
+                            color:#286596;
+                        }
+                
+                
+                        /* DUE */
+                
+                        .cust-due{
+                            color:#bd7b16;
+                        }
+                
+                
+                        /* ORDERS */
+                
+                        .cust-orders{
+                            color:#14877f;
+                        }
+                
+                
+                        @media(max-width:600px){
+                
+                            .cust-name{
+                                max-width:140px;
+                            }
+                
+                            .cust-summary{
+                                grid-template-columns:1fr 1fr;
+                            }
+                
+                            .cust-stat:last-child{
+                                grid-column:span 2;
+                            }
+                
+                        }
+                
+                    </style>
+                
+                
+                    <div class="customer-mini-card">
+                
+                
+                        <!-- HEADER -->
+                
+                        <div class="cust-head">
+                
+                            <div class="cust-profile">
+                
+                                <div class="cust-avatar">'
+                        || UPPER (SUBSTR (v_supplier_name, 1, 1))
+                        || '</div>
+                
+                                <div>
+                
+                                    <div class="cust-name">'
+                        || APEX_ESCAPE.HTML (v_supplier_name)
+                        || '</div>
+                
+                                    <div class="cust-code">'
+                        || APEX_ESCAPE.HTML (v_supplier_code)
+                        || ' &bull; Since '
+                        || v_since
+                        || '</div>
+                
+                                </div>
+                
+                            </div>
+                
+                
+                            <div class="cust-status '
+                        || CASE
+                               WHEN v_status = 'ACTIVE' THEN 'cust-active'
+                               ELSE 'cust-inactive'
+                           END
+                        || '">'
+                        || v_status
+                        || '</div>
+                
+                        </div>
+                
+                
+                        <!-- SUPPLIER INFORMATION -->
+                
+                        <div class="cust-info">
+                
+                
+                            <div class="cust-info-row">
+                
+                                <i class="fa fa-phone"></i>
+                
+                                <span class="cust-info-text">'
+                        || APEX_ESCAPE.HTML (NVL (v_mobile, '-'))
+                        || '</span>
+                
+                            </div>
+                
+                
+                            <div class="cust-info-row">
+                
+                                <i class="fa fa-envelope"></i>
+                
+                                <span class="cust-info-text">'
+                        || APEX_ESCAPE.HTML (NVL (v_email, '-'))
+                        || '</span>
+                
+                            </div>
+                
+                
+                            <div class="cust-info-row">
+                
+                                <i class="fa fa-map-marker"></i>
+                
+                                <span class="cust-info-text">'
+                        || APEX_ESCAPE.HTML (NVL (v_address, '-'))
+                        || '</span>
+                
+                            </div>
+                
+                
+                        </div>
+                
+                
+                        <!-- SUMMARY -->
+                
+                        <div class="cust-summary">
+                
+                
+                            <!-- PURCHASE -->
+                
+                            <div class="cust-stat">
+                
+                                <div class="cust-stat-label">
+                                    Total Purchase
+                                </div>
+                
+                                <div class="cust-stat-value cust-purchase">
+                
+                                    ৳ '
+                        || TO_CHAR (v_total_purchase,
+                                    'FM999999999999990D00',
+                                    'NLS_NUMERIC_CHARACTERS=''.,''')
+                        || '
+                
+                                </div>
+                
+                            </div>
+                
+                
+                            <!-- DUE -->
+                
+                            <div class="cust-stat">
+                
+                                <div class="cust-stat-label">
+                                    Due Amount
+                                </div>
+                
+                                <div class="cust-stat-value cust-due">
+                
+                                    ৳ '
+                        || TO_CHAR (v_due_amount,
+                                    'FM999999999999990D00',
+                                    'NLS_NUMERIC_CHARACTERS=''.,''')
+                        || '
+                
+                                </div>
+                
+                            </div>
+                
+                
+                            <!-- ORDERS -->
+                
+                            <div class="cust-stat">
+                
+                                <div class="cust-stat-label">
+                                    Total Purchases
+                                </div>
+                
+                                <div class="cust-stat-value cust-orders">
+                
+                                    '
+                        || TO_CHAR (v_orders, 'FM999999999999990')
+                        || '
+                
+                                </div>
+                
+                            </div>
+                
+                
+                        </div>
+                
+                
+                    </div>';
+                
+                
+                    RETURN v_html;
+                EXCEPTION
+                    WHEN NO_DATA_FOUND
+                    THEN
+                        RETURN '
+                        <div class="cust-empty">
+                
+                            <i class="fa fa-user-times"></i>
+                
+                            <div>Supplier not found</div>
+                
+                        </div>';
+                    WHEN OTHERS
+                    THEN
+                        RETURN '
+                        <div class="cust-empty">
+                
+                            <i class="fa fa-exclamation-circle"></i>
+                
+                            <div>Unable to load supplier details</div>
+                
+                        </div>';
+                END;
+                ```
+            pageItemsToSubmit: P7_SUPPLIER_NO
+        }
+        layout {
+            sequence: 30
+            slot: body
+            startNewRow: false
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: SUPPLIER_DETAILS
         }
     )
 
     region register (
-        name: Register
-        type: interactiveGrid
+        name: Supplier Register
+        type: interactiveReport
         source {
             location: localDatabase
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select SUPPLIER_NO,
-                       SUPPLIER_CODE,
-                       SUPPLIER_NAME,
-                       CONTACT_PERSON,
-                       MOBILE_NO,
-                       EMAIL_ADDRESS,
-                       ADDRESS,
-                       DECODE(ACTIVE_FLAG,1,'Active',0,'Inactive')STATUS,
-                       CREATED_BY,
-                       CREATED_DATE,
-                       UPDATED_BY,
-                       UPDATED_DATE
-                  from MST_SUPPLIER
+                /* Formatted on 8/31/2026 11:29:04 AM (QP5 v5.388) */
+                  SELECT s.SUPPLIER_NO,
+                         s.SUPPLIER_CODE,
+                         s.SUPPLIER_NAME,
+                         s.CONTACT_PERSON,
+                         s.MOBILE_NO,
+                         s.EMAIL_ADDRESS,
+                         s.ADDRESS,
+                         S.ACTIVE_FLAG,
+                         DECODE (s.ACTIVE_FLAG,  1, 'Active',  0, 'Inactive')     STATUS,
+                         s.CREATED_BY,
+                         s.CREATED_DATE,
+                         s.UPDATED_BY,
+                         s.UPDATED_DATE,
+                         NVL(D.DUE_AMOUNT, 0) AS DUE_AMOUNT,
+                
+                       CASE
+                           WHEN NVL(D.DUE_AMOUNT, 0) > 0
+                           THEN '⚠ Due'
+                           ELSE '✓ Clear'
+                       END AS DUE_STATUS
+                    FROM MST_SUPPLIER s
+                         LEFT JOIN (  SELECT SUPPLIER_NO, SUM (NVL (DUE_AMOUNT, 0)) AS DUE_AMOUNT
+                                        FROM TRN_PURCHASE_MST
+                                    GROUP BY SUPPLIER_NO) D
+                             ON D.SUPPLIER_NO = S.SUPPLIER_NO
+                   WHERE (   :P7_DUE_FILTER IS NULL
+                          OR :P7_DUE_FILTER = ''
+                          OR ( :P7_DUE_FILTER = 'DUE' AND NVL (D.DUE_AMOUNT, 0) > 0))
+                ORDER BY S.SUPPLIER_NAME
                 ```
+            pageItemsToSubmit: P7_DUE_FILTER
         }
         layout {
             sequence: 20
             slot: body
+            columnSpan: 8
         }
         appearance {
             template: @/interactive-report
             templateOptions: [
                 #DEFAULT#
                 t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
-            ]
-        }
-        toolbar {
-            controls: [
-                searchCol
-                searchField
-                actionsMenu
-                resetButton
-                saveButton
-            ]
-        }
-        download {
-            formats: [
-                csv
-                html
-                excel
-                pdf
+                margin-top-none
+                margin-bottom-sm
             ]
         }
         advanced {
-            savedReportMappingIdentifier: 8068832237831255947
+            htmlDomId: SUPPLIER_REPORT
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 12001286850732030
         }
 
-        savedReport primary (
-            visibility: primary
-            view {
-                default: grid
+        column ACTIVE_FLAG (
+            type: plainText
+            heading {
+                heading: Active Flag
             }
-            singleRowView {
-                displayedColumns: true
+            layout {
+                sequence: 150
             }
-
-            displayColumn (
-                column: @SUPPLIER_NO
-                layout {
-                    sequence: 1
-                }
-            )
-
-            displayColumn (
-                column: @SUPPLIER_CODE
-                layout {
-                    width: 110
-                    sequence: 2
-                }
-            )
-
-            displayColumn (
-                column: @SUPPLIER_NAME
-                layout {
-                    width: 153.625
-                    sequence: 3
-                }
-            )
-
-            displayColumn (
-                column: @CONTACT_PERSON
-                layout {
-                    width: 122.625
-                    sequence: 4
-                }
-            )
-
-            displayColumn (
-                column: @MOBILE_NO
-                layout {
-                    width: 113
-                    sequence: 5
-                }
-            )
-
-            displayColumn (
-                column: @EMAIL_ADDRESS
-                layout {
-                    width: 181.625
-                    sequence: 6
-                }
-            )
-
-            displayColumn (
-                column: @ADDRESS
-                layout {
-                    width: 209.625
-                    sequence: 7
-                }
-            )
-
-            displayColumn (
-                column: @CREATED_BY
-                layout {
-                    width: 80
-                    sequence: 9
-                }
-            )
-
-            displayColumn (
-                column: @CREATED_DATE
-                layout {
-                    width: 93
-                    sequence: 10
-                }
-            )
-
-            displayColumn (
-                column: @UPDATED_BY
-                layout {
-                    sequence: 11
-                }
-            )
-
-            displayColumn (
-                column: @UPDATED_DATE
-                layout {
-                    sequence: 12
-                }
-            )
-
-            displayColumn (
-                column: @STATUS
-                layout {
-                    width: 69.625
-                    sequence: 8
-                }
-            )
-
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: O
+            }
         )
 
         column ADDRESS (
-            type: textarea
+            type: plainText
             heading {
                 heading: Address
             }
             layout {
                 sequence: 70
             }
-            validation {
-                maxLength: 500
-            }
             source {
-                databaseColumn: ADDRESS
-                dataType: varchar2
+                dataType: STRING
             }
-            columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
-                lovType: none
-            }
-            enableUsersTo {
-                sort: false
+            advanced {
+                endUserAlias: G
             }
         )
 
         column CONTACT_PERSON (
-            type: textField
+            type: plainText
             heading {
                 heading: Contact Person
             }
             layout {
                 sequence: 40
             }
-            validation {
-                maxLength: 200
-            }
             source {
-                databaseColumn: CONTACT_PERSON
-                dataType: varchar2
+                dataType: STRING
             }
-            columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
+            advanced {
+                endUserAlias: D
             }
         )
 
         column CREATED_BY (
-            type: textField
+            type: plainText
             heading {
                 heading: Created By
             }
             layout {
                 sequence: 90
             }
-            validation {
-                maxLength: 30
-            }
             source {
-                databaseColumn: CREATED_BY
-                dataType: varchar2
+                dataType: STRING
             }
-            columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
+            advanced {
+                endUserAlias: I
             }
         )
 
         column CREATED_DATE (
-            type: datePicker
+            type: plainText
             heading {
                 heading: Created Date
             }
@@ -340,83 +1060,92 @@ page 7 (
                 sequence: 100
             }
             source {
-                databaseColumn: CREATED_DATE
-                dataType: date
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: J
+            }
+        )
+
+        column DUE_AMOUNT (
+            type: plainText
+            heading {
+                heading: Due Amount
+                alignment: end
+            }
+            layout {
+                sequence: 130
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: M
+            }
+        )
+
+        column DUE_STATUS (
+            type: plainText
+            heading {
+                heading: Due Status
+            }
+            layout {
+                sequence: 140
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: N
             }
         )
 
         column EMAIL_ADDRESS (
-            type: textField
+            type: plainText
             heading {
                 heading: Email Address
             }
             layout {
                 sequence: 60
             }
-            validation {
-                maxLength: 200
-            }
             source {
-                databaseColumn: EMAIL_ADDRESS
-                dataType: varchar2
+                dataType: STRING
             }
-            columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
+            advanced {
+                endUserAlias: F
             }
         )
 
         column MOBILE_NO (
-            type: textField
+            type: plainText
             heading {
                 heading: Mobile No
             }
             layout {
                 sequence: 50
             }
-            validation {
-                maxLength: 30
-            }
             source {
-                databaseColumn: MOBILE_NO
-                dataType: varchar2
+                dataType: STRING
             }
-            columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
+            advanced {
+                endUserAlias: E
             }
         )
 
         column STATUS (
-            type: textField
+            type: plainText
             heading {
                 heading: Status
             }
             layout {
-                sequence: 130
-            }
-            validation {
-                maxLength: 8
+                sequence: 80
             }
             source {
-                databaseColumn: STATUS
-                dataType: varchar2
+                dataType: STRING
             }
-            columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
+            advanced {
+                endUserAlias: H
             }
         )
 
@@ -427,108 +1156,89 @@ page 7 (
             }
             layout {
                 sequence: 20
-                columnAlignment: center
             }
             link {
                 target: {
-                    page: 7
+                    page: 29
                     items: {
-                        P7_SUPPLIER_NO: &SUPPLIER_NO.
+                        P29_SUPPLIER_NO: #SUPPLIER_NO#
                     }
+                    action: clearRegions
                 }
-                linkText: &SUPPLIER_CODE.
+                linkText: #SUPPLIER_CODE#
             }
             source {
-                databaseColumn: SUPPLIER_CODE
-                dataType: varchar2
+                dataType: STRING
             }
-            columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
+            advanced {
+                endUserAlias: B
             }
         )
 
         column SUPPLIER_NAME (
-            type: textarea
+            type: plainText
             heading {
                 heading: Supplier Name
             }
             layout {
                 sequence: 30
             }
-            validation {
-                valueRequired: true
-                maxLength: 300
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="javascript:void(0);"
+                       class="supplier-select"
+                       data-supplier-no="#SUPPLIER_NO#"
+                       data-due-amount="#DUE_AMOUNT#"
+                       data-active-flag="#ACTIVE_FLAG#">
+                       #SUPPLIER_NAME#
+                    </a>
+                    ```
             }
             source {
-                databaseColumn: SUPPLIER_NAME
-                dataType: varchar2
+                dataType: STRING
             }
-            columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
-                lovType: none
-            }
-            enableUsersTo {
-                sort: false
+            advanced {
+                endUserAlias: C
             }
         )
 
         column SUPPLIER_NO (
-            type: hidden
+            type: plainText
             heading {
                 heading: Supplier No
-            }
-            settings {
-                valueProtected: false
+                alignment: end
             }
             layout {
                 sequence: 10
+                columnAlignment: end
             }
             source {
-                databaseColumn: SUPPLIER_NO
-                dataType: number
+                dataType: NUMBER
             }
-            exportPrinting {
-                includeInExportPrint: false
+            advanced {
+                endUserAlias: A
             }
         )
 
         column UPDATED_BY (
-            type: textField
+            type: plainText
             heading {
                 heading: Updated By
             }
             layout {
                 sequence: 110
             }
-            validation {
-                maxLength: 30
-            }
             source {
-                databaseColumn: UPDATED_BY
-                dataType: varchar2
+                dataType: STRING
             }
-            columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
+            advanced {
+                endUserAlias: K
             }
         )
 
         column UPDATED_DATE (
-            type: datePicker
+            type: plainText
             heading {
                 heading: Updated Date
             }
@@ -536,8 +1246,10 @@ page 7 (
                 sequence: 120
             }
             source {
-                databaseColumn: UPDATED_DATE
-                dataType: date
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: L
             }
         )
 
@@ -545,277 +1257,74 @@ page 7 (
             borderWidth: 0.5
             borderColor: #666666
         }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn CONTACT_PERSON (
+                sequence: 3
+            )
+
+            displayColumn DUE_AMOUNT (
+                sequence: 5
+            )
+
+            displayColumn DUE_STATUS (
+                sequence: 6
+            )
+
+            displayColumn STATUS (
+                sequence: 4
+            )
+
+            displayColumn SUPPLIER_CODE (
+                sequence: 1
+            )
+
+            displayColumn SUPPLIER_NAME (
+                sequence: 2
+            )
+
+        )
+
     )
 
     pageItem P7_ACTIVE_FLAG (
-        type: checkbox
-        label {
-            label: Active Flag
-            alignment: left
-        }
-        settings {
-            useDefaults: false
-            checkedValue: 1
-            uncheckedValue: 0
-        }
-        layout {
-            sequence: 10
-            region: @entry
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-        }
-        source {
-            formRegion: @entry
-            column: ACTIVE_FLAG
-            dataType: varchar2
-        }
-        default {
-            type: static
-            staticValue: 1
-        }
-    )
-
-    pageItem P7_ADDRESS (
-        type: textField
-        label {
-            label: Address
-            alignment: left
-        }
-        layout {
-            sequence: 10
-            region: @entry
-            slot: regionBody
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
-        }
-        validation {
-            maxLength: 500
-        }
-        source {
-            formRegion: @entry
-            column: ADDRESS
-            dataType: varchar2
-        }
-    )
-
-    pageItem P7_CONTACT_PERSON (
-        type: textField
-        label {
-            label: Contact Person
-            alignment: left
-        }
-        layout {
-            sequence: 10
-            region: @entry
-            slot: regionBody
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
-        }
-        validation {
-            maxLength: 200
-        }
-        source {
-            formRegion: @entry
-            column: CONTACT_PERSON
-            dataType: varchar2
-        }
-    )
-
-    pageItem P7_CREATED_BY (
         type: hidden
         settings {
             valueProtected: false
         }
         layout {
-            sequence: 10
-            region: @entry
+            sequence: 30
+            region: @register
             slot: regionBody
-        }
-        source {
-            formRegion: @entry
-            column: CREATED_BY
-            dataType: varchar2
         }
     )
 
-    pageItem P7_CREATED_DATE (
+    pageItem P7_DUE_AMOUNT (
         type: hidden
         settings {
             valueProtected: false
         }
         layout {
-            sequence: 10
-            region: @entry
+            sequence: 20
+            region: @register
             slot: regionBody
-        }
-        source {
-            formRegion: @entry
-            column: CREATED_DATE
-            dataType: date
         }
     )
 
-    pageItem P7_EMAIL_ADDRESS (
-        type: textField
-        label {
-            label: Email Address
-            alignment: left
+    pageItem P7_DUE_FILTER (
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
-            sequence: 10
-            region: @entry
+            sequence: 40
+            region: @register
             slot: regionBody
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
-        }
-        validation {
-            maxLength: 200
-        }
-        source {
-            formRegion: @entry
-            column: EMAIL_ADDRESS
-            dataType: varchar2
-        }
-    )
-
-    pageItem P7_MOBILE_NO (
-        type: textField
-        label {
-            label: Mobile No
-            alignment: left
-        }
-        layout {
-            sequence: 10
-            region: @entry
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
-        }
-        validation {
-            valueRequired: true
-            maxLength: 11
-        }
-        source {
-            formRegion: @entry
-            column: MOBILE_NO
-            dataType: varchar2
-        }
-    )
-
-    pageItem P7_SUPPLIER_CODE (
-        type: textField
-        label {
-            label: Supplier Code
-            alignment: left
-        }
-        layout {
-            sequence: 10
-            region: @entry
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
-        }
-        validation {
-            maxLength: 30
-        }
-        advanced {
-            customAttributes: readonly
-        }
-        source {
-            formRegion: @entry
-            column: SUPPLIER_CODE
-            dataType: varchar2
-        }
-    )
-
-    pageItem P7_SUPPLIER_NAME (
-        type: textField
-        label {
-            label: Supplier Name
-            alignment: left
-        }
-        layout {
-            sequence: 10
-            region: @entry
-            slot: regionBody
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
-        }
-        validation {
-            valueRequired: true
-            maxLength: 300
-        }
-        source {
-            formRegion: @entry
-            column: SUPPLIER_NAME
-            dataType: varchar2
         }
     )
 
@@ -826,51 +1335,11 @@ page 7 (
         }
         layout {
             sequence: 10
-            region: @entry
+            region: @register
             slot: regionBody
         }
         source {
-            formRegion: @entry
-            column: SUPPLIER_NO
-            dataType: number
-            primaryKey: true
-        }
-        security {
-            sessionStateProtection: checksumRequiredSessionLevel
-        }
-    )
-
-    pageItem P7_UPDATED_BY (
-        type: hidden
-        settings {
-            valueProtected: false
-        }
-        layout {
-            sequence: 10
-            region: @entry
-            slot: regionBody
-        }
-        source {
-            formRegion: @entry
-            column: UPDATED_BY
-            dataType: varchar2
-        }
-    )
-
-    pageItem P7_UPDATED_DATE (
-        type: hidden
-        settings {
-            valueProtected: false
-        }
-        layout {
-            sequence: 10
-            region: @entry
-            slot: regionBody
-        }
-        source {
-            formRegion: @entry
-            column: UPDATED_DATE
-            dataType: date
+            used: always
         }
     )
 
@@ -879,8 +1348,8 @@ page 7 (
         label: Add Supplier
         layout {
             sequence: 10
-            region: @breadcrumb-2
-            slot: next
+            region: @register
+            slot: rightOfInteractiveReportSearchBar
         }
         appearance {
             buttonTemplate: @/text-with-icon
@@ -894,14 +1363,73 @@ page 7 (
         behavior {
             action: redirectThisApp
             target: {
-                page: 24
-                clearCache: 24
+                page: 29
+                clearCache: 29
                 action: clearRegions
             }
         }
         advanced {
             htmlDomId: pb-reset
         }
+    )
+
+    button add-to-cart (
+        buttonName: ADD_TO_CART
+        label: Add To Cart
+        layout {
+            sequence: 20
+            region: @new
+            slot: belowBox
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+                t-Button--stretch
+            ]
+            icon: fa-cart-plus
+        }
+        behavior {
+            action: triggerAction
+        }
+        advanced {
+            htmlDomId: SALES_ORDER
+        }
+
+        triggerAction native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                    var supplierNo = $v("P7_SUPPLIER_NO");
+                    var active     = $v("P7_ACTIVE_FLAG");
+                    
+                    if (active == "1") {
+                        apex.navigation.redirect(
+                            "f?p=" +
+                            $v("pFlowId") +
+                            ":12:" +
+                            $v("pInstance") +
+                            "::NO:RP,12:P12_SUPPLIER_NO:" +
+                            encodeURIComponent(supplierNo)
+                        );
+                    
+                    } else {
+                        apex.message.alert(
+                            "This Supplier is inactive. You cannot add products to the cart."
+                        );
+                    
+                    }
+                    ```
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
     )
 
     button delete (
@@ -933,6 +1461,90 @@ page 7 (
             htmlDomId: pb-delete
             customAttributes: disabled
         }
+    )
+
+    button due (
+        buttonName: DUE
+        label: Add Supplier
+        layout {
+            sequence: 20
+            region: @register
+            slot: rightOfInteractiveReportSearchBar
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        advanced {
+            htmlDomId: DUE_FILTER_BTN
+        }
+    )
+
+    button payment-now (
+        buttonName: PAYMENT_NOW
+        label: Payment Now
+        layout {
+            sequence: 10
+            region: @new
+            slot: belowBox
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            showAsDisabled: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--primary
+                t-Button--iconLeft
+                t-Button--stretch
+            ]
+            icon: fa-money-bag
+        }
+        behavior {
+            action: triggerAction
+        }
+        advanced {
+            htmlDomId: PAYMENT_BTN
+        }
+
+        triggerAction native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                    var supplierNo = $v("P7_SUPPLIER_NO");
+                    var active     = $v("P7_ACTIVE_FLAG");
+                    
+                    if (active == "1") {
+                        apex.navigation.redirect(
+                            "f?p=" +
+                            $v("pFlowId") +
+                            ":27:" +
+                            $v("pInstance") +
+                            "::NO:RP,27:P27_PARTY_NO:" +
+                            encodeURIComponent(supplierNo)
+                        );
+                    
+                    } else {
+                        apex.message.alert(
+                            "This Supplier is inactive. You cannot Payment Now !."
+                        );
+                    
+                    }
+                    ```
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
     )
 
     button save (
@@ -987,63 +1599,164 @@ page 7 (
         }
     )
 
-    validation email-format-validation (
-        name: EMAIL Format Validation
-        execution {
-            sequence: 30
-        }
-        validation {
-            plsqlExpression:
-                ```plsql
-                REGEXP_LIKE(
-                :P7_EMAIL_ADDRESS,
-                '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
-                )
-                ```
-        }
-        error {
-            errorMessage: Please enter a valid email address.
-            associatedItem: @P7_EMAIL_ADDRESS
-        }
-        serverSideCondition {
-            type: itemIsNotNull
-            item: P7_EMAIL_ADDRESS
-        }
-    )
-
-    validation mobile-number-validation (
-        name: Mobile Number Validation
-        execution {
-            sequence: 10
-        }
-        validation {
-            plsqlExpression: "REGEXP_LIKE(:P7_MOBILE_NO,'^01[3-9][0-9]{8}$')"
-        }
-        error {
-            errorMessage: Please enter a valid mobile number.
-            associatedItem: @P7_MOBILE_NO
-        }
-    )
-
-    validation new (
-        name: Duplicate Mobile Number Check
+    dynamicAction da-due-button-toggle-and-color (
+        name: DA_DUE_BUTTON_TOGGLE_AND_COLOR
         execution {
             sequence: 20
         }
-        validation {
-            type: noRowsReturned
-            sqlQuery:
-                ```sql
-                SELECT 1
-                FROM MST_SUPPLIER
-                WHERE MOBILE_NO = :P7_MOBILE_NO
-                AND NVL(SUPPLIER_NO,0) <> NVL(:P7_SUPPLIER_NO,0)
-                ```
+        when {
+            event: click
+            selectionType: button
+            button: @due
         }
-        error {
-            errorMessage: Mobile Number already exists.
-            associatedItem: @P7_MOBILE_NO
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                    var btn = $("#DUE_FILTER_BTN");
+                    
+                    if ($v("P7_DUE_FILTER") === "DUE") {
+                    
+                        $s("P7_DUE_FILTER", "");
+                    
+                        btn.find(".t-Button-label").text("Show Due Supplier");
+                    
+                        btn.css({
+                            "background": "#dc3545",
+                            "border-color": "#dc3545",
+                            "color": "#fff",
+                            "font-weight": "600",
+                            "box-shadow": "0 2px 5px rgba(0,0,0,0.15)"
+                        });
+                    
+                    } else {
+                    
+                        $s("P7_DUE_FILTER", "DUE");
+                    
+                        btn.find(".t-Button-label").text("Show All Supplier");
+                    
+                        btn.css({
+                            "background": "#198754",
+                            "border-color": "#198754",
+                            "color": "#fff",
+                            "font-weight": "600",
+                            "box-shadow": "0 2px 5px rgba(0,0,0,0.15)"
+                        });
+                    }
+                    
+                    apex.region("SUPPLIER_REPORT").refresh();
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction new (
+        name: New
+        execution {
+            sequence: 10
         }
+        when {
+            event: ready
+        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                     let due = $v('P8_DUE_AMOUNT')
+                     let customer = $v('P8_CUSTOMER_NO')
+                      
+                       if (due > 0) {
+                            $("#PAYMENT_BTN").show();
+                        } else {
+                            $("#PAYMENT_BTN").hide();
+                        }
+                    
+                           if (customer) {
+                            $("#SALES_ORDER").show();
+                        } else {
+                            $("#SALES_ORDER").hide();
+                        }
+                    ```
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
+    dynamicAction new_1 (
+        name: DA_GET_SUPPLIER_DUE_AMOUNT
+        execution {
+            sequence: 30
+            eventScope: dynamic
+        }
+        when {
+            event: click
+            selectionType: jQuerySelector
+            jquerySelector: .supplier-select
+        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                    var el = $(this.triggeringElement);
+                    
+                    var supplierNo = el.attr("data-supplier-no");
+                    var dueAmount  = el.attr("data-due-amount");
+                    var active  = el.attr("data-active-flag");
+                    
+                    console.log("HTML:", el[0].outerHTML);
+                    console.log("supplier No:", supplierNo);
+                    console.log("Due Amount:", dueAmount);
+                    
+                    if (supplierNo) {
+                    
+                        apex.item("P7_SUPPLIER_NO").setValue(supplierNo);
+                        apex.item("P7_ACTIVE_FLAG").setValue(active);
+                    
+                        dueAmount = dueAmount || "0";
+                        dueAmount = dueAmount.replace(/,/g, "");
+                    
+                        apex.item("P7_DUE_AMOUNT").setValue(dueAmount);
+                    
+                        // PAYMENT button show / hide
+                        var due = parseFloat(dueAmount) || 0;
+                    
+                        if (due > 0) {
+                            $("#PAYMENT_BTN").show();
+                        } else {
+                            $("#PAYMENT_BTN").hide();
+                        }
+                    
+                          if (supplierNo) {
+                            $("#SALES_ORDER").show();
+                        } else {
+                            $("#SALES_ORDER").hide();
+                        }
+                    
+                    
+                        apex.region("SUPPLIER_DETAILS").refresh();
+                    }
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
     )
 
     process delete (
@@ -1067,19 +1780,6 @@ page 7 (
         }
         serverSideCondition {
             whenButtonPressed: @delete
-        }
-    )
-
-    process initialize-form-supplier-setup (
-        name: Initialize form Supplier Setup
-        type: formInitialization
-        formRegion: @entry
-        execution {
-            sequence: 10
-            point: beforeHeader
-        }
-        advanced {
-            executionMappingIdentifier: 8068830374569255928
         }
     )
 

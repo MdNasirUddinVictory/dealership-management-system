@@ -1,7 +1,7 @@
-page 16 (
-    name: Purchase Approval
-    alias: PURCHASE-APPROVAL
-    title: Purchase Approval
+page 30 (
+    name: Invoice Approval
+    alias: INVOICE-APPROVAL
+    title: Invoice Approval
     appearance {
         pageTemplate: @/standard
         templateOptions: #DEFAULT#
@@ -14,7 +14,7 @@ page 16 (
             ```javascript-browser
             function f_openModal(purchaseNo){
             
-                apex.item("P16_PURCHASE_NO").setValue(purchaseNo);
+                apex.item("P30_INVOICE_NO").setValue(purchaseNo);
             
                 openModal('purchase_approve');
             
@@ -25,7 +25,7 @@ page 16 (
             function approvePurchase(pPurchaseNo) {
             
                 apex.message.confirm(
-                    "Are you sure you want to approve this purchase?",
+                    "Are you sure you want to approve this Invoice?",
                     function(okPressed) {
             
                         if (!okPressed) {
@@ -33,7 +33,7 @@ page 16 (
                         }
             
                         apex.server.process(
-                            "APPROVE_PURCHASE",
+                            "APPROVE_INVOICE",
                             {
                                 x01: pPurchaseNo
                             },
@@ -77,7 +77,7 @@ page 16 (
                 }
             
                 apex.server.process(
-                    "REJECT_PURCHASE",
+                    "REJECT_INVOICE",
                     {
                         x01: pPurchaseNo
                     },
@@ -175,18 +175,24 @@ page 16 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                SELECT D.PURCHASE_DTL_NO,
+                SELECT * FROM (SELECT D.INVOICE_DTL_NO,
                        P.PRODUCT_CODE,
                        P.PRODUCT_NAME,
-                       D.PURCHASE_QTY,
-                       D.PURCHASE_RATE,
+                       D.UOM_NO,
+                       D.PACK_QTY,
+                       D.ORDER_QTY,
+                       D.SALES_QTY,
+                       D.BASE_QTY,
+                       D.SALES_RATE,
+                       D.BASE_RATE,
                        D.TOTAL_AMOUNT
-                FROM TRN_PURCHASE_DTL D
+                FROM TRN_SALES_INVOICE_DTL D
                 JOIN MST_PRODUCT P
-                ON P.PRODUCT_NO = D.PRODUCT_NO
-                WHERE D.PURCHASE_NO = :P16_PURCHASE_NO
+                  ON P.PRODUCT_NO = D.PRODUCT_NO
+                WHERE D.INVOICE_NO = :P30_INVOICE_NO
+                ORDER BY D.INVOICE_DTL_NO);
                 ```
-            pageItemsToSubmit: P16_PURCHASE_NO
+            pageItemsToSubmit: P30_INVOICE_NO
         }
         layout {
             sequence: 30
@@ -221,7 +227,7 @@ page 16 (
             ]
         }
         advanced {
-            savedReportMappingIdentifier: 8427740194470207832
+            savedReportMappingIdentifier: 8440087489354154150
         }
 
         savedReport primary (
@@ -234,10 +240,67 @@ page 16 (
             }
 
             displayColumn (
-                column: @PURCHASE_DTL_NO
+                column: @INVOICE_DTL_NO
                 layout {
                     show: false
-                    sequence: 1
+                    width: 63
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @UOM_NO
+                layout {
+                    show: false
+                    width: 73
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @PACK_QTY
+                layout {
+                    width: 72
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @ORDER_QTY
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @SALES_QTY
+                layout {
+                    width: 70
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @BASE_QTY
+                layout {
+                    width: 71
+                    sequence: 10
+                }
+            )
+
+            displayColumn (
+                column: @SALES_RATE
+                layout {
+                    width: 64
+                    sequence: 11
+                }
+            )
+
+            displayColumn (
+                column: @BASE_RATE
+                layout {
+                    width: 83
+                    sequence: 3
                 }
             )
 
@@ -245,41 +308,124 @@ page 16 (
                 column: @PRODUCT_CODE
                 layout {
                     width: 102.25
-                    sequence: 2
+                    sequence: 1
                 }
             )
 
             displayColumn (
                 column: @PRODUCT_NAME
                 layout {
-                    width: 167.25
-                    sequence: 3
-                }
-            )
-
-            displayColumn (
-                column: @PURCHASE_QTY
-                layout {
-                    width: 91.25
-                    sequence: 4
-                }
-            )
-
-            displayColumn (
-                column: @PURCHASE_RATE
-                layout {
-                    width: 103.25
-                    sequence: 5
+                    width: 120.5833330154419
+                    sequence: 2
                 }
             )
 
             displayColumn (
                 column: @TOTAL_AMOUNT
                 layout {
-                    sequence: 6
+                    width: 70
+                    sequence: 4
                 }
             )
 
+        )
+
+        column BASE_QTY (
+            type: numberField
+            heading {
+                heading: Base Qty
+                alignment: end
+            }
+            layout {
+                sequence: 100
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: BASE_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column BASE_RATE (
+            type: numberField
+            heading {
+                heading: Base Rate
+                alignment: end
+            }
+            layout {
+                sequence: 120
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: BASE_RATE
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column INVOICE_DTL_NO (
+            type: numberField
+            heading {
+                heading: Invoice Dtl No
+                alignment: end
+            }
+            layout {
+                sequence: 10
+                columnAlignment: end
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: INVOICE_DTL_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column ORDER_QTY (
+            type: numberField
+            heading {
+                heading: Order Qty
+                alignment: end
+            }
+            layout {
+                sequence: 80
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: ORDER_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column PACK_QTY (
+            type: numberField
+            heading {
+                heading: Pack Qty
+                alignment: end
+            }
+            layout {
+                sequence: 70
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: PACK_QTY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
         )
 
         column PRODUCT_CODE (
@@ -338,21 +484,18 @@ page 16 (
             }
         )
 
-        column PURCHASE_DTL_NO (
+        column SALES_QTY (
             type: numberField
             heading {
-                heading: Purchase Dtl No
+                heading: Sales Qty
                 alignment: end
             }
             layout {
-                sequence: 10
+                sequence: 90
                 columnAlignment: end
             }
-            validation {
-                valueRequired: true
-            }
             source {
-                databaseColumn: PURCHASE_DTL_NO
+                databaseColumn: SALES_QTY
                 dataType: number
             }
             columnFilter {
@@ -360,43 +503,18 @@ page 16 (
             }
         )
 
-        column PURCHASE_QTY (
+        column SALES_RATE (
             type: numberField
             heading {
-                heading: Purchase Qty
+                heading: Sales Rate
                 alignment: end
             }
             layout {
-                sequence: 40
+                sequence: 110
                 columnAlignment: end
             }
-            validation {
-                valueRequired: true
-            }
             source {
-                databaseColumn: PURCHASE_QTY
-                dataType: number
-            }
-            columnFilter {
-                lovType: none
-            }
-        )
-
-        column PURCHASE_RATE (
-            type: numberField
-            heading {
-                heading: Purchase Rate
-                alignment: end
-            }
-            layout {
-                sequence: 50
-                columnAlignment: end
-            }
-            validation {
-                valueRequired: true
-            }
-            source {
-                databaseColumn: PURCHASE_RATE
+                databaseColumn: SALES_RATE
                 dataType: number
             }
             columnFilter {
@@ -411,11 +529,30 @@ page 16 (
                 alignment: end
             }
             layout {
-                sequence: 60
+                sequence: 40
                 columnAlignment: end
             }
             source {
                 databaseColumn: TOTAL_AMOUNT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column UOM_NO (
+            type: numberField
+            heading {
+                heading: Uom No
+                alignment: end
+            }
+            layout {
+                sequence: 60
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: UOM_NO
                 dataType: number
             }
             columnFilter {
@@ -430,34 +567,41 @@ page 16 (
     )
 
     region register (
-        name: PURCHASE-REGISTER
+        name: SALES-REGISTER
         type: interactiveGrid
         source {
             location: localDatabase
             type: sqlQuery
             sqlQuery:
                 ```sql
-                SELECT * FROM (SELECT M.PURCHASE_NO,
-                       M.PURCHASE_CODE,
-                       M.PURCHASE_DATE,
-                       S.SUPPLIER_NAME,
-                       (
-                           SELECT SUM(D.TOTAL_AMOUNT)
-                             FROM TRN_PURCHASE_DTL D
-                            WHERE D.PURCHASE_NO = M.PURCHASE_NO
-                       ) TOTAL_AMOUNT,
+                SELECT * FROM (SELECT M.INVOICE_NO,
+                       M.INVOICE_CODE,
+                       M.INVOICE_DATE,
+                       C.CUSTOMER_NAME,
+                       NVL(
+                           (SELECT SUM(D.TOTAL_AMOUNT)
+                              FROM TRN_SALES_INVOICE_DTL D
+                             WHERE D.INVOICE_NO = M.INVOICE_NO),
+                           0
+                       ) AS TOTAL_AMOUNT,
+                
                        CASE M.APPROVAL_STATUS
                             WHEN 'P' THEN 'Pending'
                             WHEN 'A' THEN 'Approved'
                             WHEN 'R' THEN 'Rejected'
-                       END APPROVAL_STATUS,
+                       END AS APPROVAL_STATUS,
+                
                        M.CREATED_BY,
                        M.CREATED_DATE
-                FROM TRN_PURCHASE_MST M
-                JOIN MST_SUPPLIER S
-                  ON S.SUPPLIER_NO = M.SUPPLIER_NO
-                  WHERE APPROVAL_STATUS  = 'P'
-                ORDER BY M.PURCHASE_NO DESC);
+                
+                FROM TRN_SALES_INVOICE_MST M
+                
+                JOIN MST_CUSTOMER C
+                  ON C.CUSTOMER_NO = M.CUSTOMER_NO
+                
+                WHERE M.APPROVAL_STATUS = 'P'
+                
+                ORDER BY M.INVOICE_NO DESC);
                 ```
         }
         layout {
@@ -495,7 +639,7 @@ page 16 (
             ]
         }
         advanced {
-            savedReportMappingIdentifier: 16705328056974162306
+            savedReportMappingIdentifier: 16717675351858108624
         }
 
         savedReport primary (
@@ -508,29 +652,29 @@ page 16 (
             }
 
             displayColumn (
-                column: @PURCHASE_NO
+                column: @INVOICE_NO
                 layout {
                     show: false
-                    sequence: 8
+                    sequence: 7
                 }
             )
 
             displayColumn (
-                column: @PURCHASE_CODE
+                column: @INVOICE_CODE
                 layout {
                     sequence: 1
                 }
             )
 
             displayColumn (
-                column: @PURCHASE_DATE
+                column: @INVOICE_DATE
                 layout {
                     sequence: 2
                 }
             )
 
             displayColumn (
-                column: @SUPPLIER_NAME
+                column: @CUSTOMER_NAME
                 layout {
                     sequence: 3
                 }
@@ -539,14 +683,14 @@ page 16 (
             displayColumn (
                 column: @TOTAL_AMOUNT
                 layout {
-                    sequence: 4
+                    sequence: 8
                 }
             )
 
             displayColumn (
                 column: @APPROVAL_STATUS
                 layout {
-                    sequence: 5
+                    sequence: 4
                 }
             )
 
@@ -560,14 +704,14 @@ page 16 (
             displayColumn (
                 column: @CREATED_BY
                 layout {
-                    sequence: 6
+                    sequence: 5
                 }
             )
 
             displayColumn (
                 column: @CREATED_DATE
                 layout {
-                    sequence: 7
+                    sequence: 6
                 }
             )
 
@@ -601,14 +745,14 @@ page 16 (
         column APPROVE (
             type: link
             layout {
-                sequence: 130
+                sequence: 180
             }
             link {
                 target: {
                     type: url
-                    url: javascript:f_openModal('&PURCHASE_NO.')
+                    url: javascript:f_openModal('&INVOICE_NO.')
                 }
-                linkText: <span class="t-Button-label">Details</span>
+                linkText: <span class="t-Button-label">Approved</span>
                 linkAttributes: class="t-Button t-Button--hot t-Button--small t-Button--primary t-Button--stretch"
             }
             source {
@@ -655,84 +799,20 @@ page 16 (
             }
         )
 
-        column PURCHASE_CODE (
-            type: textField
-            heading {
-                heading: Purchase Code
-            }
-            layout {
-                sequence: 80
-            }
-            validation {
-                maxLength: 20
-            }
-            source {
-                databaseColumn: PURCHASE_CODE
-                dataType: varchar2
-            }
-            columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
-            }
-        )
-
-        column PURCHASE_DATE (
-            type: datePicker
-            heading {
-                heading: Purchase Date
-            }
-            layout {
-                sequence: 90
-            }
-            validation {
-                valueRequired: true
-            }
-            source {
-                databaseColumn: PURCHASE_DATE
-                dataType: date
-            }
-        )
-
-        column PURCHASE_NO (
-            type: numberField
-            heading {
-                heading: Purchase No
-                alignment: end
-            }
-            layout {
-                sequence: 70
-                columnAlignment: end
-            }
-            validation {
-                valueRequired: true
-            }
-            source {
-                databaseColumn: PURCHASE_NO
-                dataType: number
-            }
-            columnFilter {
-                lovType: none
-            }
-        )
-
-        column SUPPLIER_NAME (
+        column CUSTOMER_NAME (
             type: textarea
             heading {
-                heading: Supplier Name
+                heading: Customer Name
             }
             layout {
-                sequence: 100
+                sequence: 170
             }
             validation {
                 valueRequired: true
                 maxLength: 300
             }
             source {
-                databaseColumn: SUPPLIER_NAME
+                databaseColumn: CUSTOMER_NAME
                 dataType: varchar2
             }
             columnFilter {
@@ -746,6 +826,71 @@ page 16 (
             }
             enableUsersTo {
                 sort: false
+            }
+        )
+
+        column INVOICE_CODE (
+            type: textField
+            heading {
+                heading: Invoice Code
+            }
+            layout {
+                sequence: 150
+            }
+            validation {
+                valueRequired: true
+                maxLength: 30
+            }
+            source {
+                databaseColumn: INVOICE_CODE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column INVOICE_DATE (
+            type: datePicker
+            heading {
+                heading: Invoice Date
+            }
+            layout {
+                sequence: 160
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: INVOICE_DATE
+                dataType: date
+            }
+        )
+
+        column INVOICE_NO (
+            type: numberField
+            heading {
+                heading: Invoice No
+                alignment: end
+            }
+            layout {
+                sequence: 140
+                columnAlignment: end
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: INVOICE_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
             }
         )
 
@@ -774,7 +919,7 @@ page 16 (
         }
     )
 
-    pageItem P16_PURCHASE_NO (
+    pageItem P30_INVOICE_NO (
         type: hidden
         settings {
             valueProtected: false
@@ -817,7 +962,7 @@ page 16 (
         triggerAction native-javascript-code (
             action: executeJsCode
             settings {
-                jsCode: approvePurchase($v('P16_PURCHASE_NO'))
+                jsCode: approvePurchase($v('P30_INVOICE_NO'))
             }
             execution {
                 sequence: 10
@@ -905,7 +1050,7 @@ page 16 (
         triggerAction native-javascript-code (
             action: executeJsCode
             settings {
-                jsCode: rejectPurchase($v('P16_PURCHASE_NO'))
+                jsCode: rejectPurchase($v('P30_INVOICE_NO'))
             }
             execution {
                 sequence: 10
@@ -965,145 +1110,133 @@ page 16 (
     )
 
     process approve-purchase (
-        name: APPROVE_PURCHASE
+        name: APPROVE_INVOICE
         type: executeCode
         source {
             plsqlCode:
                 ```plsql
-                /* Formatted on 8/25/2026 2:38:49 PM (QP5 v5.388) */
                 DECLARE
-                    v_status         NUMBER;
-                    v_exists         NUMBER;
-                
-                    v_cash_balance   NUMBER;
-                    v_purchase_amt   NUMBER;
+                    v_status NUMBER;
+                    v_exists NUMBER;
                 BEGIN
+                
                     ------------------------------------------------
                     -- Already Approved
                     ------------------------------------------------
-                    SELECT COUNT (*)
+                    SELECT COUNT(*)
                       INTO v_status
-                      FROM TRN_PURCHASE_MST
-                     WHERE PURCHASE_NO = APEX_APPLICATION.G_X01 AND APPROVAL_STATUS = 'A';
+                      FROM TRN_SALES_INVOICE_MST
+                     WHERE INVOICE_NO = APEX_APPLICATION.G_X01
+                       AND APPROVAL_STATUS = 'A';
                 
-                    IF v_status > 0
-                    THEN
-                        RAISE_APPLICATION_ERROR (-20001, 'Purchase already approved.');
+                    IF v_status > 0 THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Invoice already approved.'
+                        );
                     END IF;
+                
                 
                     ------------------------------------------------
                     -- Detail Exists
                     ------------------------------------------------
-                    SELECT COUNT (*)
+                    SELECT COUNT(*)
                       INTO v_exists
-                      FROM TRN_PURCHASE_DTL
-                     WHERE PURCHASE_NO = APEX_APPLICATION.G_X01;
+                      FROM TRN_SALES_INVOICE_DTL
+                     WHERE INVOICE_NO = APEX_APPLICATION.G_X01;
                 
-                    IF v_exists = 0
-                    THEN
-                        RAISE_APPLICATION_ERROR (-20001, 'Purchase details not found.');
+                    IF v_exists = 0 THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Invoice details not found.'
+                        );
                     END IF;
+                
                 
                     ------------------------------------------------
                     -- Stock Already Posted
                     ------------------------------------------------
-                    SELECT COUNT (*)
+                    SELECT COUNT(*)
                       INTO v_exists
                       FROM TRN_STOCK_LEDGER
-                     WHERE TRAN_TYPE = 'PURCHASE' AND REF_NO = APEX_APPLICATION.G_X01;
+                     WHERE TRAN_TYPE = 'SALES'
+                       AND REF_NO = APEX_APPLICATION.G_X01;
                 
-                    IF v_exists > 0
-                    THEN
-                        RAISE_APPLICATION_ERROR (-20001, 'Stock already posted.');
+                    IF v_exists > 0 THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Stock already posted.'
+                        );
                     END IF;
                 
                 
-                ---jODI PURCHASE SOMOY CASH PAYMENT KORE EI SCREEN TAILE EI VALIDATION LAGBE
-                    -- BEGIN
-                    --     SELECT   NVL (
-                    --                  (SELECT SUM (
-                    --                                NVL (OPENING_DEBIT, 0)
-                    --                              - NVL (OPENING_CREDIT, 0))
-                    --                    FROM ACC_OPENING_BALANCE
-                    --                   WHERE ACCOUNT_NO = 6 AND APPROVAL_STATUS = 'A'),
-                    --                  0)
-                    --            + NVL (
-                    --                  (SELECT SUM (
-                    --                                NVL (D.DEBIT_AMOUNT, 0)
-                    --                              - NVL (D.CREDIT_AMOUNT, 0))
-                    --                    FROM ACC_VOUCHER_MST  M
-                    --                         JOIN ACC_VOUCHER_DTL D
-                    --                             ON D.VOUCHER_NO = M.VOUCHER_NO
-                    --                   WHERE D.ACCOUNT_NO = 6 AND M.APPROVAL_STATUS = 'A'),
-                    --                  0)
-                    --       INTO v_cash_balance
-                    --       FROM DUAL;
-                
-                    --     SELECT NVL (TOTAL_AMOUNT, 0)
-                    --       INTO v_purchase_amt
-                    --       FROM TRN_PURCHASE_MST
-                    --      WHERE PURCHASE_NO = APEX_APPLICATION.G_X01;
-                
-                    --     IF v_cash_balance < v_purchase_amt
-                    --     THEN
-                    --         RAISE_APPLICATION_ERROR (
-                    --             -20001,
-                    --                'Insufficient cash in hand. Available: '
-                    --             || TO_CHAR (v_cash_balance)
-                    --             || ', Required: '
-                    --             || TO_CHAR (v_purchase_amt));
-                    --     END IF;
-                    -- END;
-                
-                
                     ------------------------------------------------
-                    -- Approve Purchase
+                    -- Approve Sales Invoice
                     ------------------------------------------------
-                    UPDATE TRN_PURCHASE_MST
+                    UPDATE TRN_SALES_INVOICE_MST
                        SET APPROVAL_STATUS = 'A',
-                           PURCHASE_STATUS = 'R',
-                           APPROVED_BY = :APP_USER,
-                           APPROVED_DATE = SYSDATE
-                     WHERE PURCHASE_NO = APEX_APPLICATION.G_X01;
+                           APPROVED_BY     = :APP_USER,
+                           APPROVED_DATE   = SYSDATE,
+                           UPDATED_BY      = :APP_USER,
+                           UPDATED_DATE    = SYSDATE
+                     WHERE INVOICE_NO = APEX_APPLICATION.G_X01;
+                
                 
                     ------------------------------------------------
                     -- Stock Ledger Posting
+                    -- SALES = Stock OUT
                     ------------------------------------------------
-                    INSERT INTO TRN_STOCK_LEDGER (LEDGER_NO,
-                                                  TRAN_DATE,
-                                                  TRAN_TYPE,
-                                                  REF_NO,
-                                                  PRODUCT_NO,
-                                                  QTY_IN,
-                                                  QTY_OUT,
-                                                  CREATED_BY,
-                                                  CREATED_DATE)
-                        SELECT SEQ_LEDGER_NO.NEXTVAL,
-                               M.PURCHASE_DATE,
-                               'PURCHASE',
-                               D.PURCHASE_NO,
-                               D.PRODUCT_NO,
-                               D.BASE_QTY,
-                               0,
-                               :APP_USER,
-                               SYSDATE
-                          FROM TRN_PURCHASE_DTL  D
-                               JOIN TRN_PURCHASE_MST M ON M.PURCHASE_NO = D.PURCHASE_NO
-                         WHERE D.PURCHASE_NO = APEX_APPLICATION.G_X01;
+                    -- INSERT INTO TRN_STOCK_LEDGER
+                    -- (
+                    --     LEDGER_NO,
+                    --     TRAN_DATE,
+                    --     TRAN_TYPE,
+                    --     REF_NO,
+                    --     PRODUCT_NO,
+                    --     QTY_IN,
+                    --     QTY_OUT,
+                    --     CREATED_BY,
+                    --     CREATED_DATE
+                    -- )
+                    -- SELECT
+                    --     SEQ_LEDGER_NO.NEXTVAL,
+                    --     M.INVOICE_DATE,
+                    --     'SALES',
+                    --     D.INVOICE_NO,
+                    --     D.PRODUCT_NO,
+                    --     0,
+                    --     D.BASE_QTY,
+                    --     :APP_USER,
+                    --     SYSDATE
+                    -- FROM TRN_SALES_INVOICE_DTL D
+                    -- JOIN TRN_SALES_INVOICE_MST M
+                    --   ON M.INVOICE_NO = D.INVOICE_NO
+                    -- WHERE D.INVOICE_NO = APEX_APPLICATION.G_X01;
+                
                 
                     ------------------------------------------------
                     -- Finance Voucher Posting
                     ------------------------------------------------
-                    PKG_FINANCE.POST_PURCHASE (P_PURCHASE_NO => APEX_APPLICATION.G_X01);
+                    PKG_FINANCE.POST_SALES(
+                        P_INVOICE_NO => APEX_APPLICATION.G_X01
+                    );
                 
+                
+                    ------------------------------------------------
+                    -- Commit
+                    ------------------------------------------------
                     COMMIT;
                 
-                    HTP.P ('Purchase approved successfully.');
+                    HTP.P('Sales invoice approved successfully.');
+                
                 EXCEPTION
-                    WHEN OTHERS
-                    THEN
+                    WHEN OTHERS THEN
                         ROLLBACK;
-                        RAISE_APPLICATION_ERROR (-20001, SQLERRM);
+                
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            SQLERRM
+                        );
                 END;
                 ```
         }
@@ -1112,23 +1245,25 @@ page 16 (
             point: ajaxCallback
         }
         advanced {
-            executionMappingIdentifier: 8427741593348207846
+            executionMappingIdentifier: 12361468142946451
         }
     )
 
     process reject-purchase (
-        name: REJECT_PURCHASE
+        name: REJECT_INVOICE
         type: executeCode
         source {
             plsqlCode:
                 ```plsql
                 BEGIN
                 
-                    UPDATE TRN_PURCHASE_MST
+                    UPDATE TRN_SALES_INVOICE_MST
                        SET APPROVAL_STATUS = 'R',
                            APPROVED_BY     = :APP_USER,
-                           APPROVED_DATE   = SYSDATE
-                     WHERE PURCHASE_NO = APEX_APPLICATION.G_X01;
+                           APPROVED_DATE   = SYSDATE,
+                           UPDATED_BY      = :APP_USER,
+                           UPDATED_DATE    = SYSDATE
+                     WHERE INVOICE_NO = APEX_APPLICATION.G_X01;
                 
                     COMMIT;
                 
@@ -1136,7 +1271,9 @@ page 16 (
                 
                 EXCEPTION
                     WHEN OTHERS THEN
+                        ROLLBACK;
                         HTP.P(SQLERRM);
+                
                 END;
                 ```
         }
@@ -1145,7 +1282,7 @@ page 16 (
             point: ajaxCallback
         }
         advanced {
-            executionMappingIdentifier: 8427741704912207848
+            executionMappingIdentifier: 12361833212946454
         }
     )
 

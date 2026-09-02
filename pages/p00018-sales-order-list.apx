@@ -761,16 +761,12 @@ page 18 (
                 rowsPerPage: 50
             }
 
-            displayColumn ACTIONS (
-                sequence: 4
-            )
-
             displayColumn CREATED_BY (
-                sequence: 14
+                sequence: 13
             )
 
             displayColumn CREATED_DATE (
-                sequence: 15
+                sequence: 14
             )
 
             displayColumn CUSTOMER_NAME (
@@ -778,19 +774,19 @@ page 18 (
             )
 
             displayColumn DELIVERY_BALANCE_QTY (
-                sequence: 13
+                sequence: 12
             )
 
             displayColumn DELIVERY_STATUS (
-                sequence: 6
+                sequence: 5
             )
 
             displayColumn INVOICE_BALANCE_QTY (
-                sequence: 11
+                sequence: 10
             )
 
             displayColumn INVOICE_STATUS (
-                sequence: 5
+                sequence: 4
             )
 
             displayColumn ORDER_CODE (
@@ -802,23 +798,23 @@ page 18 (
             )
 
             displayColumn TOTAL_AMOUNT (
-                sequence: 7
+                sequence: 6
             )
 
             displayColumn TOTAL_DELIVERY_QTY (
-                sequence: 12
+                sequence: 11
             )
 
             displayColumn TOTAL_INVOICE (
-                sequence: 8
+                sequence: 7
             )
 
             displayColumn TOTAL_INVOICE_QTY (
-                sequence: 10
+                sequence: 9
             )
 
             displayColumn TOTAL_ORDER_QTY (
-                sequence: 9
+                sequence: 8
             )
 
         )

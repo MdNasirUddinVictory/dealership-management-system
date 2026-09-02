@@ -12,6 +12,8 @@ page 21 (
     javaScript {
         functionAndGlobalVariableDeclaration:
             ```javascript-browser
+            
+            
             function generateInvoice(orderNo) {
             
                 if (confirm('Generate Invoice?')) {
@@ -426,15 +428,15 @@ page 21 (
             displayColumn (
                 column: @TOTAL_AMOUNT
                 layout {
-                    width: 110
-                    sequence: 12
+                    width: 94.6667
+                    sequence: 16
                 }
             )
 
             displayColumn (
                 column: @ORDER_QTY
                 layout {
-                    width: 91
+                    width: 76
                     sequence: 7
                 }
             )
@@ -442,14 +444,14 @@ page 21 (
             displayColumn (
                 column: @ORDER_DTL_NO
                 layout {
-                    sequence: 13
+                    sequence: 12
                 }
             )
 
             displayColumn (
                 column: @PRODUCT_CODE
                 layout {
-                    width: 122
+                    width: 105
                     sequence: 4
                 }
             )
@@ -457,7 +459,7 @@ page 21 (
             displayColumn (
                 column: @PRODUCT_NAME
                 layout {
-                    width: 116
+                    width: 198
                     sequence: 5
                 }
             )
@@ -533,8 +535,9 @@ page 21 (
             displayColumn (
                 column: @PACK_QTY
                 layout {
+                    show: false
                     width: 70
-                    sequence: 16
+                    sequence: 15
                 }
             )
 
@@ -542,15 +545,15 @@ page 21 (
                 column: @BASE_QTY
                 layout {
                     width: 70
-                    sequence: 14
+                    sequence: 13
                 }
             )
 
             displayColumn (
                 column: @BASE_RATE
                 layout {
-                    width: 97
-                    sequence: 15
+                    width: 78
+                    sequence: 14
                 }
             )
 
@@ -1607,7 +1610,7 @@ page 21 (
 
     button print-invoice (
         buttonName: PRINT_INVOICE
-        label: Print Invoice
+        label: Preview Invoice
         layout {
             sequence: 10
             region: @breadcrumb
@@ -1892,173 +1895,6 @@ page 21 (
         }
         serverSideCondition {
             whenButtonPressed: @delete
-        }
-    )
-
-    process generate-invoice (
-        name: GENERATE_INVOICE
-        type: executeCode
-        source {
-            plsqlCode:
-                ```plsql
-                DECLARE
-                
-                    v_invoice_no      NUMBER;
-                    v_invoice_code    VARCHAR2(30);
-                
-                    v_exists          NUMBER;
-                
-                BEGIN
-                
-                    --------------------------------------------------
-                    -- Already Invoiced Check
-                    --------------------------------------------------
-                
-                    SELECT COUNT(*)
-                      INTO v_exists
-                      FROM TRN_SALES_INVOICE_MST
-                     WHERE ORDER_NO = APEX_APPLICATION.G_X01;
-                
-                    IF v_exists > 0 THEN
-                
-                        RAISE_APPLICATION_ERROR(
-                            -20001,
-                            'Invoice already generated for this order.'
-                        );
-                
-                    END IF;
-                
-                    --------------------------------------------------
-                    -- Generate Invoice No
-                    --------------------------------------------------
-                
-                    SELECT SEQ_INVOICE_NO.NEXTVAL
-                      INTO v_invoice_no
-                      FROM DUAL;
-                
-                    v_invoice_code :=
-                        'INV-' || LPAD(v_invoice_no,6,'0');
-                
-                    --------------------------------------------------
-                    -- Invoice Master
-                    --------------------------------------------------
-                
-                    INSERT INTO TRN_SALES_INVOICE_MST
-                    (
-                        INVOICE_NO,
-                        INVOICE_CODE,
-                        INVOICE_DATE,
-                        ORDER_NO,
-                        CUSTOMER_NO,
-                        TOTAL_AMOUNT,
-                        DELIVERY_STATUS,
-                        CREATED_BY,
-                        CREATED_DATE
-                    )
-                    SELECT
-                        v_invoice_no,
-                        v_invoice_code,
-                        SYSDATE,
-                        M.ORDER_NO,
-                        M.CUSTOMER_NO,
-                        (
-                            SELECT NVL(SUM(TOTAL_AMOUNT),0)
-                              FROM TRN_SALES_ORDER_DTL
-                             WHERE ORDER_NO = M.ORDER_NO
-                        ),
-                        'P',
-                        :APP_USER,
-                        SYSDATE
-                    FROM TRN_SALES_ORDER_MST M
-                    WHERE M.ORDER_NO = APEX_APPLICATION.G_X01;
-                
-                    --------------------------------------------------
-                    -- Invoice Detail
-                    --------------------------------------------------
-                
-                    INSERT INTO TRN_SALES_INVOICE_DTL
-                    (
-                        INVOICE_DTL_NO,
-                        INVOICE_NO,
-                        ORDER_DTL_NO,
-                        PRODUCT_NO,
-                        ORDER_QTY,
-                        SALES_QTY,
-                        SALES_RATE,
-                        TOTAL_AMOUNT
-                    )
-                    SELECT
-                        SEQ_INVOICE_DTL_NO.NEXTVAL,
-                        v_invoice_no,
-                        ORDER_DTL_NO,
-                        PRODUCT_NO,
-                        ORDER_QTY,
-                        ORDER_QTY,
-                        SALES_RATE,
-                        TOTAL_AMOUNT
-                    FROM TRN_SALES_ORDER_DTL
-                    WHERE ORDER_NO = APEX_APPLICATION.G_X01;
-                
-                    --------------------------------------------------
-                    -- Update Order Detail
-                    --------------------------------------------------
-                
-                    UPDATE TRN_SALES_ORDER_DTL
-                       SET INVOICED_QTY =
-                               NVL(INVOICED_QTY,0)
-                               + ORDER_QTY,
-                
-                           BALANCE_QTY =
-                               ORDER_QTY -
-                               (
-                                   NVL(INVOICED_QTY,0)
-                                   + ORDER_QTY
-                               ),
-                
-                           UPDATED_BY = :APP_USER,
-                           UPDATED_DATE = SYSDATE
-                
-                     WHERE ORDER_NO = APEX_APPLICATION.G_X01;
-                
-                    --------------------------------------------------
-                    -- Update Order Master
-                    --------------------------------------------------
-                
-                    UPDATE TRN_SALES_ORDER_MST
-                       SET ORDER_STATUS = 'I',
-                           UPDATED_BY   = :APP_USER,
-                           UPDATED_DATE = SYSDATE
-                     WHERE ORDER_NO = APEX_APPLICATION.G_X01;
-                
-                    COMMIT;
-                
-                    HTP.P(
-                        'Invoice generated successfully. Invoice No: '
-                        || v_invoice_code
-                    );
-                
-                EXCEPTION
-                    WHEN OTHERS THEN
-                
-                        ROLLBACK;
-                
-                        RAISE_APPLICATION_ERROR(
-                            -20001,
-                            SQLERRM
-                        );
-                
-                END;
-                ```
-        }
-        execution {
-            sequence: 10
-            point: ajaxCallback
-        }
-        advanced {
-            executionMappingIdentifier: 11427231942290783653
-        }
-        config {
-            buildOption: @commented-out
         }
     )
 
@@ -2456,6 +2292,8 @@ page 21 (
                             CUSTOMER_NO,
                             TOTAL_AMOUNT,
                             DELIVERY_STATUS,
+                            PAYMENT_STATUS,
+                            APPROVAL_STATUS,
                             CREATED_BY,
                             CREATED_DATE
                         )
@@ -2467,6 +2305,8 @@ page 21 (
                             :P21_ORDER_NO,
                             :P21_CUSTOMER_NO,
                             0,
+                            'P',  --Pending Delivery
+                            'UP' ,  --UnPaid
                             'P',
                             :APP_USER,
                             SYSDATE

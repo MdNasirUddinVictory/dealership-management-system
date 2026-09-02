@@ -54,7 +54,6 @@ page 17 (
             ```
     }
     security {
-        pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
 
@@ -83,6 +82,176 @@ page 17 (
         }
         componentAppearance {
             breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region customer-summery (
+        name: Customer Summery
+        type: dynamicContent
+        source {
+            plsqlFunctionBody:
+                ```plsql
+                /* Formatted on 8/27/2026 1:52:26 PM (QP5 v5.388) */
+                DECLARE
+                    v_html   CLOB;
+                BEGIN
+                    SELECT    '<div id="customer_summary" style="
+                            width:100%;
+                            max-width:240px;
+                            box-sizing:border-box;
+                            padding:6px 9px;
+                            border:1px solid #e1e5e9;
+                            border-radius:5px;
+                            background:#fff;
+                            font-size:11px;
+                            line-height:1.55;
+                        ">
+                
+                        <!-- Customer -->
+                        <div style="
+                            font-size:12px;
+                            font-weight:600;
+                            color:#333;
+                            margin-bottom:5px;
+                            white-space:nowrap;
+                            overflow:hidden;
+                            text-overflow:ellipsis;
+                        ">
+                            Customer: '
+                           || NVL (C.CUSTOMER_NAME, 'N/A')
+                           || '
+                        </div>
+                
+                        <!-- Previous -->
+                        <div style="
+                            margin-top:2px;
+                            margin-bottom:4px;
+                            padding:3px 6px;
+                            border-left:3px solid #7b8794;
+                            background:#f4f6f8;
+                            color:#5f6b76;
+                            font-size:10px;
+                            font-weight:700;
+                            text-transform:uppercase;
+                            letter-spacing:.5px;
+                        ">
+                            Customer Due Summary
+                        </div>
+                
+                        <!-- Total Sales -->
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                        ">
+                            <span>Total Sales</span>
+                            <b>
+                                ৳ '
+                           || TO_CHAR (NVL (X.SALES_AMOUNT, 0), 'FM999G999G999G990D00')
+                           || '</b>
+                        </div>
+                
+                        <!-- Received -->
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                        ">
+                            <span>Received</span>
+                            <b>
+                                ৳ '
+                           || TO_CHAR (NVL (X.RECEIVED_AMOUNT, 0), 'FM999G999G999G990D00')
+                           || '</b>
+                        </div>
+                
+                        <!-- Due -->
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                            border-top:1px solid #eee;
+                            margin-top:2px;
+                            padding-top:3px;
+                        ">
+                            <span>Due</span>
+                            <b style="
+                                color:#c0392b;
+                                font-weight:700;
+                            ">
+                                ৳ '
+                           || TO_CHAR (NVL (X.DUE_AMOUNT, 0), 'FM999G999G999G990D00')
+                           || '</b>
+                        </div>
+                
+                        <!-- Payment Status -->
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                        ">
+                            <span>Status</span>
+                            <b style="
+                                color:'
+                           || CASE X.PAYMENT_STATUS
+                                  WHEN 'Paid' THEN '#27ae60'
+                                  WHEN 'Unpaid' THEN '#c0392b'
+                                  ELSE '#e67e22'
+                              END
+                           || ';
+                            ">
+                                '
+                           || NVL (X.PAYMENT_STATUS, 'Unpaid')
+                           || '
+                            </b>
+                        </div>
+                
+                        </div>'
+                      INTO v_html
+                      FROM MST_CUSTOMER  C
+                           LEFT JOIN
+                           (  SELECT I.CUSTOMER_NO,
+                                     SUM (NVL (I.TOTAL_AMOUNT, 0))       AS SALES_AMOUNT,
+                                     SUM (NVL (I.RECEIVED_AMOUNT, 0))    AS RECEIVED_AMOUNT,
+                                     SUM (NVL (I.DUE_AMOUNT, 0))         AS DUE_AMOUNT,
+                                     CASE
+                                         WHEN SUM (NVL (I.DUE_AMOUNT, 0)) = 0
+                                         THEN
+                                             'Paid'
+                                         WHEN SUM (NVL (I.RECEIVED_AMOUNT, 0)) = 0
+                                         THEN
+                                             'Unpaid'
+                                         ELSE
+                                             'Partially Paid'
+                                     END                                 AS PAYMENT_STATUS
+                                FROM TRN_SALES_INVOICE_MST I
+                            GROUP BY I.CUSTOMER_NO) X
+                               ON X.CUSTOMER_NO = C.CUSTOMER_NO
+                     WHERE C.CUSTOMER_NO = :P17_CUSTOMER_NO;
+                
+                    RETURN v_html;
+                EXCEPTION
+                    WHEN OTHERS
+                    THEN
+                        RETURN '<div style="
+                            font-size:11px;
+                            color:#777;
+                            padding:6px;
+                        ">
+                            Customer due summary unavailable.
+                        </div>' || sqlerrm;
+                END;
+                ```
+            pageItemsToSubmit: P17_CUSTOMER_NO
+        }
+        layout {
+            sequence: 20
+            parentRegion: @main
+            slot: regionBody
+            startNewRow: false
+        }
+        appearance {
+            template: @/blank-with-attributes
             templateOptions: #DEFAULT#
         }
     )
@@ -135,14 +304,17 @@ page 17 (
                 ```
         }
         layout {
-            sequence: 20
-            slot: body
+            sequence: 10
+            parentRegion: @main
+            slot: regionBody
             startNewRow: false
+            columnSpan: 9
         }
         appearance {
             template: @/standard
             templateOptions: [
                 #DEFAULT#
+                t-Region--noPadding
                 t-Region--removeHeader js-removeLandmark
                 t-Region--scrollBody
                 t-Form--slimPadding
@@ -159,6 +331,19 @@ page 17 (
                 update
                 delete
             ]
+        }
+    )
+
+    region main (
+        name: MAIN
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
         }
     )
 
@@ -980,7 +1165,7 @@ page 17 (
             alignment: left
         }
         layout {
-            sequence: 160
+            sequence: 100
             region: @entry
             slot: regionBody
             alignment: left
@@ -991,6 +1176,8 @@ page 17 (
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
+                margin-top-none
+                margin-bottom-none
                 t-Form-fieldContainer--slimPadding
                 t-Form-fieldContainer--boldDisplay
             ]
@@ -1010,30 +1197,14 @@ page 17 (
     )
 
     pageItem P17_CONTACT_NO (
-        type: textField
-        label {
-            label: Contact No
-            alignment: left
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
-            sequence: 140
+            sequence: 180
             region: @entry
             slot: regionBody
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--slimPadding
-                t-Form-fieldContainer--boldDisplay
-            ]
-            width: 11
-        }
-        validation {
-            maxLength: 11
         }
         source {
             formRegion: @entry
@@ -1048,7 +1219,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 190
+            sequence: 210
             region: @entry
             slot: regionBody
         }
@@ -1065,7 +1236,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 200
+            sequence: 220
             region: @entry
             slot: regionBody
         }
@@ -1082,7 +1253,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 80
+            sequence: 110
             region: @entry
             slot: regionBody
         }
@@ -1094,25 +1265,14 @@ page 17 (
     )
 
     pageItem P17_CUSTOMER_NAME (
-        type: displayOnly
-        label {
-            alignment: left
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
-            sequence: 70
+            sequence: 60
             region: @entry
             slot: regionBody
-            alignment: left
-            startNewRow: false
-            labelColumnSpan: 1
-        }
-        appearance {
-            template: @/optional
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--slimPadding
-            ]
         }
         source {
             formRegion: @entry
@@ -1133,8 +1293,7 @@ page 17 (
         }
         settings {
             fetchOnSearch: true
-            popupWidth: 600
-            additionalOutputs: ADDRESS:P17_DELIVERY_ADDRESS,MOBILE_NO:P17_CONTACT_NO,ADDRESS:P17_ADDRESS,MOBILE_NO:P17_MOBILE_NO,CUSTOMER_NAME:P17_CUSTOMER_NAME
+            popupWidth: 500
         }
         lov {
             type: sharedComponent
@@ -1143,7 +1302,7 @@ page 17 (
             nullDisplayValue: --Select--
         }
         layout {
-            sequence: 90
+            sequence: 70
             region: @entry
             slot: regionBody
             alignment: left
@@ -1153,6 +1312,8 @@ page 17 (
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
+                margin-top-none
+                margin-bottom-none
                 t-Form-fieldContainer--slimPadding
                 t-Form-fieldContainer--boldDisplay
             ]
@@ -1169,29 +1330,14 @@ page 17 (
     )
 
     pageItem P17_DELIVERY_ADDRESS (
-        type: textField
-        label {
-            label: Delivery Address
-            alignment: left
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
-            sequence: 130
+            sequence: 170
             region: @entry
             slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--slimPadding
-                t-Form-fieldContainer--boldDisplay
-            ]
-            width: 60
-        }
-        validation {
-            maxLength: 500
         }
         source {
             formRegion: @entry
@@ -1201,26 +1347,14 @@ page 17 (
     )
 
     pageItem P17_DELIVERY_BY (
-        type: displayOnly
-        label {
-            label: Delivery By
-            alignment: left
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
-            sequence: 60
+            sequence: 50
             region: @entry
             slot: regionBody
-            alignment: left
-            startNewRow: false
-            labelColumnSpan: 1
-        }
-        appearance {
-            template: @/optional
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--slimPadding
-            ]
         }
         source {
             formRegion: @entry
@@ -1240,18 +1374,19 @@ page 17 (
             alignment: left
         }
         layout {
-            sequence: 110
+            sequence: 80
             region: @entry
             slot: regionBody
             alignment: left
             startNewRow: false
-            columnSpan: 3
         }
         appearance {
             template: @/optional-above
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
+                margin-top-none
+                margin-bottom-none
                 t-Form-fieldContainer--slimPadding
                 t-Form-fieldContainer--boldDisplay
             ]
@@ -1269,28 +1404,14 @@ page 17 (
     )
 
     pageItem P17_EXPECTED_DATE (
-        type: datePicker
-        label {
-            label: Expected Date
-            alignment: left
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
-            sequence: 120
+            sequence: 160
             region: @entry
             slot: regionBody
-            alignment: left
-            startNewRow: false
-            columnSpan: 3
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--slimPadding
-                t-Form-fieldContainer--boldDisplay
-            ]
-            width: 30
         }
         source {
             formRegion: @entry
@@ -1309,7 +1430,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 10
+            sequence: 130
             region: @entry
             slot: regionBody
         }
@@ -1327,17 +1448,18 @@ page 17 (
             alignment: left
         }
         layout {
-            sequence: 150
+            sequence: 90
             region: @entry
             slot: regionBody
             alignment: left
-            startNewRow: false
         }
         appearance {
             template: @/optional-above
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
+                margin-top-none
+                margin-bottom-none
                 t-Form-fieldContainer--slimPadding
                 t-Form-fieldContainer--boldDisplay
             ]
@@ -1363,7 +1485,7 @@ page 17 (
             alignment: left
         }
         layout {
-            sequence: 40
+            sequence: 10
             region: @entry
             slot: regionBody
             alignment: left
@@ -1389,33 +1511,14 @@ page 17 (
     )
 
     pageItem P17_ORDER_DATE (
-        type: datePicker
-        label {
-            label: Order Date
-            alignment: left
-        }
+        type: hidden
         settings {
-            showTime: true
+            valueProtected: false
         }
         layout {
-            sequence: 100
+            sequence: 150
             region: @entry
             slot: regionBody
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--slimPadding
-                t-Form-fieldContainer--boldDisplay
-            ]
-            width: 30
-        }
-        validation {
-            valueRequired: true
         }
         source {
             formRegion: @entry
@@ -1434,7 +1537,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 30
+            sequence: 140
             region: @entry
             slot: regionBody
         }
@@ -1452,7 +1555,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 180
+            sequence: 200
             region: @entry
             slot: regionBody
         }
@@ -1464,26 +1567,14 @@ page 17 (
     )
 
     pageItem P17_ORDER_STATUS_NAME (
-        type: displayOnly
-        label {
-            label: Status
-            alignment: left
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
-            sequence: 50
+            sequence: 40
             region: @entry
             slot: regionBody
-            alignment: left
-            startNewRow: false
-            labelColumnSpan: 1
-        }
-        appearance {
-            template: @/optional
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--slimPadding
-            ]
         }
         source {
             formRegion: @entry
@@ -1502,7 +1593,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 170
+            sequence: 190
             region: @entry
             slot: regionBody
         }
@@ -1514,19 +1605,33 @@ page 17 (
     )
 
     pageItem P17_TOTAL_AMOUNT (
-        type: hidden
-        settings {
-            valueProtected: false
+        type: displayOnly
+        label {
+            label: Total Amount
+            alignment: left
         }
         layout {
             sequence: 20
             region: @entry
             slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
         }
         source {
             formRegion: @entry
             column: TOTAL_AMOUNT
             dataType: number
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P17_ORDER_NO
         }
     )
 
@@ -1536,7 +1641,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 10
+            sequence: 120
             region: @entry
             slot: regionBody
         }
@@ -1553,7 +1658,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 210
+            sequence: 230
             region: @entry
             slot: regionBody
         }
@@ -1570,7 +1675,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 220
+            sequence: 240
             region: @entry
             slot: regionBody
         }
@@ -1723,6 +1828,30 @@ page 17 (
         }
     )
 
+    dynamicAction new (
+        name: New
+        execution {
+            sequence: 50
+        }
+        when {
+            selectionType: items
+            items: P17_CUSTOMER_NO
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @customer-summery
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
     dynamicAction new_1 (
         name: New
         execution {
@@ -1859,6 +1988,44 @@ page 17 (
 
     )
 
+    dynamicAction new_4 (
+        name: New
+        execution {
+            sequence: 60
+            eventScope: dynamic
+        }
+        when {
+            selectionType: items
+            items: P17_CUSTOMER_NO
+        }
+
+        action native-set-value (
+            action: executeServerSideCode
+            settings {
+                plsqlCode:
+                    ```plsql
+                    SELECT
+                           MOBILE_NO ,
+                           ADDRESS INTO :P17_MOBILE_NO,:P17_ADDRESS
+                    FROM MST_CUSTOMER
+                    WHERE NVL(ACTIVE_FLAG,1) = 1
+                    AND CUSTOMER_NO = :P17_CUSTOMER_NO
+                    ORDER BY CUSTOMER_NAME;
+                    ```
+                itemsToSubmit: P17_CUSTOMER_NO
+                itemsToReturn: [
+                    P17_MOBILE_NO
+                    P17_ADDRESS
+                ]
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
     process initialize-form-sales-entry_1 (
         name: Initialize form Sales Entry
         type: formInitialization
@@ -1869,6 +2036,35 @@ page 17 (
         }
         advanced {
             executionMappingIdentifier: 10385362193947550110
+        }
+    )
+
+    process new (
+        name: CUSTOMER_VALUE_ASSING
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                SELECT
+                       MOBILE_NO ,
+                       ADDRESS INTO :P17_MOBILE_NO,:P17_ADDRESS
+                FROM MST_CUSTOMER
+                WHERE NVL(ACTIVE_FLAG,1) = 1
+                AND CUSTOMER_NO = :P17_CUSTOMER_NO
+                ORDER BY CUSTOMER_NAME;
+                EXCEPTION 
+                WHEN NO_DATA_FOUND THEN
+                NULL;
+                END;
+                ```
+        }
+        execution {
+            sequence: 30
+            point: beforeHeader
+        }
+        advanced {
+            executionMappingIdentifier: 11825260100848544
         }
     )
 
@@ -1913,14 +2109,7 @@ page 17 (
                 
                     END IF;
                 
-                    IF :P17_CONTACT_NO IS NULL THEN
                 
-                        RAISE_APPLICATION_ERROR(
-                            -20001,
-                            'Please enter contact number.'
-                        );
-                
-                    END IF;
                 
                     ------------------------------------------------
                     -- New Order
@@ -1951,8 +2140,8 @@ page 17 (
                             'SO-' || LPAD(:P17_ORDER_NO,6,'0'),
                             :P17_ORDER_DATE,
                             :P17_CUSTOMER_NO,
-                            :P17_CONTACT_NO,
-                            :P17_DELIVERY_ADDRESS,
+                            :P17_MOBILE_NO,
+                            :P17_ADDRESS,
                             :P17_DELIVERY_DATE,
                             :P17_EXPECTED_DATE,
                             :P17_REMARKS,
@@ -1986,8 +2175,8 @@ page 17 (
                         UPDATE TRN_SALES_ORDER_MST
                            SET ORDER_DATE       = :P17_ORDER_DATE,
                                CUSTOMER_NO      = :P17_CUSTOMER_NO,
-                               CONTACT_NO       = :P17_CONTACT_NO,
-                               DELIVERY_ADDRESS = :P17_DELIVERY_ADDRESS,
+                               CONTACT_NO       = :P17_MOBILE_NO,
+                               DELIVERY_ADDRESS = :P17_ADDRESS,
                                DELIVERY_DATE    = :P17_DELIVERY_DATE,
                                EXPECTED_DATE    = :P17_EXPECTED_DATE,
                                REMARKS          = :P17_REMARKS,

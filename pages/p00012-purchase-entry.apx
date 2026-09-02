@@ -77,7 +77,6 @@ page 12 (
             ```
     }
     security {
-        pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
 
@@ -135,9 +134,12 @@ page 12 (
                        M.PAID_AMOUNT,
                        M.DUE_AMOUNT,
                        M.PAYMENT_STATUS,
-                       M.TOTAL_AMOUNT
-                  from TRN_PURCHASE_MST M,ACC_VOUCHER_MST V    
+                       M.TOTAL_AMOUNT,
+                       S.MOBILE_NO,
+                       S.ADDRESS
+                  from TRN_PURCHASE_MST M,ACC_VOUCHER_MST V ,MST_SUPPLIER S   
                   WHERE M.VOUCHER_NO = V.VOUCHER_NO(+)
+                  AND M.SUPPLIER_NO = S.SUPPLIER_NO(+)
                 ```
         }
         layout {
@@ -151,6 +153,7 @@ page 12 (
             template: @/standard
             templateOptions: [
                 #DEFAULT#
+                t-Region--noPadding
                 t-Region--removeHeader js-removeLandmark
                 t-Region--scrollBody
                 t-Form--slimPadding
@@ -317,98 +320,6 @@ page 12 (
                             </b>
                         </div>
                 
-                
-                        <!-- ================= CURRENT PURCHASE ================= -->
-                
-                        <div style="
-                            margin-top:7px;
-                            margin-bottom:4px;
-                            padding:3px 6px;
-                            border-left:3px solid #27ae60;
-                            background:#f1f9f4;
-                            color:#218c4b;
-                            font-size:10px;
-                            font-weight:700;
-                            text-transform:uppercase;
-                            letter-spacing:.5px;
-                        ">
-                            Current Purchase
-                        </div>
-                
-                
-                     <!-- Current Paid -->
-                
-                <div style="
-                    display:flex;
-                    justify-content:space-between;
-                    align-items:center;
-                    font-size:12px;
-                ">
-                    <span>Paid</span>
-                
-                    <b>
-                        ৳ '
-                    || TO_CHAR(
-                           NVL(C.PAID_AMOUNT, 0),
-                           'FM999G999G999G990D00'
-                       )
-                    || '
-                    </b>
-                </div>
-                
-                
-                <!-- Current Due -->
-                
-                <div style="
-                    display:flex;
-                    justify-content:space-between;
-                    align-items:center;
-                    border-top:1px solid #eee;
-                    margin-top:2px;
-                    padding-top:2px;
-                    font-size:12px;
-                ">
-                    <span>Due</span>
-                
-                    <b style="
-                        color:#c0392b;
-                        font-weight:700;
-                    ">
-                        ৳ '
-                    || TO_CHAR(
-                           NVL(C.DUE_AMOUNT, 0),
-                           'FM999G999G999G990D00'
-                       )
-                    || '
-                    </b>
-                </div>
-                
-                
-                <!-- Current Payment Status -->
-                
-                <div style="
-                    display:flex;
-                    justify-content:space-between;
-                    align-items:center;
-                    font-size:12px;
-                ">
-                    <span>Status</span>
-                
-                    <b style="
-                        color:'
-                    || CASE C.PAYMENT_STATUS
-                           WHEN 'Paid' THEN '#27ae60'
-                           WHEN 'Unpaid' THEN '#c0392b'
-                           ELSE '#e67e22'
-                       END
-                    || ';
-                    ">
-                        '
-                    || NVL(C.PAYMENT_STATUS, 'Unpaid')
-                    || '
-                    </b>
-                </div>
-                
                         </div>'
                       INTO v_html
                       FROM MST_SUPPLIER  S
@@ -429,31 +340,7 @@ page 12 (
                                      AND NVL (PURCHASE_NO, -1) != NVL ( :P12_PURCHASE_NO, -1)
                             GROUP BY M.SUPPLIER_NO) X
                                ON X.SUPPLIER_NO = S.SUPPLIER_NO
-                           /* ================= CURRENT PURCHASE ================= */
-                
-                           LEFT JOIN
-                           (  SELECT D.PURCHASE_NO,
-                                     /* Items */
-                                     COUNT (*)                        AS ITEMS,
-                                     /* Quantity */
-                                     SUM (NVL (D.PURCHASE_QTY, 0))    AS QUANTITY,
-                                     /* Purchase Amount */
-                                     SUM (NVL (D.TOTAL_AMOUNT, 0))    AS AMOUNT,
-                                     /* Paid */
-                                     MAX (NVL (M.PAID_AMOUNT, 0))     AS PAID_AMOUNT,
-                                     /* Due */
-                                     MAX (NVL (M.DUE_AMOUNT, 0))      AS DUE_AMOUNT,
-                                     /* Payment Status */
-                                     CASE
-                                         WHEN MAX (NVL (M.DUE_AMOUNT, 0)) = 0 THEN 'Paid'
-                                         WHEN MAX (NVL (M.PAID_AMOUNT, 0)) = 0 THEN 'Unpaid'
-                                         ELSE 'Partially Paid'
-                                     END                              AS PAYMENT_STATUS
-                                FROM TRN_PURCHASE_DTL D
-                                     JOIN TRN_PURCHASE_MST M ON M.PURCHASE_NO = D.PURCHASE_NO
-                               WHERE NVL (D.PURCHASE_NO, -1) = NVL ( :P12_PURCHASE_NO, -1)
-                            GROUP BY D.PURCHASE_NO) C
-                               ON C.PURCHASE_NO = :P12_PURCHASE_NO
+                          
                      WHERE S.SUPPLIER_NO = :P12_SUPPLIER_NO;
                 
                     RETURN v_html;
@@ -603,7 +490,7 @@ page 12 (
             displayColumn (
                 column: @PRODUCT_NO
                 layout {
-                    width: 162
+                    width: 269
                     sequence: 3
                 }
             )
@@ -707,7 +594,7 @@ page 12 (
             displayColumn (
                 column: @DESCRIPTION
                 layout {
-                    width: 108
+                    width: 172
                     sequence: 4
                 }
             )
@@ -1193,7 +1080,7 @@ page 12 (
             valueProtected: false
         }
         layout {
-            sequence: 120
+            sequence: 140
             region: @entry
             slot: regionBody
         }
@@ -1208,21 +1095,50 @@ page 12 (
         }
     )
 
-    pageItem P12_APPROVAL (
-        type: displayOnly
+    pageItem P12_ADDRESS (
+        type: textField
         label {
-            label: Approval
+            label: Address
             alignment: left
         }
         layout {
-            sequence: 90
+            sequence: 70
             region: @entry
             slot: regionBody
             alignment: left
+            startNewRow: false
         }
         appearance {
             template: @/optional-above
-            templateOptions: #DEFAULT#
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 500
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            formRegion: @entry
+            column: ADDRESS
+            dataType: varchar2
+        }
+    )
+
+    pageItem P12_APPROVAL (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 110
+            region: @entry
+            slot: regionBody
         }
         source {
             formRegion: @entry
@@ -1242,7 +1158,7 @@ page 12 (
             valueProtected: false
         }
         layout {
-            sequence: 80
+            sequence: 100
             region: @entry
             slot: regionBody
         }
@@ -1259,26 +1175,14 @@ page 12 (
     )
 
     pageItem P12_APPROVED_BY (
-        type: displayOnly
-        label {
-            label: Approved By
-            alignment: left
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
-            sequence: 100
+            sequence: 120
             region: @entry
             slot: regionBody
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
         }
         source {
             formRegion: @entry
@@ -1293,26 +1197,14 @@ page 12 (
     )
 
     pageItem P12_APPROVED_DATE (
-        type: displayOnly
-        label {
-            label: Approved Date
-            alignment: left
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
-            sequence: 110
+            sequence: 130
             region: @entry
             slot: regionBody
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
         }
         source {
             formRegion: @entry
@@ -1332,7 +1224,7 @@ page 12 (
             valueProtected: false
         }
         layout {
-            sequence: 140
+            sequence: 160
             region: @entry
             slot: regionBody
         }
@@ -1347,13 +1239,47 @@ page 12 (
         }
     )
 
+    pageItem P12_MOBILE_NO (
+        type: textField
+        label {
+            label: Mobile No
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @entry
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 30
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            formRegion: @entry
+            column: MOBILE_NO
+            dataType: varchar2
+        }
+    )
+
     pageItem P12_PAID_AMOUNT (
         type: hidden
         settings {
             valueProtected: false
         }
         layout {
-            sequence: 130
+            sequence: 150
             region: @entry
             slot: regionBody
         }
@@ -1374,7 +1300,7 @@ page 12 (
             valueProtected: false
         }
         layout {
-            sequence: 160
+            sequence: 170
             region: @entry
             slot: regionBody
         }
@@ -1400,14 +1326,12 @@ page 12 (
             region: @entry
             slot: regionBody
             alignment: left
-            columnSpan: 3
         }
         appearance {
             template: @/optional-above
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
                 t-Form-fieldContainer--slimPadding
             ]
         }
@@ -1429,7 +1353,7 @@ page 12 (
             alignment: left
         }
         layout {
-            sequence: 30
+            sequence: 50
             region: @entry
             slot: regionBody
             alignment: left
@@ -1483,7 +1407,7 @@ page 12 (
             valueProtected: false
         }
         layout {
-            sequence: 170
+            sequence: 180
             region: @entry
             slot: regionBody
         }
@@ -1500,7 +1424,7 @@ page 12 (
             valueProtected: false
         }
         layout {
-            sequence: 180
+            sequence: 190
             region: @entry
             slot: regionBody
         }
@@ -1517,7 +1441,7 @@ page 12 (
             valueProtected: false
         }
         layout {
-            sequence: 190
+            sequence: 200
             region: @entry
             slot: regionBody
         }
@@ -1529,22 +1453,14 @@ page 12 (
     )
 
     pageItem P12_REMARKS (
-        type: textField
-        label {
-            label: Remarks
-            alignment: left
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
-            sequence: 60
+            sequence: 90
             region: @entry
             slot: regionBody
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
-            width: 30
         }
         source {
             formRegion: @entry
@@ -1561,17 +1477,12 @@ page 12 (
         }
         settings {
             fetchOnSearch: true
+            popupWidth: 400
+            additionalOutputs: ADDRESS:P12_ADDRESS,MOBILE_NO:P12_MOBILE_NO
         }
         lov {
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                SELECT SUPPLIER_NAME,
-                       SUPPLIER_NO
-                FROM MST_SUPPLIER
-                WHERE ACTIVE_FLAG=1
-                ORDER BY SUPPLIER_NAME
-                ```
+            type: sharedComponent
+            lov: @lov-12-supplier
             displayExtraValues: false
             nullDisplayValue: --Select--
         }
@@ -1580,7 +1491,6 @@ page 12 (
             region: @entry
             slot: regionBody
             alignment: left
-            startNewRow: false
         }
         appearance {
             template: @/optional-above
@@ -1603,14 +1513,24 @@ page 12 (
     )
 
     pageItem P12_TOTAL_AMOUNT (
-        type: hidden
-        settings {
-            valueProtected: false
+        type: displayOnly
+        label {
+            label: Total Amount
+            alignment: left
         }
         layout {
-            sequence: 150
+            sequence: 30
             region: @entry
             slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
         }
         source {
             formRegion: @entry
@@ -1624,20 +1544,14 @@ page 12 (
     )
 
     pageItem P12_VOUCHER_NO (
-        type: displayOnly
-        label {
-            label: Voucher Code
-            alignment: left
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
-            sequence: 50
+            sequence: 80
             region: @entry
             slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: #DEFAULT#
         }
         source {
             formRegion: @entry
@@ -2140,6 +2054,35 @@ page 12 (
         }
         advanced {
             executionMappingIdentifier: 18574585735790404015
+        }
+    )
+
+    process get-supplier-info (
+        name: GET SUPPLIER INFO
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                SELECT
+                       ADDRESS,
+                       MOBILE_NO INTO :P12_ADDRESS,:P12_MOBILE_NO
+                FROM MST_SUPPLIER
+                WHERE ACTIVE_FLAG=1
+                AND SUPPLIER_NO = :P12_SUPPLIER_NO
+                ORDER BY SUPPLIER_NAME;
+                EXCEPTION 
+                WHEN NO_DATA_FOUND
+                THEN NULL;
+                END;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: beforeHeader
+        }
+        advanced {
+            executionMappingIdentifier: 12242941301875017
         }
     )
 

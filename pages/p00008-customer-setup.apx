@@ -8,11 +8,439 @@ page 8 (
     }
     navigation {
         cursorFocus: doNotFocusCursor
+        warnOnUnsavedChanges: false
+    }
+    javaScript {
+        executeWhenPageLoads:
+            ```javascript-browser
+            var btn = $("#DUE_FILTER_BTN");
+            
+            // Default = Show Due Customer
+            $s("P8_DUE_FILTER", "");
+            
+            btn.css({
+                "background-color": "#dc3545",
+                "border-color": "#dc3545",
+                "color": "#ffffff",
+                "font-weight": "600",
+                "box-shadow": "0 2px 5px rgba(0,0,0,0.15)"
+            });
+            
+            btn.find(".t-Button-label").text("Show Due Customer");
+            ```
+    }
+    css {
+        inline:
+            ```css
+            #DUE_FILTER_BTN {
+                border-radius: 6px !important;
+                font-weight: 600 !important;
+                padding: 8px 16px !important;
+                transition: all .2s ease !important;
+                box-shadow: 0 2px 5px rgba(0,0,0,.15) !important;
+            }
+            
+            #DUE_FILTER_BTN:hover {
+                opacity: .9;
+                transform: translateY(-1px);
+            }
+            ```
     }
     security {
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
+
+    region CUSTOMER_REPORT (
+        name: Register
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT
+                       C.CUSTOMER_NO,
+                       C.CUSTOMER_CODE,
+                       C.CUSTOMER_NAME,
+                       C.CONTACT_PERSON,
+                       C.MOBILE_NO,
+                       C.EMAIL_ADDRESS,
+                       C.ADDRESS,
+                       C.ACTIVE_FLAG,
+                       DECODE(
+                           C.ACTIVE_FLAG,
+                           1, 'Active',
+                           0, 'Inactive'
+                       ) AS STATUS,
+                
+                       NVL(D.DUE_AMOUNT, 0) AS DUE_AMOUNT,
+                
+                       CASE
+                           WHEN NVL(D.DUE_AMOUNT, 0) > 0
+                           THEN '⚠ Due'
+                           ELSE '✓ Clear'
+                       END AS DUE_STATUS,
+                
+                       C.CREATED_BY,
+                       C.CREATED_DATE,
+                       C.UPDATED_BY,
+                       C.UPDATED_DATE
+                
+                  FROM MST_CUSTOMER C
+                
+                  LEFT JOIN
+                  (
+                      SELECT
+                             CUSTOMER_NO,
+                             SUM(NVL(DUE_AMOUNT, 0)) AS DUE_AMOUNT
+                        FROM TRN_SALES_INVOICE_MST
+                       GROUP BY CUSTOMER_NO
+                  ) D
+                    ON D.CUSTOMER_NO = C.CUSTOMER_NO
+                
+                 WHERE
+                       (
+                           :P8_DUE_FILTER IS NULL
+                           OR :P8_DUE_FILTER = ''
+                           OR
+                           (
+                               :P8_DUE_FILTER = 'DUE'
+                               AND NVL(D.DUE_AMOUNT, 0) > 0
+                           )
+                       )
+                
+                 ORDER BY
+                       C.CUSTOMER_NAME
+                ```
+            pageItemsToSubmit: P8_DUE_FILTER
+        }
+        layout {
+            sequence: 20
+            slot: body
+            columnSpan: 8
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        advanced {
+            htmlDomId: CUSTOMER_REPORT
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 11709082934629516
+        }
+
+        column ACTIVE_FLAG (
+            type: plainText
+            heading {
+                heading: Active Flag
+            }
+            layout {
+                sequence: 150
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: O
+            }
+        )
+
+        column ADDRESS (
+            type: plainText
+            heading {
+                heading: Address
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: G
+            }
+        )
+
+        column CONTACT_PERSON (
+            type: plainText
+            heading {
+                heading: Customer Person
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: D
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: I
+            }
+        )
+
+        column CREATED_DATE (
+            type: plainText
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: J
+            }
+        )
+
+        column CUSTOMER_CODE (
+            type: link
+            heading {
+                heading: Customer Code
+            }
+            layout {
+                sequence: 20
+            }
+            link {
+                target: {
+                    page: 25
+                    items: {
+                        P25_CUSTOMER_NO: #CUSTOMER_NO#
+                    }
+                    clearCache: 25
+                }
+                linkText: #CUSTOMER_CODE#
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: B
+            }
+        )
+
+        column CUSTOMER_NAME (
+            type: plainText
+            heading {
+                heading: Shop Name
+            }
+            layout {
+                sequence: 30
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    <a href="javascript:void(0);"
+                       class="customer-select"
+                       data-customer-no="#CUSTOMER_NO#"
+                       data-due-amount="#DUE_AMOUNT#"
+                       data-active-flag="#ACTIVE_FLAG#">
+                       #CUSTOMER_NAME#
+                    </a>
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: C
+            }
+        )
+
+        column CUSTOMER_NO (
+            type: plainText
+            heading {
+                heading: Customer No
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                primaryKey: true
+                dataType: NUMBER
+            }
+            advanced {
+                htmlDomId: CUSTOMER_NO
+                endUserAlias: A
+            }
+            security {
+                escapeSpecialChars: false
+            }
+        )
+
+        column DUE_AMOUNT (
+            type: plainText
+            heading {
+                heading: Due Amount
+                alignment: end
+            }
+            layout {
+                sequence: 130
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                htmlDomId: DUE_AMOUNT
+                endUserAlias: M
+            }
+        )
+
+        column DUE_STATUS (
+            type: plainText
+            heading {
+                heading: Due Status
+            }
+            layout {
+                sequence: 140
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: N
+            }
+        )
+
+        column EMAIL_ADDRESS (
+            type: plainText
+            heading {
+                heading: Email Address
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: F
+            }
+        )
+
+        column MOBILE_NO (
+            type: plainText
+            heading {
+                heading: Mobile No
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: E
+            }
+        )
+
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: H
+            }
+        )
+
+        column UPDATED_BY (
+            type: hidden
+            heading {
+                heading: Updated By
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: K
+            }
+        )
+
+        column UPDATED_DATE (
+            type: hidden
+            heading {
+                heading: Updated Date
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: L
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn CONTACT_PERSON (
+                sequence: 3
+            )
+
+            displayColumn CUSTOMER_CODE (
+                sequence: 1
+            )
+
+            displayColumn CUSTOMER_NAME (
+                sequence: 2
+            )
+
+            displayColumn DUE_AMOUNT (
+                sequence: 5
+            )
+
+            displayColumn DUE_STATUS (
+                sequence: 4
+            )
+
+        )
+
+    )
 
     region breadcrumb-2 (
         name: Breadcrumb
@@ -43,23 +471,856 @@ page 8 (
         }
     )
 
-    region entry (
-        name: Entry
-        type: form
+    region customer-details-summery (
+        name: CUSTOMER DETAILS SUMMERY
+        type: dynamicContent
         source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select CUSTOMER_NO,
-                       CUSTOMER_CODE,
-                       CUSTOMER_NAME,
-                       CONTACT_PERSON,
-                       MOBILE_NO,
-                       EMAIL_ADDRESS,
-                       ADDRESS,
-                       ACTIVE_FLAG      
-                  from MST_CUSTOMER
+            plsqlFunctionBody:
+                ```plsql
+                /* Formatted on 9/1/2026 4:35:07 PM (QP5 v5.388) */
+                /* ============================================================
+                   CUSTOMER DETAILS CARD
+                   ============================================================ */
+                
+                DECLARE
+                    v_html            CLOB;
+                
+                    v_customer_name   VARCHAR2 (300);
+                    v_customer_code   VARCHAR2 (50);
+                    v_mobile          VARCHAR2 (50);
+                    v_email           VARCHAR2 (200);
+                    v_address         VARCHAR2 (500);
+                    v_status          VARCHAR2 (20);
+                    v_since           VARCHAR2 (30);
+                
+                    v_orders          NUMBER := 0;
+                    v_total_sales     NUMBER := 0;
+                    v_due_amount      NUMBER := 0;
+                BEGIN
+                    /* ============================================================
+                       NO CUSTOMER SELECTED
+                       ============================================================ */
+                
+                    IF :P8_CUSTOMER_NO IS NULL
+                    THEN
+                        RETURN '
+                        <style>
+                            .cust-empty{
+                                height:150px;
+                                display:flex;
+                                flex-direction:column;
+                                align-items:center;
+                                justify-content:center;
+                                color:#9aa5b1;
+                                font-size:13px;
+                                text-align:center;
+                            }
+                
+                            .cust-empty i{
+                                font-size:30px;
+                                margin-bottom:8px;
+                                color:#cbd2da;
+                            }
+                        </style>
+                
+                        <div class="cust-empty">
+                            <i class="fa fa-user"></i>
+                            <div>Select a customer to view details</div>
+                        </div>';
+                    END IF;
+                
+                
+                    /* ============================================================
+                       CUSTOMER INFORMATION
+                       ============================================================ */
+                
+                    SELECT CUSTOMER_NAME,
+                           CUSTOMER_CODE,
+                           MOBILE_NO,
+                           EMAIL_ADDRESS,
+                           ADDRESS,
+                           CASE WHEN ACTIVE_FLAG = 1 THEN 'ACTIVE' ELSE 'INACTIVE' END,
+                           TO_CHAR (CREATED_DATE, 'DD-Mon-YYYY')
+                      INTO v_customer_name,
+                           v_customer_code,
+                           v_mobile,
+                           v_email,
+                           v_address,
+                           v_status,
+                           v_since
+                      FROM MST_CUSTOMER
+                     WHERE CUSTOMER_NO = :P8_CUSTOMER_NO;
+                
+                
+                    /* ============================================================
+                       SALES SUMMARY
+                       ============================================================ */
+                
+                    SELECT COUNT (*), NVL (SUM (TOTAL_AMOUNT), 0), NVL (SUM (DUE_AMOUNT), 0)
+                      INTO v_orders, v_total_sales, v_due_amount
+                      FROM TRN_SALES_INVOICE_MST
+                     WHERE CUSTOMER_NO = :P8_CUSTOMER_NO;
+                
+                
+                    /* ============================================================
+                       HTML
+                       ============================================================ */
+                
+                    v_html :=
+                           '<style>
+                
+                        .customer-mini-card{
+                            width:100%;
+                            background:#ffffff;
+                            border:1px solid #e3e7ec;
+                            border-radius:9px;
+                            overflow:hidden;
+                            box-sizing:border-box;
+                            font-family:Arial,sans-serif;
+                        }
+                
+                
+                        /* EMPTY */
+                
+                        .cust-empty{
+                            height:150px;
+                            display:flex;
+                            flex-direction:column;
+                            align-items:center;
+                            justify-content:center;
+                            color:#9aa5b1;
+                            font-size:13px;
+                            text-align:center;
+                        }
+                
+                        .cust-empty i{
+                            font-size:30px;
+                            margin-bottom:8px;
+                            color:#cbd2da;
+                        }
+                
+                
+                        /* HEADER */
+                
+                        .cust-head{
+                            padding:10px 12px;
+                            border-bottom:1px solid #edf0f3;
+                            display:flex;
+                            align-items:center;
+                            justify-content:space-between;
+                            gap:8px;
+                        }
+                
+                
+                        .cust-profile{
+                            display:flex;
+                            align-items:center;
+                            min-width:0;
+                        }
+                
+                
+                        .cust-avatar{
+                            width:38px;
+                            height:38px;
+                            min-width:38px;
+                            border-radius:50%;
+                            background:#e5f7f4;
+                            color:#14877f;
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                            font-size:14px;
+                            font-weight:700;
+                            margin-right:9px;
+                        }
+                
+                
+                        .cust-name{
+                            font-size:14px;
+                            font-weight:700;
+                            color:#172033;
+                            white-space:nowrap;
+                            overflow:hidden;
+                            text-overflow:ellipsis;
+                        }
+                
+                
+                        .cust-code{
+                            font-size:10px;
+                            color:#8a94a3;
+                            margin-top:2px;
+                        }
+                
+                
+                        /* STATUS */
+                
+                        .cust-status{
+                            font-size:9px;
+                            font-weight:700;
+                            padding:4px 8px;
+                            border-radius:10px;
+                            white-space:nowrap;
+                        }
+                
+                
+                        .cust-active{
+                            background:#e5f8ee;
+                            color:#16834b;
+                        }
+                
+                
+                        .cust-inactive{
+                            background:#fdecec;
+                            color:#c93636;
+                        }
+                
+                
+                        /* INFORMATION */
+                
+                        .cust-info{
+                            padding:7px 12px;
+                            border-bottom:1px solid #edf0f3;
+                        }
+                
+                
+                        .cust-info-row{
+                            display:flex;
+                            align-items:center;
+                            gap:8px;
+                            margin:6px 0;
+                            color:#5f6b79;
+                            font-size:11px;
+                        }
+                
+                
+                        .cust-info-row i{
+                            width:15px;
+                            text-align:center;
+                            color:#8c98a7;
+                            font-size:11px;
+                        }
+                
+                
+                        .cust-info-text{
+                            overflow:hidden;
+                            text-overflow:ellipsis;
+                            white-space:nowrap;
+                        }
+                
+                
+                        /* SUMMARY */
+                
+                        .cust-summary{
+                            display:grid;
+                            grid-template-columns:1fr 1fr 1fr;
+                            gap:7px;
+                            padding:8px 12px;
+                        }
+                
+                
+                        .cust-stat{
+                            background:#f7f9fc;
+                            border-radius:6px;
+                            padding:7px 9px;
+                        }
+                
+                
+                        .cust-stat-label{
+                            font-size:8px;
+                            color:#7b8796;
+                            font-weight:700;
+                            text-transform:uppercase;
+                            letter-spacing:.3px;
+                        }
+                
+                
+                        .cust-stat-value{
+                            margin-top:3px;
+                            font-size:13px;
+                            font-weight:700;
+                            color:#172033;
+                            white-space:nowrap;
+                        }
+                
+                
+                        /* TOTAL SALES */
+                
+                        .cust-sales{
+                            color:#286596;
+                        }
+                
+                
+                        /* DUE */
+                
+                        .cust-due{
+                            color:#bd7b16;
+                        }
+                
+                
+                        /* ORDERS */
+                
+                        .cust-orders{
+                            color:#14877f;
+                        }
+                
+                
+                        @media(max-width:600px){
+                
+                            .cust-name{
+                                max-width:140px;
+                            }
+                
+                            .cust-summary{
+                                grid-template-columns:1fr 1fr;
+                            }
+                
+                            .cust-stat:last-child{
+                                grid-column:span 2;
+                            }
+                
+                        }
+                
+                    </style>
+                
+                
+                    <div class="customer-mini-card">
+                
+                
+                        <!-- HEADER -->
+                
+                        <div class="cust-head">
+                
+                            <div class="cust-profile">
+                
+                                <div class="cust-avatar">'
+                        || UPPER (SUBSTR (v_customer_name, 1, 1))
+                        || '</div>
+                
+                                <div>
+                
+                                    <div class="cust-name">'
+                        || APEX_ESCAPE.HTML (v_customer_name)
+                        || '</div>
+                
+                                    <div class="cust-code">'
+                        || APEX_ESCAPE.HTML (v_customer_code)
+                        || ' &bull; Since '
+                        || v_since
+                        || '</div>
+                
+                                </div>
+                
+                            </div>
+                
+                
+                            <div class="cust-status '
+                        || CASE
+                               WHEN v_status = 'ACTIVE' THEN 'cust-active'
+                               ELSE 'cust-inactive'
+                           END
+                        || '">'
+                        || v_status
+                        || '</div>
+                
+                        </div>
+                
+                
+                        <!-- CUSTOMER INFORMATION -->
+                
+                        <div class="cust-info">
+                
+                
+                            <div class="cust-info-row">
+                
+                                <i class="fa fa-phone"></i>
+                
+                                <span class="cust-info-text">'
+                        || APEX_ESCAPE.HTML (NVL (v_mobile, '-'))
+                        || '</span>
+                
+                            </div>
+                
+                
+                            <div class="cust-info-row">
+                
+                                <i class="fa fa-envelope"></i>
+                
+                                <span class="cust-info-text">'
+                        || APEX_ESCAPE.HTML (NVL (v_email, '-'))
+                        || '</span>
+                
+                            </div>
+                
+                
+                            <div class="cust-info-row">
+                
+                                <i class="fa fa-map-marker"></i>
+                
+                                <span class="cust-info-text">'
+                        || APEX_ESCAPE.HTML (NVL (v_address, '-'))
+                        || '</span>
+                
+                            </div>
+                
+                
+                        </div>
+                
+                
+                        <!-- SUMMARY -->
+                
+                        <div class="cust-summary">
+                
+                
+                            <!-- TOTAL SALES -->
+                
+                            <div class="cust-stat">
+                
+                                <div class="cust-stat-label">
+                                    Total Sales
+                                </div>
+                
+                                <div class="cust-stat-value cust-sales">
+                
+                                    ৳ '
+                        || TO_CHAR (v_total_sales,
+                                    'FM999999999999990D00',
+                                    'NLS_NUMERIC_CHARACTERS=''.,''')
+                        || '
+                
+                                </div>
+                
+                            </div>
+                
+                
+                            <!-- DUE AMOUNT -->
+                
+                            <div class="cust-stat">
+                
+                                <div class="cust-stat-label">
+                                    Due Amount
+                                </div>
+                
+                                <div class="cust-stat-value cust-due">
+                
+                                    ৳ '
+                        || TO_CHAR (v_due_amount,
+                                    'FM999999999999990D00',
+                                    'NLS_NUMERIC_CHARACTERS=''.,''')
+                        || '
+                
+                                </div>
+                
+                            </div>
+                
+                
+                            <!-- TOTAL ORDERS -->
+                
+                            <div class="cust-stat">
+                
+                                <div class="cust-stat-label">
+                                    Total Orders
+                                </div>
+                
+                                <div class="cust-stat-value cust-orders">
+                
+                                    '
+                        || TO_CHAR (v_orders, 'FM999999999999990')
+                        || '
+                
+                                </div>
+                
+                            </div>
+                
+                
+                        </div>
+                
+                
+                    </div>';
+                
+                
+                    RETURN v_html;
+                EXCEPTION
+                    WHEN NO_DATA_FOUND
+                    THEN
+                        RETURN '
+                        <div class="cust-empty">
+                
+                            <i class="fa fa-user-times"></i>
+                
+                            <div>Customer not found</div>
+                
+                        </div>';
+                    WHEN OTHERS
+                    THEN
+                        RETURN '
+                        <div class="cust-empty">
+                
+                            <i class="fa fa-exclamation-circle"></i>
+                
+                            <div>Unable to load customer details</div>
+                
+                        </div>';
+                END;
+                ```
+            pageItemsToSubmit: P8_CUSTOMER_NO
+        }
+        layout {
+            sequence: 30
+            slot: body
+            startNewRow: false
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            htmlDomId: CUSTOMER_DETAILS
+        }
+    )
+
+    region summery (
+        name: SUMMERY
+        type: dynamicContent
+        source {
+            plsqlFunctionBody:
+                ```plsql
+                /* Formatted on 9/1/2026 4:16:59 PM (QP5 v5.388) */
+                /* ============================================================
+                   CUSTOMER KPI SUMMARY
+                   ============================================================ */
+                
+                DECLARE
+                    v_html                CLOB;
+                
+                    v_total_customer      NUMBER := 0;
+                    v_active_customer     NUMBER := 0;
+                    v_inactive_customer   NUMBER := 0;
+                    v_total_due           NUMBER := 0;
+                    v_total_received      NUMBER := 0;
+                BEGIN
+                    /* ============================================================
+                       CUSTOMER COUNT
+                       ============================================================ */
+                
+                    SELECT COUNT (*),
+                           NVL (SUM (CASE WHEN ACTIVE_FLAG = 1 THEN 1 ELSE 0 END), 0),
+                           NVL (SUM (CASE WHEN ACTIVE_FLAG = 0 THEN 1 ELSE 0 END), 0)
+                      INTO v_total_customer, v_active_customer, v_inactive_customer
+                      FROM MST_CUSTOMER;
+                
+                
+                    /* ============================================================
+                       TOTAL DUE & TOTAL RECEIVED
+                       ============================================================ */
+                
+                    SELECT NVL (SUM (DUE_AMOUNT), 0), NVL (SUM (RECEIVED_AMOUNT), 0)
+                      INTO v_total_due, v_total_received
+                      FROM TRN_SALES_INVOICE_MST;
+                
+                
+                    /* ============================================================
+                       HTML
+                       ============================================================ */
+                
+                    v_html :=
+                           '<style>
+                
+                        .cust-kpi-wrapper {
+                            display:grid;
+                            grid-template-columns:repeat(5,1fr);
+                            gap:12px;
+                            width:100%;
+                            box-sizing:border-box;
+                        }
+                
+                        .cust-kpi-card {
+                            height:64px;
+                            min-height:64px;
+                            border:1px solid #dfe5eb;
+                            border-radius:8px;
+                            padding:8px 13px;
+                            box-sizing:border-box;
+                
+                            display:flex;
+                            align-items:center;
+                            gap:11px;
+                
+                            background:#fff;
+                        }
+                
+                        .cust-kpi-icon {
+                            width:34px;
+                            height:34px;
+                            min-width:34px;
+                
+                            border-radius:7px;
+                
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                
+                            font-size:15px;
+                        }
+                
+                        .cust-kpi-content {
+                            min-width:0;
+                        }
+                
+                        .cust-kpi-title {
+                            font-size:12px;
+                            line-height:15px;
+                            color:#6b7a8c;
+                            margin:0 0 2px 0;
+                            font-weight:400;
+                        }
+                
+                        .cust-kpi-value {
+                            font-size:19px;
+                            line-height:21px;
+                            font-weight:700;
+                            margin:0;
+                        }
+                
+                
+                        /* TOTAL CUSTOMERS */
+                
+                        .cust-total {
+                            background:#f7fafc;
+                        }
+                
+                        .cust-total .cust-kpi-icon {
+                            background:#e8f1fa;
+                            color:#286596;
+                        }
+                
+                        .cust-total .cust-kpi-value {
+                            color:#286596;
+                        }
+                
+                
+                        /* ACTIVE CUSTOMERS */
+                
+                        .cust-active {
+                            background:#f7fbf8;
+                        }
+                
+                        .cust-active .cust-kpi-icon {
+                            background:#e8f6ec;
+                            color:#21894d;
+                        }
+                
+                        .cust-active .cust-kpi-value {
+                            color:#21894d;
+                        }
+                
+                
+                        /* INACTIVE CUSTOMERS */
+                
+                        .cust-inactive {
+                            background:#fff8f8;
+                        }
+                
+                        .cust-inactive .cust-kpi-icon {
+                            background:#fdeaea;
+                            color:#d03930;
+                        }
+                
+                        .cust-inactive .cust-kpi-value {
+                            color:#d03930;
+                        }
+                
+                
+                        /* TOTAL DUE */
+                
+                        .cust-due {
+                            background:#fffdf7;
+                        }
+                
+                        .cust-due .cust-kpi-icon {
+                            background:#fff3d6;
+                            color:#bd7b16;
+                        }
+                
+                        .cust-due .cust-kpi-value {
+                            color:#bd7b16;
+                        }
+                
+                
+                        /* TOTAL RECEIVED */
+                
+                        .cust-received {
+                            background:#f7f9ff;
+                        }
+                
+                        .cust-received .cust-kpi-icon {
+                            background:#e9edff;
+                            color:#4b5fc4;
+                        }
+                
+                        .cust-received .cust-kpi-value {
+                            color:#4b5fc4;
+                        }
+                
+                
+                        /* RESPONSIVE */
+                
+                        @media(max-width:1100px) {
+                
+                            .cust-kpi-wrapper {
+                                grid-template-columns:repeat(3,1fr);
+                            }
+                
+                        }
+                
+                
+                        @media(max-width:700px) {
+                
+                            .cust-kpi-wrapper {
+                                grid-template-columns:repeat(2,1fr);
+                            }
+                
+                        }
+                
+                
+                        @media(max-width:550px) {
+                
+                            .cust-kpi-wrapper {
+                                grid-template-columns:1fr;
+                            }
+                
+                        }
+                
+                    </style>
+                
+                
+                    <div class="cust-kpi-wrapper">
+                
+                
+                        <!-- TOTAL CUSTOMERS -->
+                
+                        <div class="cust-kpi-card cust-total">
+                
+                            <div class="cust-kpi-icon">
+                                <i class="fa fa-users"></i>
+                            </div>
+                
+                            <div class="cust-kpi-content">
+                
+                                <div class="cust-kpi-title">
+                                    Total Customers
+                                </div>
+                
+                                <div class="cust-kpi-value">'
+                        || TO_CHAR (v_total_customer, 'FM999999999999990')
+                        || '</div>
+                
+                            </div>
+                
+                        </div>
+                
+                
+                        <!-- ACTIVE CUSTOMERS -->
+                
+                        <div class="cust-kpi-card cust-active">
+                
+                            <div class="cust-kpi-icon">
+                                <i class="fa fa-user"></i>
+                            </div>
+                
+                            <div class="cust-kpi-content">
+                
+                                <div class="cust-kpi-title">
+                                    Active Customers
+                                </div>
+                
+                                <div class="cust-kpi-value">'
+                        || TO_CHAR (v_active_customer, 'FM999999999999990')
+                        || '</div>
+                
+                            </div>
+                
+                        </div>
+                
+                
+                        <!-- INACTIVE CUSTOMERS -->
+                
+                        <div class="cust-kpi-card cust-inactive">
+                
+                            <div class="cust-kpi-icon">
+                                <i class="fa fa-user-times"></i>
+                            </div>
+                
+                            <div class="cust-kpi-content">
+                
+                                <div class="cust-kpi-title">
+                                    Inactive Customers
+                                </div>
+                
+                                <div class="cust-kpi-value">'
+                        || TO_CHAR (v_inactive_customer, 'FM999999999999990')
+                        || '</div>
+                
+                            </div>
+                
+                        </div>
+                
+                
+                        <!-- TOTAL DUE -->
+                
+                        <div class="cust-kpi-card cust-due">
+                
+                            <div class="cust-kpi-icon">
+                                <i class="fa fa-money"></i>
+                            </div>
+                
+                            <div class="cust-kpi-content">
+                
+                                <div class="cust-kpi-title">
+                                    Total Due
+                                </div>
+                
+                                <div class="cust-kpi-value">
+                                    ৳ '
+                        || TO_CHAR (v_total_due,
+                                    'FM999999999999990D00',
+                                    'NLS_NUMERIC_CHARACTERS=''.,''')
+                        || '</div>
+                
+                            </div>
+                
+                        </div>
+                
+                
+                        <!-- TOTAL RECEIVED -->
+                
+                        <div class="cust-kpi-card cust-received">
+                
+                            <div class="cust-kpi-icon">
+                                <i class="fa fa-credit-card"></i>
+                            </div>
+                
+                            <div class="cust-kpi-content">
+                
+                                <div class="cust-kpi-title">
+                                    Total Received
+                                </div>
+                
+                                <div class="cust-kpi-value">
+                                    ৳ '
+                        || TO_CHAR (v_total_received,
+                                    'FM999999999999990D00',
+                                    'NLS_NUMERIC_CHARACTERS=''.,''')
+                        || '</div>
+                
+                            </div>
+                
+                        </div>
+                
+                
+                    </div>';
+                
+                    RETURN v_html;
+                END;
                 ```
         }
         layout {
@@ -67,736 +1328,82 @@ page 8 (
             slot: body
         }
         appearance {
-            template: @/standard
-            templateOptions: [
-                #DEFAULT#
-                t-Region--removeHeader js-removeLandmark
-                t-Region--noBorder
-                t-Region--hiddenOverflow
-                t-Form--slimPadding
-                t-Form--large
-                margin-top-none
-                margin-bottom-none
-            ]
-        }
-        edit {
-            enabled: true
-            allowedOperations: [
-                add
-                update
-                delete
-            ]
-        }
-    )
-
-    region register (
-        name: Register
-        type: interactiveGrid
-        source {
-            location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                select CUSTOMER_NO,
-                       CUSTOMER_CODE,
-                       CUSTOMER_NAME,
-                       CONTACT_PERSON,
-                       MOBILE_NO,
-                       EMAIL_ADDRESS,
-                       ADDRESS,
-                       DECODE(ACTIVE_FLAG,1,'Active',0,'Inactive')Status,
-                       CREATED_BY,
-                       CREATED_DATE,
-                       UPDATED_BY,
-                       UPDATED_DATE
-                  from MST_CUSTOMER
-                ```
-        }
-        layout {
-            sequence: 20
-            slot: body
-        }
-        appearance {
-            template: @/interactive-report
-            templateOptions: [
-                #DEFAULT#
-                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
-            ]
-        }
-        toolbar {
-            controls: [
-                searchCol
-                searchField
-                actionsMenu
-                resetButton
-                saveButton
-            ]
-        }
-        download {
-            formats: [
-                csv
-                html
-                excel
-                pdf
-            ]
-        }
-        advanced {
-            savedReportMappingIdentifier: 16175475553064530064
-        }
-
-        savedReport primary (
-            visibility: primary
-            view {
-                default: grid
-            }
-            singleRowView {
-                displayedColumns: true
-            }
-
-            displayColumn (
-                column: @CUSTOMER_NO
-                layout {
-                    sequence: 7
-                }
-            )
-
-            displayColumn (
-                column: @CUSTOMER_CODE
-                layout {
-                    width: 115
-                    sequence: 1
-                }
-            )
-
-            displayColumn (
-                column: @CUSTOMER_NAME
-                layout {
-                    width: 144.375
-                    sequence: 2
-                }
-            )
-
-            displayColumn (
-                column: @CREATED_BY
-                layout {
-                    width: 81
-                    sequence: 9
-                }
-            )
-
-            displayColumn (
-                column: @CREATED_DATE
-                layout {
-                    width: 90
-                    sequence: 11
-                }
-            )
-
-            displayColumn (
-                column: @UPDATED_BY
-                layout {
-                    sequence: 12
-                }
-            )
-
-            displayColumn (
-                column: @UPDATED_DATE
-                layout {
-                    width: 104
-                    sequence: 10
-                }
-            )
-
-            displayColumn (
-                column: @STATUS
-                layout {
-                    sequence: 13
-                }
-            )
-
-            displayColumn (
-                column: @CONTACT_PERSON
-                layout {
-                    width: 141.641
-                    sequence: 3
-                }
-            )
-
-            displayColumn (
-                column: @MOBILE_NO
-                layout {
-                    width: 136.375
-                    sequence: 4
-                }
-            )
-
-            displayColumn (
-                column: @EMAIL_ADDRESS
-                layout {
-                    width: 181.625
-                    sequence: 5
-                }
-            )
-
-            displayColumn (
-                column: @ADDRESS
-                layout {
-                    width: 209.625
-                    sequence: 6
-                }
-            )
-
-        )
-
-        column ADDRESS (
-            type: textarea
-            heading {
-                heading: Address
-            }
-            layout {
-                sequence: 60
-            }
-            validation {
-                maxLength: 500
-            }
-            source {
-                databaseColumn: ADDRESS
-                dataType: varchar2
-            }
-            columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
-                lovType: none
-            }
-            enableUsersTo {
-                sort: false
-            }
-        )
-
-        column CONTACT_PERSON (
-            type: textField
-            heading {
-                heading: Contact Person
-            }
-            layout {
-                sequence: 30
-            }
-            validation {
-                maxLength: 200
-            }
-            source {
-                databaseColumn: CONTACT_PERSON
-                dataType: varchar2
-            }
-            columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
-            }
-        )
-
-        column CREATED_BY (
-            type: textField
-            heading {
-                heading: Created By
-            }
-            layout {
-                sequence: 100
-            }
-            validation {
-                maxLength: 30
-            }
-            source {
-                databaseColumn: CREATED_BY
-                dataType: varchar2
-            }
-            columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
-            }
-        )
-
-        column CREATED_DATE (
-            type: datePicker
-            heading {
-                heading: Created Date
-            }
-            layout {
-                sequence: 110
-            }
-            source {
-                databaseColumn: CREATED_DATE
-                dataType: date
-            }
-        )
-
-        column CUSTOMER_CODE (
-            type: link
-            heading {
-                heading: Customer Code
-                alignment: center
-            }
-            layout {
-                sequence: 20
-                columnAlignment: center
-            }
-            link {
-                target: {
-                    page: 8
-                    items: {
-                        P8_CUSTOMER_NO: &CUSTOMER_NO.
-                    }
-                }
-                linkText: &CUSTOMER_CODE.
-            }
-            source {
-                databaseColumn: CUSTOMER_CODE
-                dataType: varchar2
-            }
-            columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
-            }
-        )
-
-        column CUSTOMER_NAME (
-            type: textarea
-            heading {
-                heading: Customer Name
-            }
-            layout {
-                sequence: 80
-            }
-            validation {
-                valueRequired: true
-                maxLength: 300
-            }
-            source {
-                databaseColumn: CUSTOMER_NAME
-                dataType: varchar2
-            }
-            columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
-                lovType: none
-            }
-            enableUsersTo {
-                sort: false
-            }
-        )
-
-        column CUSTOMER_NO (
-            type: hidden
-            heading {
-                heading: Customer No
-            }
-            settings {
-                valueProtected: false
-            }
-            layout {
-                sequence: 10
-            }
-            source {
-                databaseColumn: CUSTOMER_NO
-                dataType: number
-            }
-            exportPrinting {
-                includeInExportPrint: false
-            }
-        )
-
-        column EMAIL_ADDRESS (
-            type: textField
-            heading {
-                heading: Email Address
-            }
-            layout {
-                sequence: 50
-            }
-            validation {
-                maxLength: 200
-            }
-            source {
-                databaseColumn: EMAIL_ADDRESS
-                dataType: varchar2
-            }
-            columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
-            }
-        )
-
-        column MOBILE_NO (
-            type: textField
-            heading {
-                heading: Mobile No
-            }
-            layout {
-                sequence: 40
-            }
-            validation {
-                maxLength: 30
-            }
-            source {
-                databaseColumn: MOBILE_NO
-                dataType: varchar2
-            }
-            columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
-            }
-        )
-
-        column STATUS (
-            type: textField
-            heading {
-                heading: Status
-            }
-            layout {
-                sequence: 140
-            }
-            validation {
-                maxLength: 8
-            }
-            source {
-                databaseColumn: STATUS
-                dataType: varchar2
-            }
-            columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
-            }
-        )
-
-        column UPDATED_BY (
-            type: textField
-            heading {
-                heading: Updated By
-            }
-            layout {
-                sequence: 120
-            }
-            validation {
-                maxLength: 30
-            }
-            source {
-                databaseColumn: UPDATED_BY
-                dataType: varchar2
-            }
-            columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
-            }
-        )
-
-        column UPDATED_DATE (
-            type: datePicker
-            heading {
-                heading: Updated Date
-            }
-            layout {
-                sequence: 130
-            }
-            source {
-                databaseColumn: UPDATED_DATE
-                dataType: date
-            }
-        )
-
-        page {
-            borderWidth: 0.5
-            borderColor: #666666
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
         }
     )
 
     pageItem P8_ACTIVE_FLAG (
-        type: checkbox
-        label {
-            label: Active Flag
-            alignment: left
-        }
+        type: hidden
         settings {
-            useDefaults: false
-            checkedValue: 1
-            uncheckedValue: 0
+            valueProtected: false
         }
         layout {
-            sequence: 10
-            region: @entry
+            sequence: 40
+            region: @CUSTOMER_REPORT
             slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-        }
-        source {
-            formRegion: @entry
-            column: ACTIVE_FLAG
-            dataType: varchar2
-        }
-        default {
-            type: static
-            staticValue: 1
-        }
-    )
-
-    pageItem P8_ADDRESS (
-        type: textField
-        label {
-            label: Address
-            alignment: left
-        }
-        layout {
-            sequence: 10
-            region: @entry
-            slot: regionBody
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
-        }
-        validation {
-            maxLength: 500
-        }
-        source {
-            formRegion: @entry
-            column: ADDRESS
-            dataType: varchar2
-        }
-    )
-
-    pageItem P8_CONTACT_PERSON (
-        type: textField
-        label {
-            label: Contact Person
-            alignment: left
-        }
-        layout {
-            sequence: 10
-            region: @entry
-            slot: regionBody
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
-        }
-        validation {
-            maxLength: 200
-        }
-        source {
-            formRegion: @entry
-            column: CONTACT_PERSON
-            dataType: varchar2
-        }
-    )
-
-    pageItem P8_CUSTOMER_CODE (
-        type: textField
-        label {
-            label: Customer Code
-            alignment: left
-        }
-        layout {
-            sequence: 10
-            region: @entry
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
-        }
-        validation {
-            maxLength: 30
-        }
-        advanced {
-            customAttributes: readonly
-        }
-        source {
-            formRegion: @entry
-            column: CUSTOMER_CODE
-            dataType: varchar2
-        }
-    )
-
-    pageItem P8_CUSTOMER_NAME (
-        type: textField
-        label {
-            label: Customer Name
-            alignment: left
-        }
-        layout {
-            sequence: 10
-            region: @entry
-            slot: regionBody
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
-        }
-        validation {
-            valueRequired: true
-            maxLength: 300
-        }
-        source {
-            formRegion: @entry
-            column: CUSTOMER_NAME
-            dataType: varchar2
         }
     )
 
     pageItem P8_CUSTOMER_NO (
         type: hidden
+        settings {
+            valueProtected: false
+        }
         layout {
             sequence: 10
-            region: @entry
+            region: @CUSTOMER_REPORT
             slot: regionBody
         }
         source {
-            formRegion: @entry
-            column: CUSTOMER_NO
-            dataType: number
-            primaryKey: true
-        }
-        security {
-            sessionStateProtection: checksumRequiredSessionLevel
+            used: always
         }
     )
 
-    pageItem P8_EMAIL_ADDRESS (
-        type: textField
-        label {
-            label: Email Address
-            alignment: left
+    pageItem P8_DUE_AMOUNT (
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
-            sequence: 10
-            region: @entry
+            sequence: 30
+            region: @CUSTOMER_REPORT
             slot: regionBody
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
-        }
-        validation {
-            maxLength: 200
-        }
-        source {
-            formRegion: @entry
-            column: EMAIL_ADDRESS
-            dataType: varchar2
         }
     )
 
-    pageItem P8_MOBILE_NO (
-        type: textField
-        label {
-            label: Mobile No
-            alignment: left
+    pageItem P8_DUE_FILTER (
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
-            sequence: 10
-            region: @entry
+            sequence: 20
+            region: @CUSTOMER_REPORT
             slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
-        }
-        validation {
-            valueRequired: true
-            maxLength: 30
         }
         source {
-            formRegion: @entry
-            column: MOBILE_NO
-            dataType: varchar2
+            used: always
+        }
+    )
+
+    button DUE_FILTER_BTN (
+        buttonName: DUE
+        label: Due
+        layout {
+            sequence: 30
+            region: @CUSTOMER_REPORT
+            slot: rightOfInteractiveReportSearchBar
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        advanced {
+            htmlDomId: DUE_FILTER_BTN
         }
     )
 
@@ -805,8 +1412,8 @@ page 8 (
         label: Add Customer
         layout {
             sequence: 10
-            region: @breadcrumb-2
-            slot: next
+            region: @CUSTOMER_REPORT
+            slot: rightOfInteractiveReportSearchBar
         }
         appearance {
             buttonTemplate: @/text-with-icon
@@ -820,7 +1427,7 @@ page 8 (
         behavior {
             action: redirectThisApp
             target: {
-                page: 24
+                page: 25
                 clearCache: 24
                 action: clearRegions
             }
@@ -834,7 +1441,7 @@ page 8 (
         buttonName: DELETE
         label: Delete
         layout {
-            sequence: 40
+            sequence: 50
             region: @breadcrumb-2
             slot: next
         }
@@ -859,6 +1466,131 @@ page 8 (
             htmlDomId: pb-delete
             customAttributes: disabled
         }
+    )
+
+    button payment-now_1 (
+        buttonName: Received_Now
+        label: Received Due Tk
+        layout {
+            sequence: 10
+            region: @customer-details-summery
+            slot: belowBox
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--primary
+                t-Button--iconLeft
+                t-Button--stretch
+            ]
+            icon: fa-money-bag
+        }
+        behavior {
+            action: triggerAction
+        }
+        advanced {
+            htmlDomId: PAYMENT_BTN
+        }
+
+        triggerAction native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                    var customerNo = $v("P8_CUSTOMER_NO");
+                    var active     = $v("P8_ACTIVE_FLAG");
+                    
+                    if (active == "1") {
+                    
+                        apex.navigation.redirect(
+                            "f?p=" +
+                            $v("pFlowId") +
+                            ":304:" +
+                            $v("pInstance") +
+                            "::NO:RP,304:P304_PARTY_NO:" +
+                            encodeURIComponent(customerNo)
+                        );
+                    
+                    } else {
+                    
+                        apex.message.alert(
+                            "This customer is inactive. You cannot Payment Now."
+                        );
+                    
+                    }
+                    ```
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
+    button sales-order_1 (
+        buttonName: Sales_Order
+        label: Add To Cart
+        layout {
+            sequence: 20
+            region: @customer-details-summery
+            slot: belowBox
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            showAsDisabled: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--simple
+                t-Button--iconLeft
+                t-Button--stretch
+            ]
+            icon: fa-cart-plus
+        }
+        behavior {
+            action: triggerAction
+        }
+        advanced {
+            htmlDomId: SALES_ORDER
+        }
+
+        triggerAction native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                    var customerNo = $v("P8_CUSTOMER_NO");
+                    var active     = $v("P8_ACTIVE_FLAG");
+                    
+                    if (active == "1") {
+                    
+                        apex.navigation.redirect(
+                            "f?p=" +
+                            $v("pFlowId") +
+                            ":17:" +
+                            $v("pInstance") +
+                            "::NO:RP,17:P17_CUSTOMER_NO:" +
+                            encodeURIComponent(customerNo)
+                        );
+                    
+                    } else {
+                    
+                        apex.message.alert(
+                            "This customer is inactive. You cannot add products to the cart."
+                        );
+                    
+                    }
+                    ```
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
     )
 
     button save (
@@ -891,7 +1623,7 @@ page 8 (
         buttonName: UPDATE
         label: Update
         layout {
-            sequence: 30
+            sequence: 40
             region: @breadcrumb-2
             slot: next
         }
@@ -913,39 +1645,188 @@ page 8 (
         }
     )
 
-    validation duplicate-mobile-number-check (
-        name: DUPLICATE MOBILE NUMBER CHECK
+    dynamicAction new_2 (
+        name: DA_GET_CUSTOMER_DUE_AMOUNT
         execution {
-            sequence: 20
+            sequence: 30
+            eventScope: dynamic
         }
-        validation {
-            type: noRowsReturned
-            sqlQuery:
-                ```sql
-                SELECT 1
-                FROM MST_CUSTOMER
-                WHERE MOBILE_NO = :P8_MOBILE_NO
-                  AND NVL(CUSTOMER_NO,0) <> NVL(:P8_CUSTOMER_NO,0)
-                ```
+        when {
+            event: click
+            selectionType: jQuerySelector
+            jquerySelector: .customer-select
         }
-        error {
-            errorMessage: Mobile Number already exists.
-            associatedItem: @P8_MOBILE_NO
-        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                    var el = $(this.triggeringElement);
+                    
+                    var customerNo = el.attr("data-customer-no");
+                    var dueAmount  = el.attr("data-due-amount");
+                    var active  = el.attr("data-active-flag");
+                    
+                    console.log("HTML:", el[0].outerHTML);
+                    console.log("Customer No:", customerNo);
+                    console.log("Due Amount:", dueAmount);
+                    
+                    if (customerNo) {
+                    
+                        apex.item("P8_CUSTOMER_NO").setValue(customerNo);
+                        apex.item("P8_ACTIVE_FLAG").setValue(active);
+                    
+                        dueAmount = dueAmount || "0";
+                        dueAmount = dueAmount.replace(/,/g, "");
+                    
+                        apex.item("P8_DUE_AMOUNT").setValue(dueAmount);
+                    
+                        // PAYMENT button show / hide
+                        var due = parseFloat(dueAmount) || 0;
+                    
+                        if (due > 0) {
+                            $("#PAYMENT_BTN").show();
+                        } else {
+                            $("#PAYMENT_BTN").hide();
+                        }
+                    
+                          if (customerNo) {
+                            $("#SALES_ORDER").show();
+                        } else {
+                            $("#SALES_ORDER").hide();
+                        }
+                    
+                    
+                        apex.region("CUSTOMER_DETAILS").refresh();
+                    }
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
     )
 
-    validation validation-mobile-number (
-        name: VALIDATION MOBILE NUMBER
+    dynamicAction new_3 (
+        name: DA_DUE_BUTTON_TOGGLE_AND_COLOR
         execution {
-            sequence: 10
+            sequence: 40
         }
-        validation {
-            plsqlExpression: "REGEXP_LIKE(:P8_MOBILE_NO,'^01[3-9][0-9]{8}$')"
+        when {
+            event: click
+            selectionType: button
+            button: @DUE_FILTER_BTN
         }
-        error {
-            errorMessage: Please enter a valid mobile number.
-            associatedItem: @P8_MOBILE_NO
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                    var btn = $("#DUE_FILTER_BTN");
+                    
+                    if ($v("P8_DUE_FILTER") === "DUE") {
+                    
+                        $s("P8_DUE_FILTER", "");
+                    
+                        btn.find(".t-Button-label").text("Show Due Customer");
+                    
+                        btn.css({
+                            "background": "#dc3545",
+                            "border-color": "#dc3545",
+                            "color": "#fff",
+                            "font-weight": "600",
+                            "box-shadow": "0 2px 5px rgba(0,0,0,0.15)"
+                        });
+                    
+                    } else {
+                    
+                        $s("P8_DUE_FILTER", "DUE");
+                    
+                        btn.find(".t-Button-label").text("Show All Customers");
+                    
+                        btn.css({
+                            "background": "#198754",
+                            "border-color": "#198754",
+                            "color": "#fff",
+                            "font-weight": "600",
+                            "box-shadow": "0 2px 5px rgba(0,0,0,0.15)"
+                        });
+                    }
+                    
+                    apex.region("CUSTOMER_REPORT").refresh();
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction new_4 (
+        name: DA_REFRESH_REGISTER
+        execution {
+            sequence: 50
         }
+        when {
+            selectionType: items
+            items: P8_DUE_FILTER
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @CUSTOMER_REPORT
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction new_5 (
+        name: DA_BTN_HIDE_PAGE_LOAD
+        execution {
+            sequence: 70
+        }
+        when {
+            event: ready
+        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                     let due = $v('P8_DUE_AMOUNT')
+                     let customer = $v('P8_CUSTOMER_NO')
+                      
+                       if (due > 0) {
+                            $("#PAYMENT_BTN").show();
+                        } else {
+                            $("#PAYMENT_BTN").hide();
+                        }
+                    
+                           if (customer) {
+                            $("#SALES_ORDER").show();
+                        } else {
+                            $("#SALES_ORDER").hide();
+                        }
+                    ```
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
     )
 
     process delete (
@@ -971,18 +1852,8 @@ page 8 (
         advanced {
             executionMappingIdentifier: 8106662397174274161
         }
-    )
-
-    process initialize-form-supplier-setup (
-        name: Initialize form Supplier Setup
-        type: formInitialization
-        formRegion: @entry
-        execution {
-            sequence: 10
-            point: beforeHeader
-        }
-        advanced {
-            executionMappingIdentifier: 8106653134229274133
+        serverSideCondition {
+            whenButtonPressed: @delete
         }
     )
 
@@ -1051,6 +1922,9 @@ page 8 (
         }
         advanced {
             executionMappingIdentifier: 8106661993832274161
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
         }
     )
 

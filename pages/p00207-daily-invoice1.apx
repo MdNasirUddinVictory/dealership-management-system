@@ -1,41 +1,98 @@
-page 15 (
-    name: Sales Invoice Print
-    alias: SALES-INVOICE-PRINT1
-    title: Sales Invoice Print
+page 207 (
+    name: Daily Invoice
+    alias: DAILY-INVOICE1
+    title: Daily Invoice
     appearance {
-        pageMode: modalDialog
-        dialogTemplate: @/modal-dialog
+        pageTemplate: @/standard
         templateOptions: #DEFAULT#
-    }
-    dialog {
-        width: 60%
     }
     navigation {
         cursorFocus: doNotFocusCursor
     }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            function printSingleInvoice(btn) {
+            
+                var invoice = btn.closest(".inv-report-card");
+            
+                if (!invoice) return;
+            
+                var printWindow = window.open("", "_blank", "width=950,height=750");
+            
+                if (!printWindow) {
+                    apex.message.alert("Please allow pop-ups for this site.");
+                    return;
+                }
+            
+                var styles = "";
+            
+                document.querySelectorAll("link[rel='stylesheet'], style")
+                    .forEach(function(el) {
+                        styles += el.outerHTML;
+                    });
+            
+                printWindow.document.write(`
+                    <html>
+                    <head>
+                        <title>Invoice</title>
+            
+                        ${styles}
+            
+                        <style>
+                            @page {
+                                size: A4;
+                                margin: 10mm;
+                            }
+            
+                            .invoice-print-btn {
+                                display: none !important;
+                            }
+                        </style>
+                    </head>
+            
+                    <body>
+                        ${invoice.outerHTML}
+                    </body>
+                    </html>
+                `);
+            
+                printWindow.document.close();
+            
+                setTimeout(function () {
+                    printWindow.print();
+                    printWindow.close();
+                }, 700);
+            }
+            ```
+    }
     security {
+        pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
     }
 
-    region breadcrumb (
+    region breadcrumb-2 (
         name: Breadcrumb
         type: breadcrumb
         source {
             breadcrumb: @breadcrumb
         }
         layout {
-            sequence: 10
-            slot: dialogHeader
+            sequence: 30
+            slot: breadcrumbBar
         }
         appearance {
-            template: @/title-bar
+            template: @/buttons-container
             templateOptions: [
                 #DEFAULT#
-                t-BreadcrumbRegion--useBreadcrumbTitle
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
             ]
-        }
-        config {
-            buildOption: @commented-out
+            cssClasses: breadcrumb
         }
         componentAppearance {
             breadcrumbTemplate: @/breadcrumb
@@ -43,8 +100,8 @@ page 15 (
         }
     )
 
-    region new (
-        name: INVOICE PRINT
+    region invoice-preview (
+        name: Invoice Preview
         type: dynamicContent
         source {
             plsqlFunctionBody:
@@ -101,8 +158,8 @@ page 15 (
                 
                                     where (  -- :P207_CUSTOMER_NO_PREVIEW IS NULL
                                        --  OR 
-                                        
-                                          I.INVOICE_NO = :P15_INVOICE_NO)
+                                         I.CUSTOMER_NO = :P207_CUSTOMER_NO_PREVIEW  OR
+                                          I.INVOICE_NO = :P207_INVOICE_NO_PREVIEW)
                                     /* =========================
                                        INVOICE FILTER
                                        ========================= */
@@ -1553,11 +1610,1238 @@ page 15 (
                     RETURN v_html;
                 END;
                 ```
-            pageItemsToSubmit: P15_INVOICE_NO
+            pageItemsToSubmit: [
+                P207_CUSTOMER_NO_PREVIEW
+                P207_INVOICE_NO_PREVIEW
+            ]
+        }
+        layout {
+            sequence: 90
+            parentRegion: @report-analysis
+            slot: tabs
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--noPadding
+                t-Region--removeHeader js-removeLandmark
+                t-Region--scrollBody
+            ]
+        }
+    )
+
+    region invoice-register_1 (
+        name: Invoiced list
+        type: staticContent
+        layout {
+            sequence: 80
+            parentRegion: @report-analysis
+            slot: tabs
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--noPadding
+                t-Region--removeHeader js-removeLandmark
+                t-Region--scrollBody
+            ]
+        }
+    )
+
+    region new (
+        name: HEADING
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                <div class="report-header">
+                    <h1>
+                        <span class="fa fa-bar-chart"></span>
+                        Report &amp; Analysis
+                    </h1>
+                
+                    <div class="report-subtitle">
+                        <span>Invoice</span>
+                        <b>•</b>
+                        <span>Invoice Preview</span>
+                        <b>•</b>
+                        <span>Inventory &amp; Sales</span>
+                        <b>---</b>
+                        <span>All Exportable to Excel </span>
+                    </div>
+                </div>
+                
+                <style>
+                .report-header {
+                    padding: 4px 2px 6px;
+                }
+                
+                .report-header h1 {
+                    margin: 0;
+                    font-size: 22px;
+                    line-height: 1.2;
+                    font-weight: 700;
+                    color: #1f2937;
+                }
+                
+                .report-header h1 .fa {
+                    color: #2563eb;
+                    font-size: 19px;
+                    margin-right: 6px;
+                }
+                
+                .report-subtitle {
+                    margin-top: 3px;
+                    padding-left: 27px;
+                
+                    font-size: 11px;
+                    line-height: 1.3;
+                    color: #64748b;
+                }
+                
+                .report-subtitle span {
+                    color: #475569;
+                }
+                
+                .report-subtitle span:first-child {
+                    //color: #2563eb;
+                    font-weight: 600;
+                }
+                
+                .report-subtitle b {
+                    margin: 0 5px;
+                    color: #cbd5e1;
+                    font-weight: 400;
+                }
+                
+                /* Mobile */
+                @media (max-width: 600px) {
+                    .report-header h1 {
+                        font-size: 19px;
+                    }
+                
+                    .report-header h1 .fa {
+                        font-size: 17px;
+                    }
+                
+                    .report-subtitle {
+                        padding-left: 23px;
+                        font-size: 10px;
+                    }
+                }
+                </style>
+                
+                
+                ```
         }
         layout {
             sequence: 10
-            slot: contentBody
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: [
+                #DEFAULT#
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+    )
+
+    region report-analysis (
+        name: Report Tab Container
+        title: Report & Analysis
+        type: regionDisplaySelector
+        layout {
+            sequence: 20
+            parentRegion: @new
+            slot: subRegions
+        }
+        appearance {
+            template: @/tabs-container
+            templateOptions: [
+                #DEFAULT#
+                t-Tabs--inlineIcons
+                t-TabsRegion-mod--small
+                t-TabsRegion-mod--pill
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+    )
+
+    region sales-report (
+        name: Daily Invoice Register
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                  SELECT I.INVOICE_NO,
+                         I.INVOICE_CODE,
+                         TO_CHAR (I.INVOICE_DATE, 'DD-MON-YYYY')
+                             AS INVOICE_DATE,
+                         O.ORDER_CODE,
+                         C.CUSTOMER_CODE,
+                         C.CUSTOMER_NAME,
+                         C.MOBILE_NO,
+                         C.EMAIL_ADDRESS,
+                         C.ADDRESS,
+                         D.INVOICE_DTL_NO,
+                         P.PRODUCT_CODE,
+                         P.PRODUCT_NAME,
+                         PC.CATEGORY_NAME,
+                         NVL (D.SALES_QTY, 0)
+                             AS SALES_QTY,
+                         NVL (D.DELIVERED_QTY, 0)
+                             AS DELIVERED_QTY,
+                         NVL (D.SALES_QTY, 0) - NVL (D.DELIVERED_QTY, 0)
+                             AS BALANCE_QTY,
+                         NVL (D.SALES_RATE, 0)
+                             AS SALES_RATE,
+                         NVL (I.TOTAL_AMOUNT, 0)
+                             AS INVOICE_TOTAL_AMOUNT,
+                         NVL (I.RECEIVED_AMOUNT, 0)
+                             AS RECEIVED_AMOUNT,
+                         NVL (I.DUE_AMOUNT, 0)
+                             AS DUE_AMOUNT,
+                         I.PAYMENT_STATUS,
+                         I.DELIVERY_STATUS,
+                         I.DELIVERY_BY,
+                         TO_CHAR (I.DELIVERY_DATE, 'DD-MON-YYYY')
+                             AS DELIVERY_DATE,
+                         I.CREATED_BY,
+                         TO_CHAR (I.CREATED_DATE, 'DD-MON-YYYY HH24:MI:SS')
+                             AS CREATED_DATE,
+                         NVL (R.RETURN_QTY, 0)
+                             AS RETURN_QTY
+                    FROM TRN_SALES_INVOICE_MST I
+                         LEFT JOIN TRN_SALES_INVOICE_DTL D ON D.INVOICE_NO = I.INVOICE_NO
+                         LEFT JOIN MST_CUSTOMER C ON C.CUSTOMER_NO = I.CUSTOMER_NO
+                         LEFT JOIN MST_PRODUCT P ON P.PRODUCT_NO = D.PRODUCT_NO
+                         LEFT JOIN MST_PRODUCT_CATEGORY PC ON PC.CATEGORY_NO = P.CATEGORY_NO
+                         LEFT JOIN TRN_SALES_ORDER_MST O ON O.ORDER_NO = I.ORDER_NO
+                         LEFT JOIN
+                         (  SELECT D.INVOICE_DTL_NO, SUM (NVL (D.RETURN_QTY, 0)) AS RETURN_QTY
+                              FROM TRN_CUSTOMER_RETURN_DTL D
+                                   JOIN TRN_CUSTOMER_RETURN_MST M ON M.RETURN_NO = D.RETURN_NO
+                             WHERE M.APPROVAL_STATUS = 'A'
+                          GROUP BY D.INVOICE_DTL_NO) R
+                             ON R.INVOICE_DTL_NO = D.INVOICE_DTL_NO
+                   WHERE     I.INVOICE_DATE >=
+                             NVL (TO_DATE ( :P207_FROM_DATE, 'MM/DD/YYYY'), TRUNC (SYSDATE))
+                         AND I.INVOICE_DATE <
+                             NVL (TO_DATE ( :P207_TO_DATE, 'MM/DD/YYYY'), TRUNC (SYSDATE)) + 1
+                         AND ( :P207_CUSTOMER_NO IS NULL OR I.CUSTOMER_NO = :P207_CUSTOMER_NO)
+                         AND ( :P207_INVOICE_NO IS NULL OR I.INVOICE_NO = :P207_INVOICE_NO)
+                ORDER BY I.INVOICE_DATE DESC, I.INVOICE_NO DESC, D.INVOICE_DTL_NO
+                ```
+            pageItemsToSubmit: [
+                P207_FROM_DATE
+                P207_TO_DATE
+                P207_CUSTOMER_NO
+                P207_INVOICE_NO
+            ]
+        }
+        layout {
+            sequence: 70
+            parentRegion: @invoice-register_1
+            slot: regionBody
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 34684123865730297
+        }
+
+        column ADDRESS (
+            type: plainText
+            heading {
+                heading: Address
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: I
+            }
+        )
+
+        column BALANCE_QTY (
+            type: plainText
+            heading {
+                heading: Balance Qty
+                alignment: end
+            }
+            layout {
+                sequence: 160
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: P
+            }
+        )
+
+        column CATEGORY_NAME (
+            type: plainText
+            heading {
+                heading: Category Name
+            }
+            layout {
+                sequence: 340
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: AH
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 260
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: Z
+            }
+        )
+
+        column CREATED_DATE (
+            type: plainText
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 330
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: AG
+            }
+        )
+
+        column CUSTOMER_CODE (
+            type: plainText
+            heading {
+                heading: Customer Code
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: E
+            }
+        )
+
+        column CUSTOMER_NAME (
+            type: plainText
+            heading {
+                heading: Customer Name
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: F
+            }
+        )
+
+        column DELIVERED_QTY (
+            type: plainText
+            heading {
+                heading: Delivered Qty
+                alignment: end
+            }
+            layout {
+                sequence: 150
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: O
+            }
+        )
+
+        column DELIVERY_BY (
+            type: plainText
+            heading {
+                heading: Delivery By
+            }
+            layout {
+                sequence: 240
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: X
+            }
+        )
+
+        column DELIVERY_DATE (
+            type: plainText
+            heading {
+                heading: Delivery Date
+            }
+            layout {
+                sequence: 320
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: AF
+            }
+        )
+
+        column DELIVERY_STATUS (
+            type: plainText
+            heading {
+                heading: Delivery Status
+            }
+            layout {
+                sequence: 230
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: W
+            }
+        )
+
+        column DUE_AMOUNT (
+            type: plainText
+            heading {
+                heading: Due Amount
+                alignment: end
+            }
+            layout {
+                sequence: 210
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: U
+            }
+        )
+
+        column EMAIL_ADDRESS (
+            type: plainText
+            heading {
+                heading: Email Address
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: H
+            }
+        )
+
+        column INVOICE_CODE (
+            type: plainText
+            heading {
+                heading: Invoice Code
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: B
+            }
+        )
+
+        column INVOICE_DATE (
+            type: plainText
+            heading {
+                heading: Invoice Date
+            }
+            layout {
+                sequence: 310
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: AE
+            }
+        )
+
+        column INVOICE_DTL_NO (
+            type: plainText
+            heading {
+                heading: Invoice Dtl No
+                alignment: end
+            }
+            layout {
+                sequence: 100
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: J
+            }
+        )
+
+        column INVOICE_NO (
+            type: plainText
+            heading {
+                heading: Invoice No
+                alignment: end
+            }
+            layout {
+                sequence: 10
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: A
+            }
+        )
+
+        column INVOICE_TOTAL_AMOUNT (
+            type: plainText
+            heading {
+                heading: Invoice Total Amount
+                alignment: end
+            }
+            layout {
+                sequence: 190
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: S
+            }
+        )
+
+        column MOBILE_NO (
+            type: plainText
+            heading {
+                heading: Mobile No
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: G
+            }
+        )
+
+        column ORDER_CODE (
+            type: plainText
+            heading {
+                heading: Order Code
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: D
+            }
+        )
+
+        column PAYMENT_STATUS (
+            type: plainText
+            heading {
+                heading: Payment Status
+            }
+            layout {
+                sequence: 220
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: V
+            }
+        )
+
+        column PRODUCT_CODE (
+            type: plainText
+            heading {
+                heading: Product Code
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: K
+            }
+        )
+
+        column PRODUCT_NAME (
+            type: plainText
+            heading {
+                heading: Product Name
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: L
+            }
+        )
+
+        column RECEIVED_AMOUNT (
+            type: plainText
+            heading {
+                heading: Received Amount
+                alignment: end
+            }
+            layout {
+                sequence: 200
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: T
+            }
+        )
+
+        column RETURN_QTY (
+            type: plainText
+            heading {
+                heading: Return Qty
+                alignment: end
+            }
+            layout {
+                sequence: 300
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AD
+            }
+        )
+
+        column SALES_QTY (
+            type: plainText
+            heading {
+                heading: Sales Qty
+                alignment: end
+            }
+            layout {
+                sequence: 140
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: N
+            }
+        )
+
+        column SALES_RATE (
+            type: plainText
+            heading {
+                heading: Sales Rate
+                alignment: end
+            }
+            layout {
+                sequence: 170
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: Q
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn CUSTOMER_NAME (
+                sequence: 3
+            )
+
+            displayColumn DELIVERED_QTY (
+                sequence: 6
+            )
+
+            displayColumn DUE_AMOUNT (
+                sequence: 9
+            )
+
+            displayColumn INVOICE_CODE (
+                sequence: 1
+            )
+
+            displayColumn INVOICE_DATE (
+                sequence: 2
+            )
+
+            displayColumn INVOICE_TOTAL_AMOUNT (
+                sequence: 7
+            )
+
+            displayColumn PRODUCT_NAME (
+                sequence: 4
+            )
+
+            displayColumn RECEIVED_AMOUNT (
+                sequence: 8
+            )
+
+            displayColumn RETURN_QTY (
+                sequence: 10
+            )
+
+            displayColumn SALES_QTY (
+                sequence: 5
+            )
+
+        )
+
+    )
+
+    region summery (
+        name: "Invoice summery "
+        type: dynamicContent
+        source {
+            plsqlFunctionBody:
+                ```plsql
+                /* Formatted on 8/29/2026 2:06:07 PM (QP5 v5.388) */
+                DECLARE
+                    v_html             CLOB := '';
+                
+                    v_total_invoice    NUMBER := 0;
+                    v_total_sales      NUMBER := 0;
+                    v_total_received   NUMBER := 0;
+                    v_total_due        NUMBER := 0;
+                    v_total_qty        NUMBER := 0;
+                    v_return_qty       NUMBER := 0;
+                BEGIN
+                    /* =====================================================
+                       INVOICE SUMMARY
+                       ===================================================== */
+                
+                    SELECT COUNT (*),
+                           NVL (SUM (TOTAL_AMOUNT), 0),
+                           NVL (SUM (RECEIVED_AMOUNT), 0),
+                           NVL (SUM (DUE_AMOUNT), 0)
+                      INTO v_total_invoice,
+                           v_total_sales,
+                           v_total_received,
+                           v_total_due
+                      FROM TRN_SALES_INVOICE_MST I
+                     WHERE     I.INVOICE_DATE >=
+                               NVL (TO_DATE ( :P207_FROM_DATE, 'MM/DD/YYYY'),
+                                    TRUNC (SYSDATE))
+                           AND I.INVOICE_DATE <
+                                 NVL (TO_DATE ( :P207_TO_DATE, 'MM/DD/YYYY'),
+                                      TRUNC (SYSDATE))
+                               + 1
+                           AND (   :P207_CUSTOMER_NO IS NULL
+                                OR I.CUSTOMER_NO = :P207_CUSTOMER_NO)
+                           AND ( :P207_INVOICE_NO IS NULL OR I.INVOICE_NO = :P207_INVOICE_NO);
+                
+                
+                    /* =====================================================
+                       SALES QTY
+                       ===================================================== */
+                
+                    SELECT NVL (SUM (NVL (D.SALES_QTY, 0)), 0)
+                      INTO v_total_qty
+                      FROM TRN_SALES_INVOICE_MST  I
+                           JOIN TRN_SALES_INVOICE_DTL D ON D.INVOICE_NO = I.INVOICE_NO
+                     WHERE     I.INVOICE_DATE >=
+                               NVL (TO_DATE ( :P207_FROM_DATE, 'MM/DD/YYYY'),
+                                    TRUNC (SYSDATE))
+                           AND I.INVOICE_DATE <
+                                 NVL (TO_DATE ( :P207_TO_DATE, 'MM/DD/YYYY'),
+                                      TRUNC (SYSDATE))
+                               + 1
+                           AND (   :P207_CUSTOMER_NO IS NULL
+                                OR I.CUSTOMER_NO = :P207_CUSTOMER_NO)
+                           AND ( :P207_INVOICE_NO IS NULL OR I.INVOICE_NO = :P207_INVOICE_NO);
+                
+                
+                    /* =====================================================
+                       RETURN QTY
+                       ===================================================== */
+                
+                    SELECT NVL (SUM (NVL (R.RETURN_QTY, 0)), 0)
+                      INTO v_return_qty
+                      FROM TRN_SALES_INVOICE_MST  I
+                           JOIN TRN_SALES_INVOICE_DTL D ON D.INVOICE_NO = I.INVOICE_NO
+                           LEFT JOIN
+                           (  SELECT RD.INVOICE_DTL_NO,
+                                     SUM (NVL (RD.RETURN_QTY, 0))     AS RETURN_QTY
+                                FROM TRN_CUSTOMER_RETURN_DTL RD
+                                     JOIN TRN_CUSTOMER_RETURN_MST RM
+                                         ON RM.RETURN_NO = RD.RETURN_NO
+                               WHERE RM.APPROVAL_STATUS = 'A'
+                            GROUP BY RD.INVOICE_DTL_NO) R
+                               ON R.INVOICE_DTL_NO = D.INVOICE_DTL_NO
+                     WHERE     I.INVOICE_DATE >=
+                               NVL (TO_DATE ( :P207_FROM_DATE, 'MM/DD/YYYY'),
+                                    TRUNC (SYSDATE))
+                           AND I.INVOICE_DATE <
+                                 NVL (TO_DATE ( :P207_TO_DATE, 'MM/DD/YYYY'),
+                                      TRUNC (SYSDATE))
+                               + 1
+                           AND (   :P207_CUSTOMER_NO IS NULL
+                                OR I.CUSTOMER_NO = :P207_CUSTOMER_NO)
+                           AND ( :P207_INVOICE_NO IS NULL OR I.INVOICE_NO = :P207_INVOICE_NO);
+                
+                
+                    /* =====================================================
+                       HTML + CSS
+                       ===================================================== */
+                
+                    v_html :=
+                           '<style>
+                
+                        .invoice-summary {
+                            display: grid;
+                            grid-template-columns: repeat(6, 1fr);
+                            gap: 10px;
+                            width: 100%;
+                            margin-bottom: 12px;
+                        }
+                
+                        .invoice-summary-card {
+                            display: flex;
+                            align-items: center;
+                            gap: 10px;
+                
+                            background: #ffffff;
+                
+                            border: 1px solid #e5e7eb;
+                            border-radius: 8px;
+                
+                            padding: 11px 13px;
+                
+                            box-shadow: 0 2px 6px rgba(0,0,0,.06);
+                
+                            min-width: 0;
+                
+                            transition: all .2s ease;
+                        }
+                
+                        .invoice-summary-card:hover {
+                            transform: translateY(-2px);
+                            box-shadow: 0 4px 12px rgba(0,0,0,.10);
+                        }
+                
+                        .invoice-summary-icon {
+                            width: 38px;
+                            height: 38px;
+                            min-width: 38px;
+                
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                
+                            border-radius: 8px;
+                
+                            font-size: 18px;
+                        }
+                
+                        .invoice-summary-content {
+                            min-width: 0;
+                            flex: 1;
+                        }
+                
+                        .invoice-summary-title {
+                            font-size: 11px;
+                            color: #6b7280;
+                            margin-bottom: 3px;
+                            white-space: nowrap;
+                        }
+                
+                        .invoice-summary-value {
+                            font-size: 16px;
+                            font-weight: 700;
+                            color: #111827;
+                            white-space: nowrap;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                        }
+                
+                
+                        /* TOTAL INVOICE */
+                
+                        .invoice-count .invoice-summary-icon {
+                            background: #eef2ff;
+                            color: #4f46e5;
+                        }
+                
+                        .invoice-count .invoice-summary-value {
+                            color: #4f46e5;
+                        }
+                
+                
+                        /* TOTAL SALES */
+                
+                        .invoice-sales .invoice-summary-icon {
+                            background: #eff6ff;
+                            color: #2563eb;
+                        }
+                
+                        .invoice-sales .invoice-summary-value {
+                            color: #2563eb;
+                        }
+                
+                
+                        /* RECEIVED */
+                
+                        .invoice-received .invoice-summary-icon {
+                            background: #ecfdf5;
+                            color: #198754;
+                        }
+                
+                        .invoice-received .invoice-summary-value {
+                            color: #198754;
+                        }
+                
+                
+                        /* DUE */
+                
+                        .invoice-due .invoice-summary-icon {
+                            background: #fef2f2;
+                            color: #dc3545;
+                        }
+                
+                        .invoice-due .invoice-summary-value {
+                            color: #dc3545;
+                        }
+                
+                
+                        /* SALES QTY */
+                
+                        .invoice-qty .invoice-summary-icon {
+                            background: #fff7ed;
+                            color: #ea580c;
+                        }
+                
+                        .invoice-qty .invoice-summary-value {
+                            color: #ea580c;
+                        }
+                
+                
+                        /* RETURN QTY */
+                
+                        .invoice-return .invoice-summary-icon {
+                            background: #fdf4ff;
+                            color: #9333ea;
+                        }
+                
+                        .invoice-return .invoice-summary-value {
+                            color: #9333ea;
+                        }
+                
+                
+                        /* TABLET */
+                
+                        @media (max-width: 1200px) {
+                
+                            .invoice-summary {
+                                grid-template-columns: repeat(3, 1fr);
+                            }
+                
+                        }
+                
+                
+                        /* MOBILE */
+                
+                        @media (max-width: 650px) {
+                
+                            .invoice-summary {
+                                grid-template-columns: repeat(2, 1fr);
+                                gap: 7px;
+                            }
+                
+                            .invoice-summary-card {
+                                padding: 9px;
+                                gap: 7px;
+                            }
+                
+                            .invoice-summary-icon {
+                                width: 32px;
+                                height: 32px;
+                                min-width: 32px;
+                                font-size: 15px;
+                            }
+                
+                            .invoice-summary-title {
+                                font-size: 9px;
+                            }
+                
+                            .invoice-summary-value {
+                                font-size: 13px;
+                            }
+                
+                        }
+                
+                
+                        /* SMALL MOBILE */
+                
+                        @media (max-width: 380px) {
+                
+                            .invoice-summary {
+                                grid-template-columns: 1fr 1fr;
+                            }
+                
+                            .invoice-summary-card {
+                                padding: 8px 7px;
+                            }
+                
+                            .invoice-summary-icon {
+                                width: 28px;
+                                height: 28px;
+                                min-width: 28px;
+                                font-size: 13px;
+                            }
+                
+                            .invoice-summary-value {
+                                font-size: 12px;
+                            }
+                
+                        }
+                
+                    </style>
+                
+                
+                    <div class="invoice-summary">
+                
+                
+                        <!-- TOTAL INVOICE -->
+                
+                        <div class="invoice-summary-card invoice-count">
+                
+                            <div class="invoice-summary-icon">
+                                <span class="fa fa-file-text-o"></span>
+                            </div>
+                
+                            <div class="invoice-summary-content">
+                
+                                <div class="invoice-summary-title">
+                                    Total Invoice
+                                </div>
+                
+                                <div class="invoice-summary-value">'
+                        || TO_CHAR (v_total_invoice, 'FM9999999990')
+                        || '</div>
+                
+                            </div>
+                
+                        </div>
+                
+                
+                        <!-- TOTAL SALES -->
+                
+                        <div class="invoice-summary-card invoice-sales">
+                
+                            <div class="invoice-summary-icon">
+                                <span class="fa fa-money"></span>
+                            </div>
+                
+                            <div class="invoice-summary-content">
+                
+                                <div class="invoice-summary-title">
+                                    Total Sales
+                                </div>
+                
+                                <div class="invoice-summary-value">
+                                    ৳ '
+                        || TO_CHAR (v_total_sales, 'FM9999999990.00')
+                        || '</div>
+                
+                            </div>
+                
+                        </div>
+                
+                
+                        <!-- RECEIVED -->
+                
+                        <div class="invoice-summary-card invoice-received">
+                
+                            <div class="invoice-summary-icon">
+                                <span class="fa fa-check-circle"></span>
+                            </div>
+                
+                            <div class="invoice-summary-content">
+                
+                                <div class="invoice-summary-title">
+                                    Received
+                                </div>
+                
+                                <div class="invoice-summary-value">
+                                    ৳ '
+                        || TO_CHAR (v_total_received, 'FM9999999990.00')
+                        || '</div>
+                
+                            </div>
+                
+                        </div>
+                
+                
+                        <!-- DUE -->
+                
+                        <div class="invoice-summary-card invoice-due">
+                
+                            <div class="invoice-summary-icon">
+                                <span class="fa fa-exclamation-circle"></span>
+                            </div>
+                
+                            <div class="invoice-summary-content">
+                
+                                <div class="invoice-summary-title">
+                                    Total Due
+                                </div>
+                
+                                <div class="invoice-summary-value">
+                                    ৳ '
+                        || TO_CHAR (v_total_due, 'FM9999999990.00')
+                        || '</div>
+                
+                            </div>
+                
+                        </div>
+                
+                
+                        <!-- SALES QTY -->
+                
+                        <div class="invoice-summary-card invoice-qty">
+                
+                            <div class="invoice-summary-icon">
+                                <span class="fa fa-cubes"></span>
+                            </div>
+                
+                            <div class="invoice-summary-content">
+                
+                                <div class="invoice-summary-title">
+                                    Sales Qty
+                                </div>
+                
+                                <div class="invoice-summary-value">'
+                        || TO_CHAR (v_total_qty, 'FM9999999990.00')
+                        || '</div>
+                
+                            </div>
+                
+                        </div>
+                
+                
+                        <!-- RETURN QTY -->
+                
+                        <div class="invoice-summary-card invoice-return">
+                
+                            <div class="invoice-summary-icon">
+                                <span class="fa fa-undo"></span>
+                            </div>
+                
+                            <div class="invoice-summary-content">
+                
+                                <div class="invoice-summary-title">
+                                    Return Qty
+                                </div>
+                
+                                <div class="invoice-summary-value">'
+                        || TO_CHAR (v_return_qty, 'FM9999999990.00')
+                        || '</div>
+                
+                            </div>
+                
+                        </div>
+                
+                
+                    </div>';
+                
+                    RETURN v_html;
+                END;
+                ```
+            pageItemsToSubmit: [
+                P207_FROM_DATE
+                P207_TO_DATE
+                P207_CUSTOMER_NO_PREVIEW
+                P207_INVOICE_NO_PREVIEW
+            ]
+        }
+        layout {
+            sequence: 60
+            parentRegion: @invoice-register_1
+            slot: regionBody
         }
         appearance {
             template: @/blank-with-attributes
@@ -1565,15 +2849,404 @@ page 15 (
         }
     )
 
-    pageItem P15_INVOICE_NO (
-        type: hidden
-        settings {
-            valueProtected: false
+    pageItem P207_CUSTOMER_NO (
+        type: selectList
+        label {
+            label: Customer
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT CUSTOMER_NAME AS DISPLAY_VALUE,
+                       CUSTOMER_NO   AS RETURN_VALUE
+                  FROM MST_CUSTOMER
+                 ORDER BY CUSTOMER_NAME
+                ```
+            displayExtraValues: false
+            nullDisplayValue: --Select--
+        }
+        layout {
+            sequence: 30
+            region: @invoice-register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
+                t-Form-fieldContainer--slimPadding
+            ]
+            height: 1
+        }
+    )
+
+    pageItem P207_CUSTOMER_NO_PREVIEW (
+        type: selectList
+        label {
+            label: Customer
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT CUSTOMER_NAME AS DISPLAY_VALUE,
+                       CUSTOMER_NO   AS RETURN_VALUE
+                  FROM MST_CUSTOMER
+                 ORDER BY CUSTOMER_NAME
+                ```
+            nullDisplayValue: --Select Customer--
+        }
+        layout {
+            sequence: 10
+            region: @invoice-preview
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                margin-top-none
+                margin-bottom-none
+            ]
+            height: 1
+        }
+        source {
+            used: always
+        }
+    )
+
+    pageItem P207_FROM_DATE (
+        type: datePicker
+        label {
+            label: From Date
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @invoice-register_1
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        source {
+            used: always
+        }
+        default {
+            type: expression
+            plsqlExpression: sysdate
+        }
+    )
+
+    pageItem P207_INVOICE_NO (
+        type: selectList
+        label {
+            label: Invoice
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT INVOICE_CODE AS DISPLAY_VALUE,
+                       INVOICE_NO   AS RETURN_VALUE
+                  FROM TRN_SALES_INVOICE_MST
+                 ORDER BY INVOICE_DATE DESC
+                ```
+            displayExtraValues: false
+            nullDisplayValue: --Select--
+        }
+        layout {
+            sequence: 40
+            region: @invoice-register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
+                t-Form-fieldContainer--slimPadding
+            ]
+            height: 1
+        }
+    )
+
+    pageItem P207_INVOICE_NO_PREVIEW (
+        type: selectList
+        label {
+            label: Invoice
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT INVOICE_CODE AS DISPLAY_VALUE,
+                       INVOICE_NO   AS RETURN_VALUE
+                  FROM TRN_SALES_INVOICE_MST
+                  WHERE (:P207_CUSTOMER_NO_PREVIEW IS NULL OR CUSTOMER_NO = :P207_CUSTOMER_NO_PREVIEW )
+                 ORDER BY INVOICE_DATE DESC
+                ```
+            displayExtraValues: false
+            nullDisplayValue: --Select Invoice--
+        }
+        cascadingLov {
+            parentItems: P207_CUSTOMER_NO_PREVIEW
+            itemsToSubmit: P207_CUSTOMER_NO_PREVIEW
         }
         layout {
             sequence: 20
-            slot: contentBody
+            region: @invoice-preview
+            slot: regionBody
+            alignment: left
+            startNewRow: false
         }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                margin-top-none
+                margin-bottom-none
+            ]
+            height: 1
+        }
+        source {
+            used: always
+        }
+    )
+
+    pageItem P207_TO_DATE (
+        type: datePicker
+        label {
+            label: To Date
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @invoice-register_1
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        source {
+            used: always
+        }
+        default {
+            type: expression
+            plsqlExpression: sysdate
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 207
+                clearCache: 12
+                action: clearRegions
+            }
+        }
+        advanced {
+            htmlDomId: pb-reset
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+        }
+    )
+
+    dynamicAction new (
+        name: DA_INVOIVE_REGISTER_REFRESH
+        execution {
+            sequence: 30
+        }
+        when {
+            selectionType: items
+            items: [
+                P207_FROM_DATE
+                P207_TO_DATE
+                P207_CUSTOMER_NO
+                P207_INVOICE_NO
+            ]
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @sales-report
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+        action native-refresh_1 (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @summery
+            }
+            execution {
+                sequence: 20
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction new_1 (
+        name: DA_INVOIVE_PREVIEW_REFRESH
+        execution {
+            sequence: 20
+        }
+        when {
+            selectionType: items
+            items: [
+                P207_CUSTOMER_NO_PREVIEW
+                P207_INVOICE_NO_PREVIEW
+            ]
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @invoice-preview
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
     )
 
 )
