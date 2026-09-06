@@ -1,0 +1,1052 @@
+page 31 (
+    name: Product Detail
+    alias: PRODUCT-DETAIL1
+    title: Product Detail
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/modal-dialog
+        templateOptions: [
+            #DEFAULT#
+            ui-dialog--stretch
+        ]
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    css {
+        inline:
+            ```css
+            img {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            }
+            .imgItem::before
+            {
+            content: 'Nike';
+            position: absolute;
+            top: 30px;
+            left: 20px;
+            color: #000;
+            opacity: 0.1;
+            font-size: 8em;
+            font-weight: 800;
+            }
+            
+            ```
+    }
+    security {
+        formAutoComplete: false
+    }
+
+    region breadcrumb-2 (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 50
+            slot: dialogHeader
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region product-details (
+        name: Product Details
+        type: form
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select PRODUCT_NO,
+                       CATEGORY_NO,
+                       PRODUCT_CODE,
+                       PRODUCT_NAME,
+                       PURCHASE_RATE,
+                       SALES_RATE,
+                       MIN_STOCK_QTY,
+                       ACTIVE_FLAG,
+                       CREATED_BY,
+                       CREATED_DATE,
+                       UPDATED_BY,
+                       UPDATED_DATE,
+                       UOM_NO,
+                       DESCRIPTION,
+                       BRAND_NO,
+                       PRODUCT_IMAGE,
+                       MIMETYPE,
+                       FILENAME
+                  from MST_PRODUCT
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: contentBody
+            startNewRow: false
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--removeHeader js-removeLandmark
+                t-Region--scrollBody
+                t-Form--slimPadding
+                t-Form--large
+            ]
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+    )
+
+    region product-image (
+        name: Product Image
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--scrollBody
+            ]
+        }
+        serverSideCondition {
+            type: functionBody
+            plsqlFunctionBody:
+                ```plsql
+                declare
+                begin
+                if :P31_PRODUCT_NO is not null then
+                for c1 in (select nvl(dbms_lob.getlength(product_image),0) A
+                from MST_PRODUCT
+                where product_NO = :P31_PRODUCT_NO)
+                loop
+                if c1.A > 0 then
+                return true;
+                end if;
+                end loop;
+                end if;
+                return false;
+                end;
+                ```
+        }
+    )
+
+    pageItem P31_ACTIVE_FLAG (
+        type: switch
+        label {
+            label: Available Flag
+            alignment: left
+        }
+        settings {
+            useDefaults: false
+            onValue: 1
+            offValue: 0
+        }
+        layout {
+            sequence: 100
+            region: @product-details
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            labelColumnSpan: 3
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+            ]
+        }
+        source {
+            formRegion: @product-details
+            column: ACTIVE_FLAG
+            dataType: varchar2
+        }
+    )
+
+    pageItem P31_BRAND_NO (
+        type: selectList
+        label {
+            label: Brand
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT
+                    brand_name AS display_value,
+                    brand_no   AS return_value
+                FROM mst_product_brand
+                WHERE active_flag = '1'
+                ORDER BY brand_name;
+                ```
+            displayExtraValues: false
+            nullDisplayValue: --Select--
+        }
+        layout {
+            sequence: 120
+            region: @product-details
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            labelColumnSpan: 3
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+            ]
+            height: 1
+        }
+        source {
+            formRegion: @product-details
+            column: BRAND_NO
+            dataType: number
+        }
+    )
+
+    pageItem P31_CATEGORY_NO (
+        type: popupLov
+        label {
+            label: Category
+            alignment: left
+        }
+        settings {
+            fetchOnSearch: true
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT
+                    category_name AS display_value,
+                    category_no   AS return_value
+                FROM mst_product_category
+                WHERE active_flag = '1'
+                ORDER BY category_name;
+                ```
+            displayExtraValues: false
+            nullDisplayValue: --Select--
+        }
+        layout {
+            sequence: 60
+            region: @product-details
+            slot: regionBody
+            alignment: left
+            labelColumnSpan: 3
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @product-details
+            column: CATEGORY_NO
+            dataType: number
+        }
+    )
+
+    pageItem P31_CREATED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 170
+            region: @product-details
+            slot: regionBody
+        }
+        source {
+            formRegion: @product-details
+            column: CREATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P31_CREATED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 180
+            region: @product-details
+            slot: regionBody
+        }
+        source {
+            formRegion: @product-details
+            column: CREATED_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P31_DESCRIPTION (
+        type: textarea
+        label {
+            label: Description
+            alignment: left
+        }
+        layout {
+            sequence: 130
+            region: @product-details
+            slot: regionBody
+            alignment: left
+            labelColumnSpan: 3
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+            height: 5
+        }
+        validation {
+            maxLength: 500
+        }
+        source {
+            formRegion: @product-details
+            column: DESCRIPTION
+            dataType: varchar2
+        }
+    )
+
+    pageItem P31_FILENAME (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 210
+            region: @product-details
+            slot: regionBody
+        }
+        source {
+            formRegion: @product-details
+            column: FILENAME
+            dataType: varchar2
+        }
+    )
+
+    pageItem P31_IMAGE (
+        type: displayOnly
+        label {
+            alignment: left
+        }
+        settings {
+            format: html
+        }
+        layout {
+            sequence: 10
+            region: @product-image
+            slot: regionBody
+            alignment: left
+            labelColumnSpan: 0
+        }
+        appearance {
+            template: @/hidden
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+            ]
+        }
+        source {
+            type: functionBody
+            plsqlFunctionBody: return '<img src="'||apex_util.get_blob_file_src('P31_PRODUCT_IMAGE',:P31_PRODUCT_NO)||'" />';
+        }
+    )
+
+    pageItem P31_MIMETYPE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 160
+            region: @product-details
+            slot: regionBody
+        }
+        source {
+            formRegion: @product-details
+            column: MIMETYPE
+            dataType: varchar2
+        }
+    )
+
+    pageItem P31_MIN_STOCK_QTY (
+        type: numberField
+        label {
+            label: Min Stock Qty
+            alignment: left
+        }
+        layout {
+            sequence: 90
+            region: @product-details
+            slot: regionBody
+            alignment: left
+            labelColumnSpan: 3
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        source {
+            formRegion: @product-details
+            column: MIN_STOCK_QTY
+            dataType: number
+        }
+    )
+
+    pageItem P31_PRODUCT_CODE (
+        type: displayOnly
+        label {
+            label: Product Code
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @product-details
+            slot: regionBody
+            alignment: left
+            labelColumnSpan: 3
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+            ]
+        }
+        source {
+            formRegion: @product-details
+            column: PRODUCT_CODE
+            dataType: varchar2
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P31_PRODUCT_NO
+        }
+    )
+
+    pageItem P31_PRODUCT_IMAGE (
+        type: fileUpload
+        label {
+            label: Product Image
+            alignment: left
+        }
+        storage {
+            type: appTempFiles
+            allowMultipleFiles: true
+            maxFileSize: 100
+        }
+        layout {
+            sequence: 150
+            region: @product-details
+            slot: regionBody
+            alignment: left
+            labelColumnSpan: 3
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 255
+        }
+        source {
+            formRegion: @product-details
+            column: PRODUCT_IMAGE
+            dataType: blob
+        }
+    )
+
+    pageItem P31_PRODUCT_NAME (
+        type: textField
+        label {
+            label: Product Name
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @product-details
+            slot: regionBody
+            alignment: left
+            labelColumnSpan: 3
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+            maxLength: 300
+        }
+        source {
+            formRegion: @product-details
+            column: PRODUCT_NAME
+            dataType: varchar2
+        }
+    )
+
+    pageItem P31_PRODUCT_NO (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @product-details
+            slot: regionBody
+        }
+        source {
+            formRegion: @product-details
+            column: PRODUCT_NO
+            dataType: number
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P31_PURCHASE_RATE (
+        type: numberField
+        label {
+            label: Purchase Rate
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @product-details
+            slot: regionBody
+            alignment: left
+            labelColumnSpan: 3
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        source {
+            formRegion: @product-details
+            column: PURCHASE_RATE
+            dataType: number
+        }
+    )
+
+    pageItem P31_SALES_RATE (
+        type: numberField
+        label {
+            label: Sales Rate
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @product-details
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            labelColumnSpan: 3
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        source {
+            formRegion: @product-details
+            column: SALES_RATE
+            dataType: number
+        }
+    )
+
+    pageItem P31_UOM_NO (
+        type: selectList
+        label {
+            label: UOM
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT
+                    uom_name AS display_value,
+                    uom_no   AS return_value
+                FROM mst_uom
+                WHERE active_flag = '1'
+                ORDER BY uom_name;
+                ```
+        }
+        layout {
+            sequence: 110
+            region: @product-details
+            slot: regionBody
+            alignment: left
+            labelColumnSpan: 3
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--slimPadding
+            ]
+            height: 1
+        }
+        source {
+            formRegion: @product-details
+            column: UOM_NO
+            dataType: number
+        }
+    )
+
+    pageItem P31_UPDATED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 190
+            region: @product-details
+            slot: regionBody
+        }
+        source {
+            formRegion: @product-details
+            column: UPDATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P31_UPDATED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 200
+            region: @product-details
+            slot: regionBody
+        }
+        source {
+            formRegion: @product-details
+            column: UPDATED_DATE
+            dataType: date
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+        }
+    )
+
+    button delete-image (
+        buttonName: DELETE_IMAGE
+        label: Delete Image
+        layout {
+            sequence: 20
+            region: @product-image
+            slot: copy
+        }
+        appearance {
+            buttonTemplate: @/icon
+            hot: true
+            templateOptions: #DEFAULT#
+            icon: fa-image
+        }
+        behavior {
+            action: redirectUrl
+            targetUrl: javascript:apex.confirm('Are you sure you want to delete this image? It will no longer be available for others to see if you continue.','DELETE_IMAGE');
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+        }
+    )
+
+    process delete-image (
+        name: DELETE IMAGE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                UPDATE MST_PRODUCT
+                SET product_image=null,
+                mimetype=null,
+                filename=null
+                WHERE product_NO = :P31_PRODUCT_NO;
+                ```
+        }
+        execution {
+            sequence: 40
+        }
+        advanced {
+            executionMappingIdentifier: 12466718660822428
+        }
+        serverSideCondition {
+            whenButtonPressed: @delete-image
+        }
+    )
+
+    process initialize-form-product-detail (
+        name: Initialize form Product Detail
+        type: formInitialization
+        formRegion: @product-details
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+        advanced {
+            executionMappingIdentifier: 12464799639822408
+        }
+    )
+
+    process process-form-product-details (
+        name: Process form Product Details
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                /* Formatted on 9/3/2026 12:21:34 PM (QP5 v5.388) */
+                DECLARE
+                    l_count        NUMBER;
+                    l_product_no   NUMBER;
+                
+                    l_blob         BLOB;
+                    l_mimetype     VARCHAR2 (255);
+                    l_filename     VARCHAR2 (400);
+                
+                    l_new_image    BOOLEAN := FALSE;
+                BEGIN
+                    --------------------------------------------------
+                    -- VALIDATION
+                    --------------------------------------------------
+                    IF :P31_CATEGORY_NO IS NULL
+                    THEN
+                        raise_application_error (-20001, 'Please select Category.');
+                    END IF;
+                
+                    IF :P31_PRODUCT_NAME IS NULL
+                    THEN
+                        raise_application_error (-20003, 'Product Name is required.');
+                    END IF;
+                
+                
+                    --------------------------------------------------
+                    -- DUPLICATE PRODUCT NAME
+                    --------------------------------------------------
+                    SELECT COUNT (*)
+                      INTO l_count
+                      FROM mst_product
+                     WHERE     UPPER (product_name) = UPPER (TRIM ( :P31_PRODUCT_NAME))
+                           AND NVL (product_no, 0) <> NVL ( :P31_PRODUCT_NO, 0);
+                
+                    IF l_count > 0
+                    THEN
+                        raise_application_error (-20004, 'Product Name already exists.');
+                    END IF;
+                
+                
+                    --------------------------------------------------
+                    -- NEW PRODUCT
+                    --------------------------------------------------
+                    IF :P31_PRODUCT_NO IS NULL
+                    THEN
+                        --------------------------------------------------
+                        -- GET PRODUCT NUMBER
+                        --------------------------------------------------
+                        SELECT seq_product_no.NEXTVAL INTO l_product_no FROM DUAL;
+                
+                
+                        --------------------------------------------------
+                        -- GET NEW IMAGE
+                        --------------------------------------------------
+                        IF :P31_PRODUCT_IMAGE IS NOT NULL
+                        THEN
+                            BEGIN
+                                SELECT blob_content, mime_type, filename
+                                  INTO l_blob, l_mimetype, l_filename
+                                  FROM apex_application_temp_files
+                                 WHERE name = :P31_PRODUCT_IMAGE;
+                
+                                l_new_image := TRUE;
+                            EXCEPTION
+                                WHEN NO_DATA_FOUND
+                                THEN
+                                    l_blob := NULL;
+                                    l_mimetype := NULL;
+                                    l_filename := NULL;
+                                    l_new_image := FALSE;
+                            END;
+                        END IF;
+                
+                
+                        --------------------------------------------------
+                        -- INSERT
+                        --------------------------------------------------
+                        INSERT INTO mst_product (product_no,
+                                                 category_no,
+                                                 product_code,
+                                                 product_name,
+                                                 purchase_rate,
+                                                 sales_rate,
+                                                 min_stock_qty,
+                                                 active_flag,
+                                                 created_by,
+                                                 created_date,
+                                                 uom_no,
+                                                 description,
+                                                 brand_no,
+                                                 product_image,
+                                                 mimetype,
+                                                 filename)
+                             VALUES (l_product_no,
+                                     :P31_CATEGORY_NO,
+                                     'PRD' || LPAD (l_product_no, 4, '0'),
+                                     TRIM ( :P31_PRODUCT_NAME),
+                                     NVL ( :P31_PURCHASE_RATE, 0),
+                                     NVL ( :P31_SALES_RATE, 0),
+                                     NVL ( :P31_MIN_STOCK_QTY, 0),
+                                     NVL ( :P31_ACTIVE_FLAG, 'Y'),
+                                     :APP_USER,
+                                     SYSDATE,
+                                     :P31_UOM_NO,
+                                     :P31_DESCRIPTION,
+                                     :P31_BRAND_NO,
+                                     l_blob,
+                                     l_mimetype,
+                                     l_filename)
+                          RETURNING product_no
+                               INTO :P31_PRODUCT_NO;
+                
+                
+                        APEX_APPLICATION.g_print_success_message :=
+                            'Product saved successfully.';
+                    --------------------------------------------------
+                    -- EXISTING PRODUCT UPDATE
+                    --------------------------------------------------
+                    ELSE
+                        --------------------------------------------------
+                        -- CHECK WHETHER NEW IMAGE UPLOADED
+                        --------------------------------------------------
+                        IF :P31_PRODUCT_IMAGE IS NOT NULL
+                        THEN
+                            BEGIN
+                                SELECT blob_content, mime_type, filename
+                                  INTO l_blob, l_mimetype, l_filename
+                                  FROM apex_application_temp_files
+                                 WHERE name = :P31_PRODUCT_IMAGE;
+                
+                                l_new_image := TRUE;
+                            EXCEPTION
+                                WHEN NO_DATA_FOUND
+                                THEN
+                                    l_new_image := FALSE;
+                            END;
+                        END IF;
+                
+                
+                        --------------------------------------------------
+                        -- UPDATE PRODUCT
+                        --------------------------------------------------
+                        IF l_new_image
+                        THEN
+                            --------------------------------------------------
+                            -- UPDATE WITH NEW IMAGE
+                            --------------------------------------------------
+                            UPDATE mst_product
+                               SET category_no = :P31_CATEGORY_NO,
+                                   product_name = TRIM ( :P31_PRODUCT_NAME),
+                                   purchase_rate = NVL ( :P31_PURCHASE_RATE, 0),
+                                   sales_rate = NVL ( :P31_SALES_RATE, 0),
+                                   min_stock_qty = NVL ( :P31_MIN_STOCK_QTY, 0),
+                                   active_flag = NVL ( :P31_ACTIVE_FLAG, 'Y'),
+                                   uom_no = :P31_UOM_NO,
+                                   description = :P31_DESCRIPTION,
+                                   brand_no = :P31_BRAND_NO,
+                                   product_image = l_blob,
+                                   mimetype = l_mimetype,
+                                   filename = l_filename,
+                                   updated_by = :APP_USER,
+                                   updated_date = SYSDATE
+                             WHERE product_no = :P31_PRODUCT_NO;
+                        ELSE
+                            --------------------------------------------------
+                            -- UPDATE WITHOUT CHANGING EXISTING IMAGE
+                            --------------------------------------------------
+                            UPDATE mst_product
+                               SET category_no = :P31_CATEGORY_NO,
+                                   product_name = TRIM ( :P31_PRODUCT_NAME),
+                                   purchase_rate = NVL ( :P31_PURCHASE_RATE, 0),
+                                   sales_rate = NVL ( :P31_SALES_RATE, 0),
+                                   min_stock_qty = NVL ( :P31_MIN_STOCK_QTY, 0),
+                                   active_flag = NVL ( :P31_ACTIVE_FLAG, 'Y'),
+                                   uom_no = :P31_UOM_NO,
+                                   description = :P31_DESCRIPTION,
+                                   brand_no = :P31_BRAND_NO,
+                                   updated_by = :APP_USER,
+                                   updated_date = SYSDATE
+                             WHERE product_no = :P31_PRODUCT_NO;
+                        END IF;
+                
+                
+                        --------------------------------------------------
+                        -- CHECK UPDATE
+                        --------------------------------------------------
+                        IF SQL%ROWCOUNT = 0
+                        THEN
+                            raise_application_error (-20005, 'Product not found.');
+                        END IF;
+                
+                
+                        APEX_APPLICATION.g_print_success_message :=
+                            'Product updated successfully.';
+                    END IF;
+                END;
+                ```
+        }
+        execution {
+            sequence: 30
+        }
+        advanced {
+            executionMappingIdentifier: 12466665637822427
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: SAVE,UPDATE
+        }
+    )
+
+)
+

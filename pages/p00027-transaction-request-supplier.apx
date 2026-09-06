@@ -2139,7 +2139,7 @@ page 27 (
             valueProtected: false
         }
         layout {
-            sequence: 240
+            sequence: 250
             region: @trn-mst
             slot: regionBody
         }
@@ -2161,7 +2161,7 @@ page 27 (
             valueProtected: false
         }
         layout {
-            sequence: 250
+            sequence: 260
             region: @trn-mst
             slot: regionBody
         }
@@ -2184,7 +2184,7 @@ page 27 (
             alignment: left
         }
         layout {
-            sequence: 160
+            sequence: 170
             region: @trn-mst
             slot: regionBody
             alignment: left
@@ -2251,7 +2251,7 @@ page 27 (
             alignment: left
         }
         layout {
-            sequence: 190
+            sequence: 200
             region: @trn-mst
             slot: regionBody
             alignment: left
@@ -2397,7 +2397,7 @@ page 27 (
             alignment: left
         }
         layout {
-            sequence: 200
+            sequence: 210
             region: @trn-mst
             slot: regionBody
             alignment: left
@@ -2430,7 +2430,7 @@ page 27 (
             displayNullValue: false
         }
         layout {
-            sequence: 150
+            sequence: 160
             region: @trn-mst
             slot: regionBody
             alignment: left
@@ -2462,7 +2462,7 @@ page 27 (
             alignment: left
         }
         layout {
-            sequence: 180
+            sequence: 190
             region: @trn-mst
             slot: regionBody
             alignment: left
@@ -2488,7 +2488,7 @@ page 27 (
             valueProtected: false
         }
         layout {
-            sequence: 220
+            sequence: 230
             region: @trn-mst
             slot: regionBody
         }
@@ -2505,7 +2505,7 @@ page 27 (
             valueProtected: false
         }
         layout {
-            sequence: 230
+            sequence: 240
             region: @trn-mst
             slot: regionBody
         }
@@ -2528,7 +2528,7 @@ page 27 (
             alignment: left
         }
         layout {
-            sequence: 170
+            sequence: 180
             region: @trn-mst
             slot: regionBody
             alignment: left
@@ -2599,7 +2599,7 @@ page 27 (
             alignment: left
         }
         layout {
-            sequence: 70
+            sequence: 150
             region: @trn-mst
             slot: regionBody
             alignment: left
@@ -2781,7 +2781,7 @@ page 27 (
         buttonName: Payment_Now
         label: Payment Now
         layout {
-            sequence: 210
+            sequence: 220
             region: @trn-mst
             slot: regionBody
             column: 5
@@ -3249,9 +3249,6 @@ page 27 (
                 
                     APEX_APPLICATION.g_print_success_message :=
                            '<div class="payment-success-message">
-                                <span class="payment-success-icon">
-                                    <i class="fa fa-check-circle"></i>
-                                </span>
                 
                                 <div class="payment-success-content">
                 

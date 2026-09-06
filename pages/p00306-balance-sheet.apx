@@ -437,7 +437,7 @@ page 306 (
         source {
             plsqlFunctionBody:
                 ```plsql
-                /* Formatted on 9/1/2026 1:22:46 PM (QP5 v5.388) */
+                /* Formatted on 9/2/2026 11:31:18 AM (QP5 v5.388) */
                 DECLARE
                     v_html                CLOB;
                     v_last_group          VARCHAR2 (30) := NULL;
@@ -453,16 +453,19 @@ page 306 (
                 
                     v_as_of_date          DATE;
                 BEGIN
-                    /* =========================================================
-                       AS OF DATE
-                       ========================================================= */
+                    /* ============================================================
+                    AS OF DATE
+                    ============================================================ */
                 
                     v_as_of_date := TO_DATE ( :P306_AS_OF_DATE, 'MM/DD/YYYY');
                 
                 
-                    /* =========================================================
-                       CALCULATE SUMMARY
-                       ========================================================= */
+                    /* ============================================================
+                    BALANCE SHEET SUMMARY
+                
+                    Assets / Liabilities / Equity
+                    = Opening Balance + Approved Vouchers
+                    ============================================================ */
                 
                     WITH
                         ACCOUNT_BALANCE
@@ -471,9 +474,10 @@ page 306 (
                                     H.ACCOUNT_CODE,
                                     H.ACCOUNT_NAME,
                                     H.ACCOUNT_TYPE,
-                                      /* -------------------------------------------------
-                                         OPENING + APPROVED VOUCHER DEBIT
-                                         ------------------------------------------------- */
+                                      /* ====================================================
+                                      TOTAL DEBIT
+                                      ==================================================== */
+                
                                       NVL (
                                           (SELECT SUM (O.OPENING_DEBIT)
                                             FROM ACC_OPENING_BALANCE O
@@ -487,11 +491,9 @@ page 306 (
                                                      ON M.VOUCHER_NO = D.VOUCHER_NO
                                            WHERE     D.ACCOUNT_NO = H.ACCOUNT_NO
                                                  AND M.APPROVAL_STATUS = 'A'
-                                                 AND M.VOUCHER_DATE <= v_as_of_date),
-                                          0)    AS TOTAL_DEBIT,
-                                      /* -------------------------------------------------
-                                         OPENING + APPROVED VOUCHER CREDIT
-                                         ------------------------------------------------- */
+                                                 AND M.VOUCHER_DATE < v_as_of_date + 1),
+                                          0)    AS TOTAL_DEBIT,        /*====================================================TOTAL
+                CREDIT====================================================*/
                                       NVL (
                                           (SELECT SUM (O.OPENING_CREDIT)
                                             FROM ACC_OPENING_BALANCE O
@@ -505,14 +507,14 @@ page 306 (
                                                      ON M.VOUCHER_NO = D.VOUCHER_NO
                                            WHERE     D.ACCOUNT_NO = H.ACCOUNT_NO
                                                  AND M.APPROVAL_STATUS = 'A'
-                                                 AND M.VOUCHER_DATE <= v_as_of_date),
+                                                 AND M.VOUCHER_DATE < v_as_of_date + 1),
                                           0)    AS TOTAL_CREDIT
                                FROM MST_ACCOUNT_HEAD H
                               WHERE H.IS_POSTING = 'Y' AND H.ACTIVE_STATUS = 'Y')
-                    SELECT /* =====================================================
-                              TOTAL ASSETS
-                              ===================================================== */
-                
+                    /*============================================================SUMMARY
+                    CALCULATION============================================================*/
+                    SELECT /*========================================================TOTAL
+                           ASSETS========================================================*/
                            NVL (
                                SUM (
                                    CASE
@@ -522,11 +524,8 @@ page 306 (
                                        ELSE
                                            0
                                    END),
-                               0),
-                           /* =====================================================
-                              CASH IN HAND
-                              ===================================================== */
-                
+                               0),                          /*========================================================CASH IN
+                HAND========================================================*/
                            NVL (
                                SUM (
                                    CASE
@@ -538,10 +537,8 @@ page 306 (
                                            0
                                    END),
                                0),
-                           /* =====================================================
-                              TOTAL LIABILITIES
-                              ===================================================== */
-                
+                           /*========================================================TOTAL
+                           LIABILITIES========================================================*/
                            NVL (
                                SUM (
                                    CASE
@@ -551,11 +548,8 @@ page 306 (
                                        ELSE
                                            0
                                    END),
-                               0),
-                           /* =====================================================
-                              TOTAL EQUITY / CAPITAL
-                              ===================================================== */
-                
+                               0),                          /*========================================================TOTAL
+                EQUITY========================================================*/
                            NVL (
                                SUM (
                                    CASE
@@ -565,50 +559,45 @@ page 306 (
                                        ELSE
                                            0
                                    END),
-                               0),
-                           /* =====================================================
-                              NET PROFIT / LOSS
-                              ===================================================== */
-                
-                           NVL (
-                               SUM (
-                                   CASE
-                                       WHEN ACCOUNT_TYPE = 'I'
-                                       THEN
-                                           TOTAL_CREDIT - TOTAL_DEBIT
-                                       WHEN ACCOUNT_TYPE = 'E'
-                                       THEN
-                                           TOTAL_DEBIT - TOTAL_CREDIT
-                                       ELSE
-                                           0
-                                   END),
                                0)
                       INTO v_total_assets,
                            v_cash_in_hand,
                            v_total_liabilities,
-                           v_total_equity,
-                           v_net_profit
-                      FROM ACCOUNT_BALANCE;
+                           v_total_equity
+                      FROM ACCOUNT_BALANCE; /*============================================================CURRENT PERIOD PROFIT IMPORTANT:
+                      Opening balance is NOT included. Income=Credit - Debit Expense=Credit - Debit Therefore: Revenue +620 COGS -550
+                      Profit +70============================================================*/
                 
+                    SELECT NVL (
+                               SUM (
+                                   CASE                                                                          /*
+                ------------------------------------------------ INCOME Credit=Positive Debit=Negative
+                ------------------------------------------------ */
+                                       WHEN H.ACCOUNT_TYPE = 'I'
+                                       THEN
+                                           NVL (D.CREDIT_AMOUNT, 0) - NVL (D.DEBIT_AMOUNT, 0) /* ------------------------------------------------ EXPENSE Debit Expense must reduce Profit
+                                                                          Credit - Debit Example: Debit 550 Credit 0=-550 ------------------------------------------------ */
+                                       WHEN H.ACCOUNT_TYPE = 'E'
+                                       THEN
+                                           NVL (D.CREDIT_AMOUNT, 0) - NVL (D.DEBIT_AMOUNT, 0)
+                                       ELSE
+                                           0
+                                   END),
+                               0)
+                      INTO v_net_profit
+                      FROM ACC_VOUCHER_DTL  D
+                           JOIN ACC_VOUCHER_MST M ON M.VOUCHER_NO = D.VOUCHER_NO
+                           JOIN MST_ACCOUNT_HEAD H ON H.ACCOUNT_NO = D.ACCOUNT_NO
+                     WHERE     M.APPROVAL_STATUS = 'A'
+                           AND M.VOUCHER_DATE < v_as_of_date + 1
+                           AND H.ACCOUNT_TYPE IN ('I', 'E'); /*============================================================TOTAL LIABILITIES + EQUITY +
+                                                PROFIT============================================================*/
                 
-                    /* =========================================================
-                       LIABILITIES + EQUITY + CURRENT PROFIT
-                       ========================================================= */
-                
-                    v_total_le := v_total_liabilities + v_total_equity + v_net_profit;
-                
-                
-                    /* =========================================================
-                       BALANCE DIFFERENCE
-                       ========================================================= */
-                
+                    v_total_le := v_total_liabilities + v_total_equity + v_net_profit; /*============================================================BALANCE
+                                                        DIFFERENCE============================================================*/
                     v_difference := v_total_assets - v_total_le;
-                
-                
-                    /* =========================================================
-                       HEADER
-                       ========================================================= */
-                
+                    /*============================================================HTML
+                    HEADER============================================================*/
                     v_html :=
                            '<div style="
                                 width:100%;
@@ -647,7 +636,9 @@ page 306 (
                             </div>
                 
                 
-                            <!-- SUMMARY -->
+                            <!-- =====================================================
+                                 KPI CARDS
+                                 ===================================================== -->
                 
                             <div style="
                                 display:flex;
@@ -657,137 +648,139 @@ page 306 (
                             ">
                 
                 
-                            <!-- TOTAL ASSETS -->
-                
-                            <div style="
-                                flex:1;
-                                min-width:180px;
-                                padding:10px 12px;
-                                border:1px solid #dce4ea;
-                                border-radius:6px;
-                                background:#f7fafc;
-                            ">
+                                <!-- TOTAL ASSETS -->
                 
                                 <div style="
-                                    font-size:11px;
-                                    color:#71808d;
+                                    flex:1;
+                                    min-width:180px;
+                                    padding:10px 12px;
+                                    border:1px solid #dce4ea;
+                                    border-radius:6px;
+                                    background:#f7fafc;
                                 ">
-                                    Total Assets
-                                </div>
                 
-                                <div style="
-                                    margin-top:4px;
-                                    font-size:17px;
-                                    font-weight:700;
-                                    color:#286090;
-                                ">
-                                    ৳ '
+                                    <div style="
+                                        font-size:11px;
+                                        color:#71808d;
+                                    ">
+                                        Total Assets
+                                    </div>
+                
+                                    <div style="
+                                        margin-top:4px;
+                                        font-size:17px;
+                                        font-weight:700;
+                                        color:#286090;
+                                    ">
+                                        ৳ '
                         || TO_CHAR (v_total_assets, 'FM999G999G999G990D00')
                         || '
+                                    </div>
+                
                                 </div>
                 
-                            </div>
                 
-                
-                            <!-- CASH -->
-                
-                            <div style="
-                                flex:1;
-                                min-width:180px;
-                                padding:10px 12px;
-                                border:1px solid #dce4ea;
-                                border-radius:6px;
-                                background:#fffdf5;
-                            ">
+                                <!-- CASH -->
                 
                                 <div style="
-                                    font-size:11px;
-                                    color:#71808d;
+                                    flex:1;
+                                    min-width:180px;
+                                    padding:10px 12px;
+                                    border:1px solid #dce4ea;
+                                    border-radius:6px;
+                                    background:#fffdf5;
                                 ">
-                                    Cash in Hand
-                                </div>
                 
-                                <div style="
-                                    margin-top:4px;
-                                    font-size:17px;
-                                    font-weight:700;
-                                    color:#b7791f;
-                                ">
-                                    ৳ '
+                                    <div style="
+                                        font-size:11px;
+                                        color:#71808d;
+                                    ">
+                                        Cash in Hand
+                                    </div>
+                
+                                    <div style="
+                                        margin-top:4px;
+                                        font-size:17px;
+                                        font-weight:700;
+                                        color:#b7791f;
+                                    ">
+                                        ৳ '
                         || TO_CHAR (v_cash_in_hand, 'FM999G999G999G990D00')
                         || '
+                                    </div>
+                
                                 </div>
                 
-                            </div>
                 
-                
-                            <!-- LIABILITIES -->
-                
-                            <div style="
-                                flex:1;
-                                min-width:180px;
-                                padding:10px 12px;
-                                border:1px solid #dce4ea;
-                                border-radius:6px;
-                                background:#fff8f8;
-                            ">
+                                <!-- LIABILITIES -->
                 
                                 <div style="
-                                    font-size:11px;
-                                    color:#71808d;
+                                    flex:1;
+                                    min-width:180px;
+                                    padding:10px 12px;
+                                    border:1px solid #dce4ea;
+                                    border-radius:6px;
+                                    background:#fff8f8;
                                 ">
-                                    Total Liabilities
-                                </div>
                 
-                                <div style="
-                                    margin-top:4px;
-                                    font-size:17px;
-                                    font-weight:700;
-                                    color:#c0392b;
-                                ">
-                                    ৳ '
+                                    <div style="
+                                        font-size:11px;
+                                        color:#71808d;
+                                    ">
+                                        Total Liabilities
+                                    </div>
+                
+                                    <div style="
+                                        margin-top:4px;
+                                        font-size:17px;
+                                        font-weight:700;
+                                        color:#c0392b;
+                                    ">
+                                        ৳ '
                         || TO_CHAR (v_total_liabilities, 'FM999G999G999G990D00')
                         || '
+                                    </div>
+                
                                 </div>
                 
-                            </div>
                 
-                
-                            <!-- EQUITY -->
-                
-                            <div style="
-                                flex:1;
-                                min-width:180px;
-                                padding:10px 12px;
-                                border:1px solid #dce4ea;
-                                border-radius:6px;
-                                background:#f7fcf9;
-                            ">
+                                <!-- EQUITY -->
                 
                                 <div style="
-                                    font-size:11px;
-                                    color:#71808d;
+                                    flex:1;
+                                    min-width:180px;
+                                    padding:10px 12px;
+                                    border:1px solid #dce4ea;
+                                    border-radius:6px;
+                                    background:#f7fcf9;
                                 ">
-                                    Equity
-                                </div>
                 
-                                <div style="
-                                    margin-top:4px;
-                                    font-size:17px;
-                                    font-weight:700;
-                                    color:#218c4b;
-                                ">
-                                    ৳ '
-                        || TO_CHAR (v_total_equity + v_net_profit, 'FM999G999G999G990D00')
+                                    <div style="
+                                        font-size:11px;
+                                        color:#71808d;
+                                    ">
+                                        Equity
+                                    </div>
+                
+                                    <div style="
+                                        margin-top:4px;
+                                        font-size:17px;
+                                        font-weight:700;
+                                        color:#218c4b;
+                                    ">
+                                        ৳ '
+                        || TO_CHAR (v_total_equity, 'FM999G999G999G990D00')
                         || '
+                                    </div>
+                
                                 </div>
                 
                             </div>
                 
-                            </div>
                 
-                
-                            <!-- REPORT -->
+                            <!-- =====================================================
+                                 ACCOUNT TABLE
+                                 ===================================================== -->
                 
                             <div style="
                                 margin:0 12px 12px 12px;
@@ -795,6 +788,9 @@ page 306 (
                                 border-radius:6px;
                                 overflow:hidden;
                             ">
+                
+                
+                                <!-- TABLE HEADER -->
                 
                                 <div style="
                                     display:grid;
@@ -814,12 +810,8 @@ page 306 (
                                         Amount
                                     </div>
                 
-                                </div>';
-                
-                
-                    /* =========================================================
-                       ACCOUNT DETAILS
-                       ========================================================= */
+                                </div>'; /*============================================================ACCOUNT
+                  DETAILS============================================================*/
                 
                     FOR R
                         IN (WITH
@@ -828,7 +820,7 @@ page 306 (
                                     (SELECT H.ACCOUNT_NO,
                                             H.ACCOUNT_CODE,
                                             H.ACCOUNT_NAME,
-                                            H.ACCOUNT_TYPE,
+                                            H.ACCOUNT_TYPE,                  /* TOTAL DEBIT */
                                               NVL (
                                                   (SELECT SUM (O.OPENING_DEBIT)
                                                     FROM ACC_OPENING_BALANCE O
@@ -842,8 +834,10 @@ page 306 (
                                                              ON M.VOUCHER_NO = D.VOUCHER_NO
                                                    WHERE     D.ACCOUNT_NO = H.ACCOUNT_NO
                                                          AND M.APPROVAL_STATUS = 'A'
-                                                         AND M.VOUCHER_DATE <= v_as_of_date),
-                                                  0)    AS TOTAL_DEBIT,
+                                                         AND M.VOUCHER_DATE <
+                                                             v_as_of_date + 1),
+                                                  0)    AS TOTAL_DEBIT,                                                        /*
+                TOTAL CREDIT */
                                               NVL (
                                                   (SELECT SUM (O.OPENING_CREDIT)
                                                     FROM ACC_OPENING_BALANCE O
@@ -857,7 +851,8 @@ page 306 (
                                                              ON M.VOUCHER_NO = D.VOUCHER_NO
                                                    WHERE     D.ACCOUNT_NO = H.ACCOUNT_NO
                                                          AND M.APPROVAL_STATUS = 'A'
-                                                         AND M.VOUCHER_DATE <= v_as_of_date),
+                                                         AND M.VOUCHER_DATE <
+                                                             v_as_of_date + 1),
                                                   0)    AS TOTAL_CREDIT
                                        FROM MST_ACCOUNT_HEAD H
                                       WHERE H.IS_POSTING = 'Y' AND H.ACTIVE_STATUS = 'Y'),
@@ -893,9 +888,9 @@ page 306 (
                                      END,
                                      ACCOUNT_CODE)
                     LOOP
-                        /* =====================================================
-                           GROUP HEADER
-                           ===================================================== */
+                        /* ========================================================
+                        GROUP HEADER
+                        ======================================================== */
                 
                         IF v_last_group IS NULL OR v_last_group <> R.ACCOUNT_GROUP
                         THEN
@@ -914,9 +909,9 @@ page 306 (
                         END IF;
                 
                 
-                        /* =====================================================
-                           ACCOUNT ROW
-                           ===================================================== */
+                        /* ========================================================
+                        ACCOUNT ROW
+                        ======================================================== */
                 
                         v_html :=
                                v_html
@@ -928,34 +923,33 @@ page 306 (
                                 font-size:11px;
                             ">
                 
-                                <div style="color:#7a8793;">
-                                    '
+                            <div style="
+                                    color:#7a8793;
+                                ">'
                             || APEX_ESCAPE.HTML (NVL (R.ACCOUNT_CODE, '-'))
-                            || '
-                                </div>
+                            || '</div>
                 
-                                <div style="color:#34424d;">
-                                    '
+                            <div style="
+                                    color:#34424d;
+                                ">'
                             || APEX_ESCAPE.HTML (R.ACCOUNT_NAME)
-                            || '
-                                </div>
+                            || '</div>
                 
-                                <div style="
+                            <div style="
                                     text-align:right;
                                     font-weight:600;
                                 ">
-                                    ৳ '
+                                ৳ '
                             || TO_CHAR (R.AMOUNT, 'FM999G999G999G990D00')
-                            || '
-                                </div>
+                            || '</div>
                 
-                            </div>';
+                        </div>';
                     END LOOP;
                 
                 
-                    /* =========================================================
-                       PROFIT / LOSS
-                       ========================================================= */
+                    /* ============================================================
+                    CURRENT PERIOD PROFIT / LOSS DISPLAY
+                    ============================================================ */
                 
                     IF v_net_profit >= 0
                     THEN
@@ -969,22 +963,24 @@ page 306 (
                                 border-top:1px solid #dceee3;
                             ">
                 
-                                <div>
-                                    <b style="color:#218c4b;">
-                                        Current Period Profit
-                                    </b>
-                                </div>
+                            <div>
+                                <b style="
+                                        color:#218c4b;
+                                    ">
+                                    Current Period Profit
+                                </b>
+                            </div>
                 
-                                <div style="
+                            <div style="
                                     font-weight:700;
                                     color:#218c4b;
                                 ">
-                                    ৳ '
+                                ৳ '
                             || TO_CHAR (v_net_profit, 'FM999G999G999G990D00')
                             || '
-                                </div>
+                            </div>
                 
-                            </div>';
+                        </div>';
                     ELSE
                         v_html :=
                                v_html
@@ -996,28 +992,30 @@ page 306 (
                                 border-top:1px solid #f0dddd;
                             ">
                 
-                                <div>
-                                    <b style="color:#c0392b;">
-                                        Current Period Loss
-                                    </b>
-                                </div>
+                            <div>
+                                <b style="
+                                        color:#c0392b;
+                                    ">
+                                    Current Period Loss
+                                </b>
+                            </div>
                 
-                                <div style="
+                            <div style="
                                     font-weight:700;
                                     color:#c0392b;
                                 ">
-                                    ৳ '
+                                ৳ '
                             || TO_CHAR (ABS (v_net_profit), 'FM999G999G999G990D00')
                             || '
-                                </div>
+                            </div>
                 
-                            </div>';
+                        </div>';
                     END IF;
                 
                 
-                    /* =========================================================
-                       TOTALS
-                       ========================================================= */
+                    /* ============================================================
+                    SUMMARY
+                    ============================================================ */
                 
                     v_html :=
                            v_html
@@ -1026,6 +1024,9 @@ page 306 (
                             background:#fafbfc;
                             border-top:1px solid #dfe5ea;
                         ">
+                
+                
+                            <!-- TOTAL ASSETS -->
                 
                             <div style="
                                 display:flex;
@@ -1041,10 +1042,13 @@ page 306 (
                                 <b>
                                     ৳ '
                         || TO_CHAR (v_total_assets, 'FM999G999G999G990D00')
-                        || '</b>
+                        || '
+                                </b>
                 
                             </div>
                 
+                
+                            <!-- CASH -->
                 
                             <div style="
                                 display:flex;
@@ -1060,10 +1064,13 @@ page 306 (
                                 <b style="color:#b7791f;">
                                     ৳ '
                         || TO_CHAR (v_cash_in_hand, 'FM999G999G999G990D00')
-                        || '</b>
+                        || '
+                                </b>
                 
                             </div>
                 
+                
+                            <!-- LIABILITIES -->
                 
                             <div style="
                                 display:flex;
@@ -1073,20 +1080,91 @@ page 306 (
                             ">
                 
                                 <span>
-                                    <b>Total Liabilities + Equity</b>
+                                    <b>Total Liabilities</b>
+                                </span>
+                
+                                <b>
+                                    ৳ '
+                        || TO_CHAR (v_total_liabilities, 'FM999G999G999G990D00')
+                        || '
+                                </b>
+                
+                            </div>
+                
+                
+                            <!-- EQUITY -->
+                
+                            <div style="
+                                display:flex;
+                                justify-content:space-between;
+                                padding:5px 0;
+                                font-size:12px;
+                            ">
+                
+                                <span>
+                                    <b>Equity</b>
+                                </span>
+                
+                                <b>
+                                    ৳ '
+                        || TO_CHAR (v_total_equity, 'FM999G999G999G990D00')
+                        || '
+                                </b>
+                
+                            </div>
+                
+                
+                            <!-- CURRENT PROFIT -->
+                
+                            <div style="
+                                display:flex;
+                                justify-content:space-between;
+                                padding:5px 0;
+                                font-size:12px;
+                            ">
+                
+                                <span>
+                                    <b>Current Period Profit</b>
+                                </span>
+                
+                                <b style="color:#218c4b;">
+                                    ৳ '
+                        || TO_CHAR (v_net_profit, 'FM999G999G999G990D00')
+                        || '
+                                </b>
+                
+                            </div>
+                
+                
+                            <!-- TOTAL -->
+                
+                            <div style="
+                                display:flex;
+                                justify-content:space-between;
+                                padding:8px 0;
+                                margin-top:4px;
+                                border-top:1px solid #dfe5ea;
+                                font-size:13px;
+                            ">
+                
+                                <span>
+                                    <b>
+                                        Total Liabilities + Equity + Profit
+                                    </b>
                                 </span>
                 
                                 <b>
                                     ৳ '
                         || TO_CHAR (v_total_le, 'FM999G999G999G990D00')
-                        || '</b>
+                        || '
+                                </b>
                 
                             </div>';
                 
                 
-                    /* =========================================================
-                       BALANCE STATUS
-                       ========================================================= */
+                    /* ============================================================
+                    BALANCE STATUS
+                    ============================================================ */
                 
                     IF ABS (v_difference) < 0.01
                     THEN
@@ -1119,34 +1197,26 @@ page 306 (
                                 &nbsp;&nbsp;
                                 Difference: ৳ '
                             || TO_CHAR (ABS (v_difference), 'FM999G999G999G990D00')
-                            || '</div>';
-                    END IF;
+                            || '
+                            </div>';
+                    END IF;   /*============================================================HTML
+                END============================================================*/
                 
-                
-                    /* =========================================================
-                       CLOSE HTML
-                       ========================================================= */
-                
-                    v_html := v_html || '</div>
-                        </div>';
-                
-                
+                    v_html := v_html || '</div></div>';
                     RETURN v_html;
                 EXCEPTION
                     WHEN OTHERS
                     THEN
                         RETURN '<div style="
-                                padding:12px;
-                                border:1px solid #f1cccc;
-                                border-radius:6px;
-                                background:#fff5f5;
-                                color:#c0392b;
-                                font-size:12px;
-                            ">
-                
-                                <b>Balance Sheet Error</b>
-                
-                                <br><br>' || APEX_ESCAPE.HTML (SQLERRM) || '</div>';
+                                    padding:12px;
+                                    border:1px solid #f1cccc;
+                                    border-radius:6px;
+                                    background:#fff5f5;
+                                    color:#c0392b;
+                                    font-size:12px;
+                                ">
+                                    <b>Balance Sheet Error</b>
+                                    <br><br>' || APEX_ESCAPE.HTML (SQLERRM) || '</div>';
                 END;
                 ```
             pageItemsToSubmit: P306_AS_OF_DATE

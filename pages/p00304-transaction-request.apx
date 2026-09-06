@@ -2297,7 +2297,7 @@ page 304 (
             valueProtected: false
         }
         layout {
-            sequence: 290
+            sequence: 260
             region: @trn-mst
             slot: regionBody
         }
@@ -2314,7 +2314,7 @@ page 304 (
             valueProtected: false
         }
         layout {
-            sequence: 240
+            sequence: 220
             region: @trn-mst
             slot: regionBody
         }
@@ -2336,7 +2336,7 @@ page 304 (
             valueProtected: false
         }
         layout {
-            sequence: 250
+            sequence: 230
             region: @trn-mst
             slot: regionBody
         }
@@ -2359,7 +2359,7 @@ page 304 (
             alignment: left
         }
         layout {
-            sequence: 160
+            sequence: 140
             region: @trn-mst
             slot: regionBody
             alignment: left
@@ -2391,7 +2391,7 @@ page 304 (
             valueProtected: false
         }
         layout {
-            sequence: 300
+            sequence: 270
             region: @trn-mst
             slot: regionBody
         }
@@ -2408,7 +2408,7 @@ page 304 (
             valueProtected: false
         }
         layout {
-            sequence: 310
+            sequence: 280
             region: @trn-mst
             slot: regionBody
         }
@@ -2426,7 +2426,7 @@ page 304 (
             alignment: left
         }
         layout {
-            sequence: 190
+            sequence: 170
             region: @trn-mst
             slot: regionBody
             alignment: left
@@ -2467,7 +2467,7 @@ page 304 (
             itemsToSubmit: P304_PARTY_NO
         }
         layout {
-            sequence: 140
+            sequence: 110
             region: @trn-mst
             slot: regionBody
             alignment: left
@@ -2523,7 +2523,7 @@ page 304 (
             displayExtraValues: false
         }
         layout {
-            sequence: 130
+            sequence: 100
             region: @trn-mst
             slot: regionBody
             alignment: left
@@ -2555,7 +2555,7 @@ page 304 (
             valueProtected: false
         }
         layout {
-            sequence: 280
+            sequence: 250
             region: @trn-mst
             slot: regionBody
         }
@@ -2577,7 +2577,7 @@ page 304 (
             alignment: left
         }
         layout {
-            sequence: 200
+            sequence: 180
             region: @trn-mst
             slot: regionBody
             alignment: left
@@ -2610,7 +2610,7 @@ page 304 (
             displayNullValue: false
         }
         layout {
-            sequence: 150
+            sequence: 130
             region: @trn-mst
             slot: regionBody
             alignment: left
@@ -2642,7 +2642,7 @@ page 304 (
             alignment: left
         }
         layout {
-            sequence: 180
+            sequence: 160
             region: @trn-mst
             slot: regionBody
             alignment: left
@@ -2668,7 +2668,7 @@ page 304 (
             valueProtected: false
         }
         layout {
-            sequence: 220
+            sequence: 200
             region: @trn-mst
             slot: regionBody
         }
@@ -2685,7 +2685,7 @@ page 304 (
             valueProtected: false
         }
         layout {
-            sequence: 230
+            sequence: 210
             region: @trn-mst
             slot: regionBody
         }
@@ -2708,7 +2708,7 @@ page 304 (
             alignment: left
         }
         layout {
-            sequence: 170
+            sequence: 150
             region: @trn-mst
             slot: regionBody
             alignment: left
@@ -2773,14 +2773,26 @@ page 304 (
     )
 
     pageItem P304_TRANSACTION_DATE (
-        type: hidden
-        settings {
-            valueProtected: false
+        type: datePicker
+        label {
+            label: Transaction Date
+            alignment: left
         }
         layout {
-            sequence: 70
+            sequence: 120
             region: @trn-mst
             slot: regionBody
+            alignment: left
+            labelColumnSpan: 4
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+            ]
+            width: 30
         }
         source {
             formRegion: @trn-mst
@@ -2817,7 +2829,7 @@ page 304 (
             valueProtected: false
         }
         layout {
-            sequence: 270
+            sequence: 240
             region: @trn-mst
             slot: regionBody
         }
@@ -2838,7 +2850,7 @@ page 304 (
             valueProtected: false
         }
         layout {
-            sequence: 320
+            sequence: 290
             region: @trn-mst
             slot: regionBody
         }
@@ -2855,7 +2867,7 @@ page 304 (
             valueProtected: false
         }
         layout {
-            sequence: 330
+            sequence: 300
             region: @trn-mst
             slot: regionBody
         }
@@ -2949,7 +2961,7 @@ page 304 (
         buttonName: Received_Now
         label: Received Now
         layout {
-            sequence: 210
+            sequence: 190
             region: @trn-mst
             slot: regionBody
             column: 5
@@ -3360,7 +3372,7 @@ page 304 (
                                  :P304_PARTY_NO,
                                  :P304_PAY_MODE,
                                  'R',
-                                 SYSDATE,
+                                 :P304_TRANSACTION_DATE,
                                  :P304_PAYMENT_AMOUNT,
                                  'P',
                                  :APP_USER,

@@ -43,61 +43,142 @@ page 6 (
     )
 
     region register (
-        name: Register
+        name: Product Register
         type: interactiveReport
         source {
             location: localDatabase
             type: sqlQuery
             sqlQuery:
                 ```sql
-                SELECT *
-                FROM
-                (
-                    SELECT
-                           P.PRODUCT_NO,
-                           C.CATEGORY_NAME,
-                           P.PRODUCT_CODE,
-                           P.PRODUCT_NAME,
-                           U.UOM_CODE,
-                           U.UOM_NAME,
+                SELECT
+                    p.product_no,
+                    p.product_code,
+                    p.product_name,
                 
-                           P.PURCHASE_RATE,
-                           P.SALES_RATE,
+                    /* CATEGORY */
+                    c.category_name,
                 
-                           P.MIN_STOCK_QTY,
+                    /* BRAND */
+                    b.brand_name,
                 
-                           NVL(STK.CURRENT_STOCK,0) AS CURRENT_STOCK,
+                    /* UOM */
+                    u.uom_name,
                 
-                           CASE
-                               WHEN P.ACTIVE_FLAG = 1 THEN 'Active'
-                               ELSE 'Inactive'
-                           END AS STATUS,
+                    /* PRODUCT DESCRIPTION */
+                    p.description,
                 
-                           P.CREATED_BY,
-                           P.CREATED_DATE,
-                           P.UPDATED_BY,
-                           P.UPDATED_DATE
+                    /* ACTIVE STATUS */
+                    CASE
+                        WHEN p.active_flag = 'Y' THEN 'Yes'
+                        ELSE 'No'
+                    END AS active_status,
                 
-                      FROM MST_PRODUCT P
+                    /* PURCHASE RATE */
+                    NVL(p.purchase_rate, 0) AS purchase_rate,
                 
-                 LEFT JOIN MST_PRODUCT_CATEGORY C
-                        ON C.CATEGORY_NO = P.CATEGORY_NO
+                    /* SALES RATE */
+                    NVL(p.sales_rate, 0) AS sales_rate,
                 
-                 LEFT JOIN MST_UOM U
-                        ON U.UOM_NO = P.UOM_NO
+                    /* TOTAL SOLD QTY */
+                    NVL(
+                        (
+                            SELECT SUM(NVL(d.sales_qty, 0))
+                            FROM trn_sales_invoice_dtl d
+                            WHERE d.product_no = p.product_no
+                        ),
+                        0
+                    ) AS units,
                 
-                 LEFT JOIN
-                 (
-                        SELECT PRODUCT_NO,
-                               SUM(NVL(QTY_IN,0) - NVL(QTY_OUT,0)) CURRENT_STOCK
-                          FROM TRN_STOCK_LEDGER
-                         GROUP BY PRODUCT_NO
-                 ) STK
-                        ON STK.PRODUCT_NO = P.PRODUCT_NO
+                    /* TOTAL SALES */
+                    NVL(
+                        (
+                            SELECT SUM(NVL(d.total_amount, 0))
+                            FROM trn_sales_invoice_dtl d
+                            WHERE d.product_no = p.product_no
+                        ),
+                        0
+                    ) AS sales,
                 
-                     ORDER BY
-                           P.PRODUCT_NAME
-                );
+                    /* NUMBER OF CUSTOMERS */
+                    NVL(
+                        (
+                            SELECT COUNT(DISTINCT m.customer_no)
+                            FROM trn_sales_invoice_mst m
+                                 JOIN trn_sales_invoice_dtl d
+                                   ON d.invoice_no = m.invoice_no
+                            WHERE d.product_no = p.product_no
+                        ),
+                        0
+                    ) AS customers,
+                
+                    /* LAST SOLD DATE */
+                    (
+                        SELECT MAX(m.invoice_date)
+                        FROM trn_sales_invoice_mst m
+                             JOIN trn_sales_invoice_dtl d
+                               ON d.invoice_no = m.invoice_no
+                        WHERE d.product_no = p.product_no
+                    ) AS last_date_sold,
+                
+                    /* IMAGE ID */
+                    p.product_no AS img,
+                
+                    /* PRODUCT DETAIL LINK */
+                    apex_util.prepare_url(
+                        p_url =>
+                              'f?p='
+                           || :APP_ID
+                           || ':31:'
+                           || :APP_SESSION
+                           || '::::P31_PRODUCT_NO:'
+                           || p.product_no
+                    ) AS icon_link,
+                
+                    /* IMAGE HTML */
+                    CASE
+                        WHEN NVL(DBMS_LOB.getlength(p.product_image), 0) = 0
+                        THEN NULL
+                
+                        ELSE
+                            '<img alt="'
+                            || apex_escape.html(p.product_name)
+                            || '" title="'
+                            || apex_escape.html(p.product_name)
+                            || '" '
+                            || 'style="border:4px solid #CCC; '
+                            || 'border-radius:4px;" '
+                            || 'src="'
+                            || apex_util.get_blob_file_src(
+                                   'P31_PRODUCT_IMAGE',
+                                   p.product_no
+                               )
+                            || '" '
+                            || 'height="75" width="75" />'
+                    END AS detail_img,
+                
+                    /* IMAGE URL ONLY */
+                    CASE
+                        WHEN NVL(DBMS_LOB.getlength(p.product_image), 0) = 0
+                        THEN NULL
+                
+                        ELSE apex_util.get_blob_file_src(
+                                 'P31_PRODUCT_IMAGE',
+                                 p.product_no
+                             )
+                    END AS detail_img_no_style
+                
+                FROM mst_product p
+                
+                LEFT JOIN mst_product_category c
+                       ON c.category_no = p.category_no
+                
+                LEFT JOIN mst_product_brand b
+                       ON b.brand_no = p.brand_no
+                
+                LEFT JOIN mst_uom u
+                       ON u.uom_no = p.uom_no
+                
+                ORDER BY p.product_name;
                 ```
         }
         layout {
@@ -114,9 +195,204 @@ page 6 (
         pagination {
             type: rowRangesXToY
         }
+        iconView {
+            show: true
+            columnsPerRow: 4
+            linkColumn: ICON_LINK
+            imageSourceColumn: DETAIL_IMG_NO_STYLE
+            labelColumn: PRODUCT_NAME
+            imageAttributes: width="75" height="75"
+        }
+        detailView {
+            show: true
+            beforeRows:
+                ```html
+                <style>
+                    table.apexir_WORKSHEET_CUSTOM { 
+                       border: none !important; 
+                       box-shadow: none; 
+                       -moz-box-shadow: none; 
+                       -webkit-box-shadow: none;}
+                
+                    .apexir_WORKSHEET_DATA td {
+                     border-bottom: none !important;}
+                
+                    table.reportDetail td {
+                       padding: 2px 4px !important;
+                       border: none !important;
+                       font: 11px/16px Arial, sans-serif;}
+                
+                    table.reportDetail td.separator {
+                       background: #F0F0F0 !important;
+                       padding: 0 !important;
+                       height: 1px !important;
+                       padding: 0;
+                       line-height: 2px !important;
+                       overflow: hidden;}
+                
+                    table.reportDetail td h1 {margin: 0 !important}
+                
+                    table.reportDetail td img {
+                       margin-top: 8px; 
+                       border: 4px solid #CCC; 
+                       -moz-border-radius: 4px; 
+                       -webkit-border-radius: 4px;}
+                </style>
+                <table class="reportDetail">
+                
+                ```
+            forEachRow:
+                ```html
+                <tr>
+                    <td rowspan="6" valign="top" style="width:90px;">
+                        <img
+                            width="75"
+                            height="75"
+                            src="#DETAIL_IMG_NO_STYLE#"
+                            style="object-fit:cover;border-radius:6px;"
+                        >
+                    </td>
+                
+                    <td colspan="8">
+                        <h1 style="margin:0;">
+                            <a href="#ICON_LINK#">
+                                <strong>#PRODUCT_NAME#</strong>
+                            </a>
+                        </h1>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <strong>Product Code:</strong>
+                    </td>
+                    <td>#PRODUCT_CODE#</td>
+                
+                    <td>
+                        <strong>Category:</strong>
+                    </td>
+                    <td>#CATEGORY#</td>
+                
+                    <td>
+                        <strong>Brand:</strong>
+                    </td>
+                    <td>#BRAND#</td>
+                
+                    <td>
+                        <strong>UOM:</strong>
+                    </td>
+                    <td>#UOM#</td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <strong>Purchase Rate:</strong>
+                    </td>
+                    <td>#PURCHASE_RATE#</td>
+                
+                    <td>
+                        <strong>Sales Rate:</strong>
+                    </td>
+                    <td>#SALES_RATE#</td>
+                
+                    <td>
+                        <strong>Min Stock:</strong>
+                    </td>
+                    <td>#MIN_STOCK_QTY#</td>
+                
+                    <td>
+                        <strong>Status:</strong>
+                    </td>
+                    <td>#ACTIVE_STATUS#</td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <strong>Description:</strong>
+                    </td>
+                
+                    <td colspan="7">
+                        #DESCRIPTION#
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td style="padding-bottom:0;">
+                        <strong>Total Sold</strong>
+                    </td>
+                
+                    <td style="padding-bottom:0;">
+                        <strong>Total Sales</strong>
+                    </td>
+                
+                    <td style="padding-bottom:0;">
+                        <strong>Customers</strong>
+                    </td>
+                
+                    <td style="padding-bottom:0;">
+                        <strong>Last Sold</strong>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td style="padding-top:0;">
+                        #UNITS#
+                    </td>
+                
+                    <td style="padding-top:0;">
+                        #SALES#
+                    </td>
+                
+                    <td style="padding-top:0;">
+                        #CUSTOMERS#
+                    </td>
+                
+                    <td style="padding-top:0;">
+                        #LAST_DATE_SOLD#
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td colspan="9" class="separator"></td>
+                </tr>
+                ```
+            afterRows: </table>
+        }
         advanced {
             savedReportMappingIdentifier: 14837765232740653442
         }
+
+        column ACTIVE_STATUS (
+            type: plainText
+            heading {
+                heading: Active Status
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: R
+            }
+        )
+
+        column BRAND_NAME (
+            type: plainText
+            heading {
+                heading: Brand Name
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: P
+            }
+        )
 
         column CATEGORY_NAME (
             type: plainText
@@ -124,7 +400,7 @@ page 6 (
                 heading: Category Name
             }
             layout {
-                sequence: 20
+                sequence: 50
             }
             source {
                 dataType: STRING
@@ -134,71 +410,130 @@ page 6 (
             }
         )
 
-        column CREATED_BY (
+        column CUSTOMERS (
             type: plainText
             heading {
-                heading: Created By
+                heading: Customers
+                alignment: end
             }
             layout {
-                sequence: 120
+                sequence: 140
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: U
+            }
+        )
+
+        column DESCRIPTION (
+            type: plainText
+            heading {
+                heading: Description
+            }
+            layout {
+                sequence: 100
             }
             source {
                 dataType: STRING
             }
             advanced {
-                endUserAlias: L
+                endUserAlias: Q
             }
         )
 
-        column CREATED_DATE (
-            type: plainText
+        column DETAIL_IMG (
+            type: link
             heading {
-                heading: Created Date
+                heading: "Image Detail "
             }
             layout {
-                sequence: 130
+                sequence: 180
+            }
+            link {
+                target: {
+                    page: 31
+                    items: {
+                        P31_PRODUCT_NO: #PRODUCT_NO#
+                    }
+                    clearCache: 31
+                }
+                linkText: #DETAIL_IMG#
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: Y
+            }
+            security {
+                escapeSpecialChars: false
+            }
+        )
+
+        column DETAIL_IMG_NO_STYLE (
+            type: hidden
+            heading {
+                heading: Detail Img No Style
+            }
+            layout {
+                sequence: 190
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: Z
+            }
+        )
+
+        column ICON_LINK (
+            type: hidden
+            heading {
+                heading: Icon Link
+            }
+            layout {
+                sequence: 170
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: X
+            }
+        )
+
+        column IMG (
+            type: hidden
+            heading {
+                heading: Img
+            }
+            layout {
+                sequence: 160
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: W
+            }
+        )
+
+        column LAST_DATE_SOLD (
+            type: plainText
+            heading {
+                heading: Last Date Sold
+            }
+            layout {
+                sequence: 150
             }
             source {
                 dataType: DATE
             }
             advanced {
-                endUserAlias: M
-            }
-        )
-
-        column CURRENT_STOCK (
-            type: plainText
-            heading {
-                heading: Current Stock
-                alignment: end
-            }
-            layout {
-                sequence: 100
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: J
-            }
-        )
-
-        column MIN_STOCK_QTY (
-            type: plainText
-            heading {
-                heading: Min Stock Qty
-                alignment: end
-            }
-            layout {
-                sequence: 90
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: I
+                endUserAlias: V
             }
         )
 
@@ -212,9 +547,9 @@ page 6 (
             }
             link {
                 target: {
-                    page: 24
+                    page: 31
                     items: {
-                        P24_PRODUCT_NO: #PRODUCT_NO#
+                        P31_PRODUCT_NO: #PRODUCT_NO#
                     }
                 }
                 linkText: #PRODUCT_CODE#
@@ -228,12 +563,23 @@ page 6 (
         )
 
         column PRODUCT_NAME (
-            type: plainText
+            type: link
             heading {
                 heading: Product Name
             }
             layout {
                 sequence: 40
+            }
+            link {
+                target: {
+                    page: 31
+                    items: {
+                        P31_PRODUCT_NO: #PRODUCT_NO#
+                    }
+                    clearCache: 31
+                    action: clearRegions
+                }
+                linkText: #PRODUCT_NAME#
             }
             source {
                 dataType: STRING
@@ -277,6 +623,24 @@ page 6 (
             }
         )
 
+        column SALES (
+            type: plainText
+            heading {
+                heading: Sales
+                alignment: end
+            }
+            layout {
+                sequence: 130
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: T
+            }
+        )
+
         column SALES_RATE (
             type: plainText
             heading {
@@ -295,35 +659,21 @@ page 6 (
             }
         )
 
-        column STATUS (
+        column UNITS (
             type: plainText
             heading {
-                heading: Status
+                heading: Units
+                alignment: end
             }
             layout {
-                sequence: 110
+                sequence: 120
+                columnAlignment: end
             }
             source {
-                dataType: STRING
+                dataType: NUMBER
             }
             advanced {
-                endUserAlias: K
-            }
-        )
-
-        column UOM_CODE (
-            type: plainText
-            heading {
-                heading: Uom Code
-            }
-            layout {
-                sequence: 50
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: E
+                endUserAlias: S
             }
         )
 
@@ -343,38 +693,6 @@ page 6 (
             }
         )
 
-        column UPDATED_BY (
-            type: plainText
-            heading {
-                heading: Updated By
-            }
-            layout {
-                sequence: 140
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: N
-            }
-        )
-
-        column UPDATED_DATE (
-            type: plainText
-            heading {
-                heading: Updated Date
-            }
-            layout {
-                sequence: 150
-            }
-            source {
-                dataType: DATE
-            }
-            advanced {
-                endUserAlias: O
-            }
-        )
-
         page {
             borderWidth: 0.5
             borderColor: #666666
@@ -386,64 +704,44 @@ page 6 (
                 rowsPerPage: 50
             }
 
-            displayColumn CATEGORY_NAME (
-                sequence: 2
-            )
-
-            displayColumn CREATED_BY (
-                sequence: 12
-            )
-
-            displayColumn CREATED_DATE (
-                sequence: 13
-            )
-
-            displayColumn CURRENT_STOCK (
-                sequence: 10
-            )
-
-            displayColumn MIN_STOCK_QTY (
-                sequence: 9
-            )
-
-            displayColumn PRODUCT_CODE (
-                sequence: 3
-            )
-
-            displayColumn PRODUCT_NAME (
-                sequence: 4
-            )
-
-            displayColumn PRODUCT_NO (
-                sequence: 1
-            )
-
-            displayColumn PURCHASE_RATE (
-                sequence: 7
-            )
-
-            displayColumn SALES_RATE (
+            displayColumn BRAND_NAME (
                 sequence: 8
             )
 
-            displayColumn STATUS (
-                sequence: 11
+            displayColumn CATEGORY_NAME (
+                sequence: 3
             )
 
-            displayColumn UOM_CODE (
+            displayColumn DESCRIPTION (
+                sequence: 9
+            )
+
+            displayColumn DETAIL_IMG (
+                sequence: 10
+            )
+
+            displayColumn PRODUCT_CODE (
+                sequence: 1
+            )
+
+            displayColumn PRODUCT_NAME (
+                sequence: 2
+            )
+
+            displayColumn PURCHASE_RATE (
                 sequence: 5
             )
 
-            displayColumn UOM_NAME (
+            displayColumn SALES_RATE (
                 sequence: 6
             )
 
-            displayColumn UPDATED_BY (
-                sequence: 14
+            displayColumn UNITS (
+                sequence: 7
             )
 
-            displayColumn UPDATED_DATE (
-                sequence: 15
+            displayColumn UOM_NAME (
+                sequence: 4
             )
 
         )
@@ -486,8 +784,8 @@ page 6 (
         label: Add Product
         layout {
             sequence: 10
-            region: @breadcrumb-2
-            slot: next
+            region: @register
+            slot: rightOfInteractiveReportSearchBar
         }
         appearance {
             buttonTemplate: @/text-with-icon
@@ -501,8 +799,8 @@ page 6 (
         behavior {
             action: redirectThisApp
             target: {
-                page: 24
-                clearCache: 24
+                page: 31
+                clearCache: 31
                 action: clearRegions
             }
         }
@@ -561,6 +859,31 @@ page 6 (
             htmlDomId: pb-update
             customAttributes: disabled
         }
+    )
+
+    dynamicAction new (
+        name: New
+        execution {
+            sequence: 10
+        }
+        when {
+            event: apexafterclosecanceldialog
+            selectionType: jsExpression
+            javaScriptExpression: window
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @register
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
     )
 
     process delete (

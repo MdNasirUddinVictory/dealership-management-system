@@ -1041,7 +1041,7 @@ page 12 (
                           JOIN MST_UOM U
                             ON U.UOM_NO = C.CONVERT_UOM_NO
                          WHERE C.PRODUCT_NO = :PRODUCT_NO
-                           AND C.ACTIVE_FLAG = 'Y'
+                           AND C.ACTIVE_FLAG = '1'
                     )
                     ORDER BY ORD, D;
                     ```
@@ -1693,7 +1693,7 @@ page 12 (
                               FROM MST_UOM_CONVERSION C
                              WHERE C.PRODUCT_NO = :PRODUCT_NO
                                AND C.CONVERT_UOM_NO = :UOM_NO
-                               AND C.ACTIVE_FLAG = 'Y';
+                               AND C.ACTIVE_FLAG = '1';
                     
                         EXCEPTION
                             WHEN NO_DATA_FOUND THEN

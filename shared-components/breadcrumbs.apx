@@ -321,6 +321,19 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry product-detail-2 (
+        name: Product Detail
+        pageNumber: 31
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 31
+            }
+        }
+    )
+
     entry product-entry (
         name: Product Entry
         pageNumber: 24
