@@ -27,6 +27,19 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry customer-lager (
+        name: "Customer Lager "
+        pageNumber: 205
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 205
+            }
+        }
+    )
+
     entry customer-register (
         name: Customer Register
         pageNumber: 8
@@ -139,6 +152,45 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry delivery-report (
+        name: Delivery Report
+        pageNumber: 202
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 202
+            }
+        }
+    )
+
+    entry discount-entry (
+        name: Discount Entry
+        pageNumber: 33
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 33
+            }
+        }
+    )
+
+    entry discount-setup (
+        name: Discount Setup
+        pageNumber: 32
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 32
+            }
+        }
+    )
+
     entry general-ledger (
         name: General Ledger
         pageNumber: 303
@@ -187,6 +239,19 @@ breadcrumb breadcrumb (
         link {
             target: {
                 page: 1
+            }
+        }
+    )
+
+    entry image-upload (
+        name: Image Upload
+        pageNumber: 45
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 45
             }
         }
     )
@@ -252,6 +317,19 @@ breadcrumb breadcrumb (
         link {
             target: {
                 page: 101
+            }
+        }
+    )
+
+    entry menu-assign-to-role (
+        name: Menu Assign To Role
+        pageNumber: 44
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 44
             }
         }
     )
@@ -347,6 +425,32 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry product-price-setup (
+        name: Product Price Setup
+        pageNumber: 34
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 34
+            }
+        }
+    )
+
+    entry product-price-setup-2 (
+        name: Product Price Setup
+        pageNumber: 35
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 35
+            }
+        }
+    )
+
     entry profit-amp-amp-loss (
         name: Profit & Loss
         pageNumber: 310
@@ -412,8 +516,8 @@ breadcrumb breadcrumb (
         }
     )
 
-    entry purchase-register (
-        name: Purchase Register
+    entry purchase-report (
+        name: Purchase  Report
         pageNumber: 14
         execution {
             sequence: 10
@@ -421,6 +525,32 @@ breadcrumb breadcrumb (
         link {
             target: {
                 page: 14
+            }
+        }
+    )
+
+    entry role-entry (
+        name: Role Entry
+        pageNumber: 41
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 41
+            }
+        }
+    )
+
+    entry role-permission (
+        name: Role Register
+        pageNumber: 40
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 40
             }
         }
     )
@@ -477,7 +607,7 @@ breadcrumb breadcrumb (
         }
     )
 
-    entry sales-report (
+    entry sales-report-2 (
         name: Sales Report
         pageNumber: 100
         execution {
@@ -503,6 +633,19 @@ breadcrumb breadcrumb (
         }
     )
 
+    entry sales-return-report (
+        name: "Sales Return Report "
+        pageNumber: 203
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 203
+            }
+        }
+    )
+
     entry stock-ledger (
         name: Stock Ledger
         pageNumber: 11
@@ -512,6 +655,32 @@ breadcrumb breadcrumb (
         link {
             target: {
                 page: 11
+            }
+        }
+    )
+
+    entry stock-report (
+        name: Stock Report
+        pageNumber: 204
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 204
+            }
+        }
+    )
+
+    entry supplier-balance-report (
+        name: Supplier Balance Report
+        pageNumber: 206
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 206
             }
         }
     )
@@ -590,6 +759,45 @@ breadcrumb breadcrumb (
         link {
             target: {
                 page: 27
+            }
+        }
+    )
+
+    entry user-setup (
+        name: User Setup
+        pageNumber: 42
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 42
+            }
+        }
+    )
+
+    entry user-setup-2 (
+        name: User Setup
+        pageNumber: 43
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 43
+            }
+        }
+    )
+
+    entry user-wise-menu-permission (
+        name: User Wise Menu Permission
+        pageNumber: 4
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 4
             }
         }
     )

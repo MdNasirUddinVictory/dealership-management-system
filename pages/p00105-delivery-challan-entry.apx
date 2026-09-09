@@ -176,6 +176,18 @@ page 105 (
                                         );
                                     }
             
+                                    model.setRecordValue(
+                rec,
+                "DISCOUNT_PERCENT",
+                (json[key].DISCOUNT_PERCENT || 0).toString()
+            );
+            
+            model.setRecordValue(
+                rec,
+                "DISCOUNT_AMOUNT",
+                (json[key].DISCOUNT_AMOUNT || 0).toString()
+            );
+            
                                     if (json[key].TOTAL_AMOUNT) {
                                         model.setRecordValue(
                                             rec,
@@ -333,61 +345,55 @@ page 105 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                SELECT * FROM (SELECT
-                       D.DELIVERY_DTL_NO,
-                
+                SELECT * FROM (SELECT D.DELIVERY_DTL_NO,
                        D.INVOICE_DTL_NO,
-                
                        D.ORDER_DTL_NO,
                 
                        D.PRODUCT_NO,
-                
                        P.PRODUCT_CODE,
-                
                        P.PRODUCT_NAME,
-                
                        P.DESCRIPTION,
-                
                        P.BRAND_NO,
                 
                        D.UOM_NO,
-                
                        U.UOM_NAME,
                 
                        D.PACK_QTY,
-                
                        D.ORDER_QTY,
-                
                        D.INVOICE_QTY,
-                
                        D.BASE_QTY,
-                
                        D.BASE_RATE,
                 
-                       NVL(D.PREVIOUS_DELIVERY_QTY,0)
-                           PREVIOUS_DELIVERY_QTY,
+                       NVL(D.PREVIOUS_DELIVERY_QTY, 0)
+                           AS PREVIOUS_DELIVERY_QTY,
                 
                        D.BALANCE_QTY,
-                
                        D.DELIVERY_QTY,
-                
                        D.SALES_RATE,
                 
-                       D.TOTAL_AMOUNT,
+                       NVL(I.DISCOUNT_PERCENT, 0)
+                           AS DISCOUNT_PERCENT,
                 
+                       NVL(I.DISCOUNT_AMOUNT, 0)
+                           AS DISCOUNT_AMOUNT,
+                
+                       D.TOTAL_AMOUNT,
                        D.REMARKS
                 
-                FROM TRN_DELIVERY_DTL D
+                  FROM TRN_DELIVERY_DTL D
                 
-                JOIN MST_PRODUCT P
-                  ON P.PRODUCT_NO=D.PRODUCT_NO
+                       JOIN MST_PRODUCT P
+                         ON P.PRODUCT_NO = D.PRODUCT_NO
                 
-                LEFT JOIN MST_UOM U
-                  ON U.UOM_NO=D.UOM_NO
+                       LEFT JOIN MST_UOM U
+                         ON U.UOM_NO = D.UOM_NO
                 
-                WHERE D.DELIVERY_NO=:P105_DELIVERY_NO
+                       LEFT JOIN TRN_SALES_INVOICE_DTL I
+                         ON I.INVOICE_DTL_NO = D.INVOICE_DTL_NO
                 
-                ORDER BY D.DELIVERY_DTL_NO);
+                 WHERE D.DELIVERY_NO = :P105_DELIVERY_NO
+                
+                 ORDER BY D.DELIVERY_DTL_NO)
                 ```
             pageItemsToSubmit: [
                 P105_INVOICE_NO
@@ -520,7 +526,7 @@ page 105 (
                 column: @BALANCE_QTY
                 layout {
                     width: 88
-                    sequence: 11
+                    sequence: 13
                 }
             )
 
@@ -536,7 +542,7 @@ page 105 (
                 column: @REMARKS
                 layout {
                     width: 120
-                    sequence: 16
+                    sequence: 18
                 }
             )
 
@@ -567,7 +573,7 @@ page 105 (
                 column: @PREVIOUS_DELIVERY_QTY
                 layout {
                     width: 147
-                    sequence: 10
+                    sequence: 12
                 }
             )
 
@@ -575,21 +581,21 @@ page 105 (
                 column: @DELIVERY_QTY
                 layout {
                     width: 97
-                    sequence: 9
+                    sequence: 11
                 }
             )
 
             displayColumn (
                 column: @INVOICE_DTL_NO
                 layout {
-                    sequence: 17
+                    sequence: 19
                 }
             )
 
             displayColumn (
                 column: @ORDER_DTL_NO
                 layout {
-                    sequence: 18
+                    sequence: 20
                 }
             )
 
@@ -598,7 +604,7 @@ page 105 (
                 layout {
                     show: false
                     width: 92
-                    sequence: 19
+                    sequence: 21
                 }
             )
 
@@ -607,7 +613,7 @@ page 105 (
                 layout {
                     show: false
                     width: 75
-                    sequence: 20
+                    sequence: 22
                 }
             )
 
@@ -616,7 +622,7 @@ page 105 (
                 layout {
                     show: false
                     width: 98
-                    sequence: 21
+                    sequence: 23
                 }
             )
 
@@ -625,7 +631,7 @@ page 105 (
                 layout {
                     show: false
                     width: 100
-                    sequence: 22
+                    sequence: 24
                 }
             )
 
@@ -633,7 +639,7 @@ page 105 (
                 column: @PACK_QTY
                 layout {
                     width: 87
-                    sequence: 15
+                    sequence: 17
                 }
             )
 
@@ -641,7 +647,7 @@ page 105 (
                 column: @BASE_QTY
                 layout {
                     width: 73
-                    sequence: 13
+                    sequence: 15
                 }
             )
 
@@ -649,7 +655,7 @@ page 105 (
                 column: @BASE_RATE
                 layout {
                     width: 81
-                    sequence: 14
+                    sequence: 16
                 }
             )
 
@@ -665,7 +671,7 @@ page 105 (
                 column: @TOTAL_AMOUNT
                 layout {
                     width: 99
-                    sequence: 12
+                    sequence: 14
                 }
             )
 
@@ -674,6 +680,22 @@ page 105 (
                 layout {
                     frozen: true
                     sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @DISCOUNT_PERCENT
+                layout {
+                    width: 114
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @DISCOUNT_AMOUNT
+                layout {
+                    width: 116
+                    sequence: 10
                 }
             )
 
@@ -854,6 +876,44 @@ page 105 (
             }
             advanced {
                 customAttributes: readonly
+            }
+        )
+
+        column DISCOUNT_AMOUNT (
+            type: numberField
+            heading {
+                heading: Discount Amount
+                alignment: end
+            }
+            layout {
+                sequence: 320
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: DISCOUNT_AMOUNT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column DISCOUNT_PERCENT (
+            type: numberField
+            heading {
+                heading: Discount Percent
+                alignment: end
+            }
+            layout {
+                sequence: 310
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: DISCOUNT_PERCENT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
             }
         )
 
@@ -2362,92 +2422,91 @@ page 105 (
         source {
             plsqlCode:
                 ```plsql
+                /* Formatted on 9/7/2026 3:18:50 PM (QP5 v5.388) */
                 DECLARE
-                    V_DATA CLOB;
+                    V_DATA   CLOB;
                 BEGIN
+                    SELECT JSON_ARRAYAGG (
+                               JSON_OBJECT (
+                                   'SL_NUMBER' VALUE ROWNUM,
+                                   'INVOICE_DTL_NO' VALUE D.INVOICE_DTL_NO,
+                                   'ORDER_DTL_NO' VALUE D.ORDER_DTL_NO,
+                                   'PRODUCT_NO' VALUE D.PRODUCT_NO,
+                                   'PRODUCT_CODE' VALUE PR.PRODUCT_CODE,
+                                   'PRODUCT_NAME' VALUE PR.PRODUCT_NAME,
+                                   'DESCRIPTION' VALUE PR.DESCRIPTION,
+                                   'BRAND_NO' VALUE PR.BRAND_NO,
+                                   'UOM_NO' VALUE D.UOM_NO,
+                                   'PACK_QTY' VALUE NVL (D.PACK_QTY, 1),
+                                   --------------------------------------------------
+                                   -- Invoice Qty
+                                   --------------------------------------------------
                 
-                    SELECT JSON_ARRAYAGG(
-                             JSON_OBJECT(
+                                   'ORDER_QTY' VALUE D.ORDER_QTY,
+                                   'INVOICE_QTY' VALUE D.SALES_QTY,
+                                   'PREVIOUS_DELIVERY_QTY' VALUE NVL (D.DELIVERED_QTY, 0),
+                                   'BALANCE_QTY' VALUE
+                                       (D.SALES_QTY - NVL (D.DELIVERED_QTY, 0)),
+                                   'DELIVERY_QTY' VALUE
+                                       (D.SALES_QTY - NVL (D.DELIVERED_QTY, 0)),
+                                   --------------------------------------------------
+                                   -- Base Qty
+                                   --------------------------------------------------
                 
-                               'SL_NUMBER' VALUE ROWNUM,
+                                   'BASE_QTY' VALUE
+                                       (  (D.SALES_QTY - NVL (D.DELIVERED_QTY, 0))
+                                        * NVL (D.PACK_QTY, 1)),
+                                   'PREVIOUS_DELIVERY_BASE_QTY' VALUE
+                                       (NVL (D.DELIVERED_QTY, 0) * NVL (D.PACK_QTY, 1)),
+                                   'BALANCE_BASE_QTY' VALUE
+                                       (  (D.SALES_QTY - NVL (D.DELIVERED_QTY, 0))
+                                        * NVL (D.PACK_QTY, 1)),
+                                   --------------------------------------------------
+                                   -- Rate
+                                   --------------------------------------------------
                 
-                               'INVOICE_DTL_NO' VALUE D.INVOICE_DTL_NO,
-                               'ORDER_DTL_NO' VALUE D.ORDER_DTL_NO,
+                                   'SALES_RATE' VALUE D.SALES_RATE,
+                                   'BASE_RATE' VALUE D.BASE_RATE,
+                                   --------------------------------------------------
+                                   -- Discount
+                                   --------------------------------------------------
                 
-                               'PRODUCT_NO' VALUE D.PRODUCT_NO,
-                               'PRODUCT_CODE' VALUE PR.PRODUCT_CODE,
-                               'PRODUCT_NAME' VALUE PR.PRODUCT_NAME,
-                               'DESCRIPTION' VALUE PR.DESCRIPTION,
-                               'BRAND_NO' VALUE PR.BRAND_NO,
+                                   'DISCOUNT_PERCENT' VALUE NVL (D.DISCOUNT_PERCENT, 0),
+                                   'DISCOUNT_AMOUNT' VALUE
+                                       ROUND (
+                                             (D.SALES_QTY - NVL (D.DELIVERED_QTY, 0))
+                                           * NVL (D.SALES_RATE, 0)
+                                           * NVL (D.DISCOUNT_PERCENT, 0)
+                                           / 100,
+                                           2),
+                                   --------------------------------------------------
+                                   -- Net Amount
+                                   --------------------------------------------------
                 
-                               'UOM_NO' VALUE D.UOM_NO,
-                
-                               'PACK_QTY' VALUE D.PACK_QTY,
-                
-                               --------------------------------------------------
-                               -- Invoice Qty
-                               --------------------------------------------------
-                               'ORDER_QTY' VALUE D.ORDER_QTY,
-                
-                               'INVOICE_QTY' VALUE D.SALES_QTY,
-                
-                               'PREVIOUS_DELIVERY_QTY'
-                                    VALUE NVL(D.DELIVERED_QTY,0),
-                
-                               'BALANCE_QTY'
-                                    VALUE (D.SALES_QTY - NVL(D.DELIVERED_QTY,0)),
-                
-                               'DELIVERY_QTY'
-                                    VALUE (D.SALES_QTY - NVL(D.DELIVERED_QTY,0)),
-                
-                               --------------------------------------------------
-                               -- Base Qty
-                               --------------------------------------------------
-                               'BASE_QTY'
-                                    VALUE ((D.SALES_QTY - NVL(D.DELIVERED_QTY,0))
-                                           * NVL(D.PACK_QTY,1)),
-                
-                               'PREVIOUS_DELIVERY_BASE_QTY'
-                                    VALUE (NVL(D.DELIVERED_QTY,0)
-                                           * NVL(D.PACK_QTY,1)),
-                
-                               'BALANCE_BASE_QTY'
-                                    VALUE ((D.SALES_QTY - NVL(D.DELIVERED_QTY,0))
-                                           * NVL(D.PACK_QTY,1)),
-                
-                               --------------------------------------------------
-                               -- Rate
-                               --------------------------------------------------
-                               'SALES_RATE' VALUE D.SALES_RATE,
-                
-                               'BASE_RATE' VALUE D.BASE_RATE,
-                
-                               --------------------------------------------------
-                               -- Amount
-                               --------------------------------------------------
-                               'TOTAL_AMOUNT'
-                                    VALUE ((D.SALES_QTY - NVL(D.DELIVERED_QTY,0))
-                                           * D.SALES_RATE)
-                
-                             )
-                             RETURNING CLOB
-                           )
+                                   'TOTAL_AMOUNT' VALUE
+                                       ROUND (
+                                             (D.SALES_QTY - NVL (D.DELIVERED_QTY, 0))
+                                           * NVL (D.SALES_RATE, 0)
+                                           * (1 - NVL (D.DISCOUNT_PERCENT, 0) / 100),
+                                           2)
+                                   RETURNING CLOB)
+                               RETURNING CLOB)
                       INTO V_DATA
-                      FROM TRN_SALES_INVOICE_DTL D
-                      JOIN MST_PRODUCT PR
-                        ON PR.PRODUCT_NO = D.PRODUCT_NO
-                     WHERE D.INVOICE_NO = APEX_APPLICATION.G_X01
-                       AND NVL(D.SALES_QTY,0) > NVL(D.DELIVERED_QTY,0);
+                      FROM TRN_SALES_INVOICE_DTL  D
+                           JOIN MST_PRODUCT PR ON PR.PRODUCT_NO = D.PRODUCT_NO
+                     WHERE     D.INVOICE_NO = APEX_APPLICATION.G_X01
+                           AND NVL (D.SALES_QTY, 0) > NVL (D.DELIVERED_QTY, 0);
                 
-                    IF V_DATA IS NULL THEN
+                    IF V_DATA IS NULL
+                    THEN
                         V_DATA := '[]';
                     END IF;
                 
-                    HTP.PRN(V_DATA);
-                
+                    HTP.PRN (V_DATA);
                 EXCEPTION
-                    WHEN OTHERS THEN
-                        HTP.PRN('[]');
+                    WHEN OTHERS
+                    THEN
+                        HTP.PRN ('[]');
                 END;
                 ```
         }
@@ -2467,142 +2526,167 @@ page 105 (
         source {
             plsqlCode:
                 ```plsql
+                /* Formatted on 9/7/2026 3:26:55 PM (QP5 v5.388) */
+                DECLARE
+                    V_DISCOUNT_PERCENT   NUMBER := 0;
+                    V_GROSS_AMOUNT       NUMBER := 0;
+                    V_NET_AMOUNT         NUMBER := 0;
                 BEGIN
-                
                     ------------------------------------------------
                     -- Header Validation
                     ------------------------------------------------
                 
-                    IF :P105_INVOICE_NO IS NULL THEN
-                
-                        RAISE_APPLICATION_ERROR(
-                            -20001,
-                            'Please select invoice.'
-                        );
-                
+                    IF :P105_INVOICE_NO IS NULL
+                    THEN
+                        RAISE_APPLICATION_ERROR (-20001, 'Please select invoice.');
                     END IF;
                 
+                
                     ------------------------------------------------
-                    -- Qty Validation
+                    -- Quantity Validation
                     ------------------------------------------------
                 
-                    IF NVL(:DELIVERY_QTY,0) <= 0 THEN
-                
-                        RAISE_APPLICATION_ERROR(
+                    IF :APEX$ROW_STATUS IN ('C', 'U') AND NVL ( :DELIVERY_QTY, 0) <= 0
+                    THEN
+                        RAISE_APPLICATION_ERROR (
                             -20001,
-                            'Delivery quantity must be greater than zero.'
-                        );
-                
+                            'Delivery quantity must be greater than zero.');
                     END IF;
+                
                 
                     ------------------------------------------------
                     -- Balance Validation
                     ------------------------------------------------
                 
-                   IF :DELIVERY_QTY > :BALANCE_QTY THEN
-                
-                    RAISE_APPLICATION_ERROR(
-                        -20001,
-                        'Delivery quantity exceeds balance quantity.'
-                    );
-                
-                END IF;
-                    ------------------------------------------------
-                    -- Insert
-                    ------------------------------------------------
-                
-                    IF :APEX$ROW_STATUS = 'C' THEN
-                
-                        INSERT INTO TRN_DELIVERY_DTL
-                        (
-                            DELIVERY_DTL_NO,
-                            DELIVERY_NO,
-                            INVOICE_DTL_NO,
-                            ORDER_DTL_NO,
-                            PRODUCT_NO,
-                            UOM_NO,
-                            PACK_QTY,
-                            ORDER_QTY,
-                            INVOICE_QTY,
-                            PREVIOUS_DELIVERY_QTY,
-                            DELIVERY_QTY,
-                            BALANCE_QTY,
-                            BASE_QTY,
-                            SALES_RATE,
-                            BASE_RATE,
-                            TOTAL_AMOUNT,
-                            REMARKS,
-                            CREATED_BY,
-                            CREATED_DATE
-                        )
-                        VALUES
-                        (
-                            SEQ_DELIVERY_DTL_NO.NEXTVAL,
-                            :P105_DELIVERY_NO,
-                            :INVOICE_DTL_NO,
-                            :ORDER_DTL_NO,
-                            :PRODUCT_NO,
-                            :UOM_NO,
-                            :PACK_QTY,
-                            :ORDER_QTY,
-                            :INVOICE_QTY,
-                            :PREVIOUS_DELIVERY_QTY,
-                            :DELIVERY_QTY,
-                            :BALANCE_QTY,
-                            :BASE_QTY,
-                            :SALES_RATE,
-                            :BASE_RATE,
-                            NVL(:DELIVERY_QTY,0) * NVL(:SALES_RATE,0),
-                            :REMARKS,
-                            :APP_USER,
-                            SYSDATE
-                        )
-                        RETURNING DELIVERY_DTL_NO
-                        INTO :DELIVERY_DTL_NO;
-                
-                    ------------------------------------------------
-                    -- Update
-                    ------------------------------------------------
-                
-                    ELSIF :APEX$ROW_STATUS = 'U' THEN
-                
-                        UPDATE TRN_DELIVERY_DTL
-                           SET UOM_NO        = :UOM_NO,
-                               PACK_QTY      = :PACK_QTY,
-                               ORDER_QTY     = :ORDER_QTY,
-                               INVOICE_QTY   = :INVOICE_QTY,
-                               DELIVERY_QTY  = :DELIVERY_QTY,
-                               BALANCE_QTY   = :BALANCE_QTY,
-                               BASE_QTY      = :BASE_QTY,
-                               SALES_RATE    = :SALES_RATE,
-                               BASE_RATE     = :BASE_RATE,
-                               TOTAL_AMOUNT  = NVL(:DELIVERY_QTY,0) * NVL(:SALES_RATE,0),
-                               REMARKS       = :REMARKS,
-                               UPDATED_BY    = :APP_USER,
-                               UPDATED_DATE  = SYSDATE
-                         WHERE DELIVERY_DTL_NO = :DELIVERY_DTL_NO;
-                
-                    ------------------------------------------------
-                    -- Delete
-                    ------------------------------------------------
-                
-                    ELSIF :APEX$ROW_STATUS = 'D' THEN
-                
-                        IF :P105_APPROVAL_STATUS = 'A' THEN
-                
-                            RAISE_APPLICATION_ERROR(
-                                -20001,
-                                'Approved delivery cannot be deleted.'
-                            );
-                
-                        END IF;
-                
-                        DELETE
-                          FROM TRN_DELIVERY_DTL
-                         WHERE DELIVERY_DTL_NO = :DELIVERY_DTL_NO;
-                
+                    IF     :APEX$ROW_STATUS IN ('C', 'U')
+                       AND NVL ( :DELIVERY_QTY, 0) > NVL ( :BALANCE_QTY, 0)
+                    THEN
+                        RAISE_APPLICATION_ERROR (
+                            -20001,
+                            'Delivery quantity exceeds balance quantity.');
                     END IF;
                 
+                
+                    ------------------------------------------------
+                    -- Get Discount From Invoice Detail
+                    ------------------------------------------------
+                
+                    IF :APEX$ROW_STATUS IN ('C', 'U')
+                    THEN
+                        SELECT NVL (DISCOUNT_PERCENT, 0)
+                          INTO V_DISCOUNT_PERCENT
+                          FROM TRN_SALES_INVOICE_DTL
+                         WHERE INVOICE_DTL_NO = :INVOICE_DTL_NO;
+                
+                
+                        V_GROSS_AMOUNT := NVL ( :DELIVERY_QTY, 0) * NVL ( :SALES_RATE, 0);
+                
+                
+                        V_NET_AMOUNT := V_GROSS_AMOUNT * (1 - V_DISCOUNT_PERCENT / 100);
+                
+                
+                        IF V_NET_AMOUNT < 0
+                        THEN
+                            RAISE_APPLICATION_ERROR (
+                                -20001,
+                                'Discount cannot be greater than delivery amount.');
+                        END IF;
+                    END IF;
+                
+                
+                    ------------------------------------------------
+                    -- INSERT
+                    ------------------------------------------------
+                
+                    IF :APEX$ROW_STATUS = 'C'
+                    THEN
+                        INSERT INTO TRN_DELIVERY_DTL (DELIVERY_DTL_NO,
+                                                      DELIVERY_NO,
+                                                      INVOICE_DTL_NO,
+                                                      ORDER_DTL_NO,
+                                                      PRODUCT_NO,
+                                                      UOM_NO,
+                                                      PACK_QTY,
+                                                      ORDER_QTY,
+                                                      INVOICE_QTY,
+                                                      PREVIOUS_DELIVERY_QTY,
+                                                      DELIVERY_QTY,
+                                                      BALANCE_QTY,
+                                                      BASE_QTY,
+                                                      SALES_RATE,
+                                                      BASE_RATE,
+                                                      TOTAL_AMOUNT,
+                                                      REMARKS,
+                                                      CREATED_BY,
+                                                      CREATED_DATE)
+                             VALUES (SEQ_DELIVERY_DTL_NO.NEXTVAL,
+                                     :P105_DELIVERY_NO,
+                                     :INVOICE_DTL_NO,
+                                     :ORDER_DTL_NO,
+                                     :PRODUCT_NO,
+                                     :UOM_NO,
+                                     :PACK_QTY,
+                                     :ORDER_QTY,
+                                     :INVOICE_QTY,
+                                     :PREVIOUS_DELIVERY_QTY,
+                                     :DELIVERY_QTY,
+                                     :BALANCE_QTY,
+                                     :BASE_QTY,
+                                     :SALES_RATE,
+                                     :BASE_RATE,
+                                     V_NET_AMOUNT,
+                                     :REMARKS,
+                                     :APP_USER,
+                                     SYSDATE)
+                          RETURNING DELIVERY_DTL_NO
+                               INTO :DELIVERY_DTL_NO;
+                    ------------------------------------------------
+                    -- UPDATE
+                    ------------------------------------------------
+                
+                    ELSIF :APEX$ROW_STATUS = 'U'
+                    THEN
+                        UPDATE TRN_DELIVERY_DTL
+                           SET UOM_NO = :UOM_NO,
+                               PACK_QTY = :PACK_QTY,
+                               ORDER_QTY = :ORDER_QTY,
+                               INVOICE_QTY = :INVOICE_QTY,
+                               DELIVERY_QTY = :DELIVERY_QTY,
+                               BALANCE_QTY = :BALANCE_QTY,
+                               BASE_QTY = :BASE_QTY,
+                               SALES_RATE = :SALES_RATE,
+                               BASE_RATE = :BASE_RATE,
+                               TOTAL_AMOUNT = V_NET_AMOUNT,
+                               REMARKS = :REMARKS,
+                               UPDATED_BY = :APP_USER,
+                               UPDATED_DATE = SYSDATE
+                         WHERE DELIVERY_DTL_NO = :DELIVERY_DTL_NO;
+                    ------------------------------------------------
+                    -- DELETE
+                    ------------------------------------------------
+                
+                    ELSIF :APEX$ROW_STATUS = 'D'
+                    THEN
+                        IF :P105_APPROVAL_STATUS = 'A'
+                        THEN
+                            RAISE_APPLICATION_ERROR (-20001,
+                                                     'Approved delivery cannot be deleted.');
+                        END IF;
+                
+                        DELETE FROM TRN_DELIVERY_DTL
+                              WHERE DELIVERY_DTL_NO = :DELIVERY_DTL_NO;
+                    END IF;
+                
+                
+                    APEX_APPLICATION.g_print_success_message :=
+                        'Delivery details saved successfully.';
+                EXCEPTION
+                    WHEN NO_DATA_FOUND
+                    THEN
+                        RAISE_APPLICATION_ERROR (-20001, 'Invoice detail not found.');
+                    WHEN OTHERS
+                    THEN
+                        RAISE_APPLICATION_ERROR (-20001, SQLERRM);
                 END;
                 ```
         }

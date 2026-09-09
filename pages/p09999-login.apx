@@ -87,7 +87,10 @@ page 9999 (
         type: textField
         label {
             label: Username
-            alignment: right
+            alignment: left
+        }
+        settings {
+            textCase: upper
         }
         layout {
             sequence: 10

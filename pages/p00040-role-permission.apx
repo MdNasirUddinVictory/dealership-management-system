@@ -1,0 +1,681 @@
+page 40 (
+    name: Role Permission
+    alias: ROLE-PERMISSION
+    title: Role Permission
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        formAutoComplete: false
+    }
+
+    region breadcrumb-2 (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 50
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region product-entrey (
+        name: PRODUCT ENTREY
+        type: staticContent
+        layout {
+            sequence: 40
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+    )
+
+    region uom-conversion (
+        name: ROLE REGISTER
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select ROLE_NO,
+                       ROLE_CODE,
+                       ROLE_NAME,
+                      DECODE( ACTIVE_FLAG,1,'Active','Inactive')ACTIVE_FLAG,
+                       CREATED_BY,
+                       CREATED_DATE
+                  from SA_ROLE
+                ```
+        }
+        layout {
+            sequence: 30
+            parentRegion: @product-entrey
+            slot: regionBody
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 13865174438460106
+        }
+
+        column ACTIVE_FLAG (
+            type: plainText
+            heading {
+                heading: Active Flag
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: G
+            }
+        )
+
+        column CREATED_BY (
+            type: plainText
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: E
+            }
+        )
+
+        column CREATED_DATE (
+            type: plainText
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: F
+            }
+        )
+
+        column ROLE_CODE (
+            type: link
+            heading {
+                heading: Role Code
+            }
+            layout {
+                sequence: 20
+            }
+            link {
+                target: {
+                    page: 41
+                    items: {
+                        P41_ROLE_NO: #ROLE_NO#
+                    }
+                    action: clearRegions
+                }
+                linkText: #ROLE_CODE#
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: B
+            }
+        )
+
+        column ROLE_NAME (
+            type: plainText
+            heading {
+                heading: Role Name
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: C
+            }
+        )
+
+        column ROLE_NO (
+            type: plainText
+            heading {
+                heading: Role No
+                alignment: end
+            }
+            layout {
+                sequence: 10
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: A
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn ACTIVE_FLAG (
+                sequence: 3
+            )
+
+            displayColumn CREATED_BY (
+                sequence: 4
+            )
+
+            displayColumn CREATED_DATE (
+                sequence: 5
+            )
+
+            displayColumn ROLE_CODE (
+                sequence: 1
+            )
+
+            displayColumn ROLE_NAME (
+                sequence: 2
+            )
+
+        )
+
+    )
+
+    button add-role (
+        buttonName: ADD_ROLE
+        label: Add Role
+        layout {
+            sequence: 10
+            region: @uom-conversion
+            slot: rightOfInteractiveReportSearchBar
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--primary
+                t-Button--iconLeft
+            ]
+            icon: fa-file-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 41
+                clearCache: 41
+                action: clearRegions
+            }
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
+    button new-3 (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-reset
+            customAttributes: disabled
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    dynamicAction new (
+        name: New
+        execution {
+            sequence: 10
+        }
+        when {
+            selectionType: items
+            items: P40_PRODUCT_NO
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @uom-conversion
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process delete (
+        name: DELETE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                    DELETE FROM MST_PRODUCT_CATEGORY
+                     WHERE CATEGORY_NO = :P40_CATEGORY_NO;
+                
+                    apex_application.g_print_success_message :=
+                        'Product Category has been deleted successfully.';
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 30
+        }
+        error {
+            errorMessage: #SQLERRM_TEXT#
+        }
+        advanced {
+            executionMappingIdentifier: 13661963833417584
+        }
+        serverSideCondition {
+            whenButtonPressed: @delete
+        }
+    )
+
+    process process-form-entry (
+        name: Process form Entry
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                    IF :P40_PRODUCT_NO IS NULL THEN
+                        INSERT INTO MST_PRODUCT (
+                            PRODUCT_NO,
+                            CATEGORY_NO,
+                            PRODUCT_CODE,
+                            PRODUCT_NAME,
+                            PURCHASE_RATE,
+                            SALES_RATE,
+                            MIN_STOCK_QTY,
+                            ACTIVE_FLAG,
+                            UOM_NO,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES (
+                            SEQ_PRODUCT_NO.NEXTVAL,
+                            :P40_CATEGORY_NO,
+                           'PRD' || LPAD(SEQ_PRODUCT_NO.NEXTVAL,4,'0'),
+                            :P40_PRODUCT_NAME,
+                            :P40_PURCHASE_RATE,
+                            :P40_SALES_RATE,
+                            :P40_MIN_STOCK_QTY,
+                            :P40_ACTIVE_FLAG,
+                            :P40_UOM_NO,
+                            :APP_USER,
+                            SYSDATE
+                        );
+                
+                          APEX_APPLICATION.g_print_success_message :=
+                            'Product has been saved successfully.';
+                    ELSE
+                        UPDATE MST_PRODUCT
+                           SET CATEGORY_NO   = :P40_CATEGORY_NO,
+                               PRODUCT_NAME  = :P40_PRODUCT_NAME,
+                               PURCHASE_RATE = :P40_PURCHASE_RATE,
+                               SALES_RATE    = :P40_SALES_RATE,
+                               MIN_STOCK_QTY = :P40_MIN_STOCK_QTY,
+                               ACTIVE_FLAG   = :P40_ACTIVE_FLAG,
+                               UOM_NO        = :P40_UOM_NO,
+                               UPDATED_BY    = :APP_USER,
+                               UPDATED_DATE  = SYSDATE
+                         WHERE PRODUCT_NO    = :P40_PRODUCT_NO;
+                
+                         
+                        APEX_APPLICATION.g_print_success_message :=
+                            'Product has been updated successfully.';
+                    END IF;
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+        error {
+            errorMessage: #SQLERRM_TEXT#
+        }
+        advanced {
+            executionMappingIdentifier: 13661503192417582
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+    process uom-conversion-save-interactive-grid-data (
+        name: UOM Conversion - Save Interactive Grid Data
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                /* Formatted on 9/2/2026 11:53:28 AM (QP5 v5.388) */
+                BEGIN
+                    ---------------------------------------------------
+                    -- PRODUCT VALIDATION
+                    ---------------------------------------------------
+                
+                    IF :P40_PRODUCT_NO IS NULL
+                    THEN
+                        RAISE_APPLICATION_ERROR (-20001,
+                                                 'Please save product information first.');
+                    END IF;
+                
+                
+                    ---------------------------------------------------
+                    -- DELETE
+                    ---------------------------------------------------
+                    -- Delete করার সময় অন্য validation করার দরকার নেই.
+                    ---------------------------------------------------
+                
+                    IF :APEX$ROW_STATUS = 'D'
+                    THEN
+                        DELETE FROM MST_UOM_CONVERSION
+                              WHERE CONVERSION_NO = :CONVERSION_NO;
+                
+                        RETURN;
+                    END IF;
+                
+                
+                    ---------------------------------------------------
+                    -- UOM VALIDATION
+                    ---------------------------------------------------
+                
+                    IF :CONVERT_UOM_NO IS NULL
+                    THEN
+                        RAISE_APPLICATION_ERROR (-20001, 'Please select UOM.');
+                    END IF;
+                
+                
+                    ---------------------------------------------------
+                    -- CONVERSION FACTOR VALIDATION
+                    ---------------------------------------------------
+                
+                    IF NVL ( :CONVERSION_FACTOR, 0) <= 0
+                    THEN
+                        RAISE_APPLICATION_ERROR (
+                            -20001,
+                            'Conversion factor must be greater than zero.');
+                    END IF;
+                
+                
+                    ---------------------------------------------------
+                    -- GET BASE UOM
+                    ---------------------------------------------------
+                
+                    DECLARE
+                        V_BASE_UOM   NUMBER;
+                    BEGIN
+                        SELECT UOM_NO
+                          INTO V_BASE_UOM
+                          FROM MST_PRODUCT
+                         WHERE PRODUCT_NO = :P40_PRODUCT_NO;
+                
+                
+                        ---------------------------------------------------
+                        -- BASE UOM CANNOT BE CONVERSION UOM
+                        ---------------------------------------------------
+                
+                        IF :CONVERT_UOM_NO = V_BASE_UOM
+                        THEN
+                            RAISE_APPLICATION_ERROR (
+                                -20001,
+                                'Base UOM cannot be added as conversion UOM.');
+                        END IF;
+                
+                
+                        ---------------------------------------------------
+                        -- INSERT
+                        ---------------------------------------------------
+                
+                        IF :APEX$ROW_STATUS = 'C'
+                        THEN
+                            DECLARE
+                                V_CNT   NUMBER;
+                            BEGIN
+                                SELECT COUNT (*)
+                                  INTO V_CNT
+                                  FROM MST_UOM_CONVERSION
+                                 WHERE     PRODUCT_NO = :P40_PRODUCT_NO
+                                       AND CONVERT_UOM_NO = :CONVERT_UOM_NO;
+                
+                                IF V_CNT > 0
+                                THEN
+                                    RAISE_APPLICATION_ERROR (
+                                        -20001,
+                                        'This UOM already exists for the selected product.');
+                                END IF;
+                            END;
+                
+                
+                            INSERT INTO MST_UOM_CONVERSION (CONVERSION_NO,
+                                                            PRODUCT_NO,
+                                                            BASE_UOM_NO,
+                                                            CONVERT_UOM_NO,
+                                                            CONVERSION_FACTOR,
+                                                            ACTIVE_FLAG,
+                                                            CREATED_BY,
+                                                            CREATED_DATE)
+                                 VALUES (SEQ_UOM_CONVERSION_NO.NEXTVAL,
+                                         :P40_PRODUCT_NO,
+                                         V_BASE_UOM,
+                                         :CONVERT_UOM_NO,
+                                         :CONVERSION_FACTOR,
+                                         '1',
+                                         :APP_USER,
+                                         SYSDATE)
+                              RETURNING CONVERSION_NO
+                                   INTO :CONVERSION_NO;
+                        ---------------------------------------------------
+                        -- UPDATE
+                        ---------------------------------------------------
+                
+                        ELSIF :APEX$ROW_STATUS = 'U'
+                        THEN
+                            DECLARE
+                                V_CNT   NUMBER;
+                            BEGIN
+                                /*
+                                   Check duplicate UOM excluding
+                                   the current row being updated.
+                                */
+                
+                                SELECT COUNT (*)
+                                  INTO V_CNT
+                                  FROM MST_UOM_CONVERSION
+                                 WHERE     PRODUCT_NO = :P40_PRODUCT_NO
+                                       AND CONVERT_UOM_NO = :CONVERT_UOM_NO
+                                       AND CONVERSION_NO <> :CONVERSION_NO;
+                
+                
+                                IF V_CNT > 0
+                                THEN
+                                    RAISE_APPLICATION_ERROR (
+                                        -20001,
+                                        'This UOM already exists for the selected product.');
+                                END IF;
+                            END;
+                
+                
+                            UPDATE MST_UOM_CONVERSION
+                               SET BASE_UOM_NO = V_BASE_UOM,
+                                   CONVERT_UOM_NO = :CONVERT_UOM_NO,
+                                   CONVERSION_FACTOR = :CONVERSION_FACTOR,
+                                   UPDATED_BY = :APP_USER,
+                                   UPDATED_DATE = SYSDATE
+                             WHERE CONVERSION_NO = :CONVERSION_NO;
+                        END IF;
+                    EXCEPTION
+                        WHEN NO_DATA_FOUND
+                        THEN
+                            RAISE_APPLICATION_ERROR (-20001,
+                                                     'Product information not found.');
+                    END;
+                END;
+                ```
+        }
+        execution {
+            sequence: 20
+        }
+        error {
+            errorMessage: #SQLERRM_TEXT#
+        }
+        advanced {
+            executionMappingIdentifier: 13660790295417543
+        }
+    )
+
+)
+

@@ -752,7 +752,7 @@
   --u-color-45-contrast: #eaeff4;
 }
 :root {
-  --a-button-border-radius: 6px;
+  --a-button-border-radius: 4px;
 }
 :root {
   --a-button-background-color: #f3f3f3;
@@ -764,8 +764,8 @@
   --ut-field-label-text-color: #393993;
 }
 :root {
-  --a-field-input-border-radius: 10px;
-  --a-filedrop-border-radius: 10px;
+  --a-field-input-border-radius: 4px;
+  --a-filedrop-border-radius: 4px;
 }
 :root {
   --a-field-input-background-color: #fcfcfc;
@@ -2078,4 +2078,10 @@ a-workflow-diagram .a-Toolbar--simple .a-Toolbar-group .a-Button:hover {
 
 .t-Body-contentInner{
     padding:3px;
+}
+/* Interactive Grid Header Height */
+.a-GV-header {
+    height: 25px !important;
+    min-height: 25px !important;
+
 }

@@ -13,15 +13,14 @@ page 50 (
         formAutoComplete: false
     }
 
-    region breadcrumb (
+    region breadcrumb-2 (
         name: Breadcrumb
-        title: Breadcrumb
         type: breadcrumb
         source {
             breadcrumb: @breadcrumb
         }
         layout {
-            sequence: 30
+            sequence: 40
             slot: breadcrumbBar
         }
         appearance {
@@ -30,8 +29,12 @@ page 50 (
                 #DEFAULT#
                 t-ButtonRegion--stickToBottom
                 t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
                 t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
             ]
+            cssClasses: breadcrumb
         }
         componentAppearance {
             breadcrumbTemplate: @/breadcrumb
@@ -541,12 +544,43 @@ page 50 (
         }
     )
 
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 60
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
     button new (
         buttonName: New
         label: New
         layout {
-            sequence: 10
-            region: @breadcrumb
+            sequence: 30
+            region: @breadcrumb-2
             slot: next
         }
         appearance {
@@ -572,21 +606,19 @@ page 50 (
         }
     )
 
-    button new-1 (
+    button save (
         buttonName: SAVE
         label: Save
         layout {
-            sequence: 20
-            region: @breadcrumb
+            sequence: 40
+            region: @breadcrumb-2
             slot: next
         }
         appearance {
             buttonTemplate: @/text-with-icon
-            hot: true
-            showAsDisabled: true
             templateOptions: [
                 #DEFAULT#
-                t-Button--success
+                t-Button--small
                 t-Button--iconLeft
             ]
             icon: fa-save
@@ -595,38 +627,33 @@ page 50 (
             warnOnUnsavedChanges: doNotCheck
         }
         advanced {
+            htmlDomId: pb-save
             customAttributes: disabled
         }
     )
 
-    button new-2 (
-        buttonName: DELETE
-        label: Delete
+    button update (
+        buttonName: UPDATE
+        label: Update
         layout {
-            sequence: 30
-            region: @breadcrumb
+            sequence: 50
+            region: @breadcrumb-2
             slot: next
         }
         appearance {
             buttonTemplate: @/text-with-icon
-            hot: true
-            showAsDisabled: true
             templateOptions: [
                 #DEFAULT#
-                t-Button--danger
+                t-Button--small
                 t-Button--iconLeft
             ]
-            icon: fa-trash-o
+            icon: fa-save-as
         }
         behavior {
             warnOnUnsavedChanges: doNotCheck
-            requiresConfirmation: true
-        }
-        confirmation {
-            message: Are You Sure !
-            style: warning
         }
         advanced {
+            htmlDomId: pb-update
             customAttributes: disabled
         }
     )
@@ -653,9 +680,6 @@ page 50 (
         }
         advanced {
             executionMappingIdentifier: 8268486866069684970
-        }
-        serverSideCondition {
-            whenButtonPressed: @new-2
         }
     )
 

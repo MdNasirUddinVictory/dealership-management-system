@@ -13,7 +13,6 @@ page 21 (
         functionAndGlobalVariableDeclaration:
             ```javascript-browser
             
-            
             function generateInvoice(orderNo) {
             
                 if (confirm('Generate Invoice?')) {
@@ -125,6 +124,17 @@ page 21 (
                                         "TOTAL_AMOUNT",
                                         json[key].TOTAL_AMOUNT.toString()
                                     );
+                                    model.setRecordValue(
+                rec,
+                "DISCOUNT_PERCENT",
+                (json[key].DISCOUNT_PERCENT || 0).toString()
+            );
+            
+            model.setRecordValue(
+                rec,
+                "DISCOUNT_AMOUNT",
+                (json[key].DISCOUNT_AMOUNT || 0).toString()
+            );
             
                                     model.setRecordValue(
                                         rec,
@@ -276,7 +286,9 @@ page 21 (
                 
                        D.TOTAL_AMOUNT,
                 
-                       D.REMARKS
+                       D.REMARKS,
+                              D.DISCOUNT_PERCENT,
+                       D.DISCOUNT_AMOUNT
                 
                 FROM TRN_SALES_INVOICE_DTL D
                 
@@ -413,7 +425,7 @@ page 21 (
                 column: @SALES_QTY
                 layout {
                     width: 88
-                    sequence: 11
+                    sequence: 13
                 }
             )
 
@@ -429,7 +441,7 @@ page 21 (
                 column: @TOTAL_AMOUNT
                 layout {
                     width: 94.6667
-                    sequence: 16
+                    sequence: 18
                 }
             )
 
@@ -444,7 +456,7 @@ page 21 (
             displayColumn (
                 column: @ORDER_DTL_NO
                 layout {
-                    sequence: 12
+                    sequence: 14
                 }
             )
 
@@ -476,7 +488,7 @@ page 21 (
                 column: @PREVIOUS_INVOICE_QTY
                 layout {
                     width: 144
-                    sequence: 10
+                    sequence: 12
                 }
             )
 
@@ -484,7 +496,7 @@ page 21 (
                 column: @BALANCE_QTY
                 layout {
                     width: 91
-                    sequence: 9
+                    sequence: 11
                 }
             )
 
@@ -492,7 +504,7 @@ page 21 (
                 column: @REMARKS
                 layout {
                     width: 120
-                    sequence: 17
+                    sequence: 19
                 }
             )
 
@@ -510,7 +522,7 @@ page 21 (
                 layout {
                     show: false
                     width: 71
-                    sequence: 18
+                    sequence: 20
                 }
             )
 
@@ -519,7 +531,7 @@ page 21 (
                 layout {
                     show: false
                     width: 85
-                    sequence: 19
+                    sequence: 21
                 }
             )
 
@@ -528,7 +540,7 @@ page 21 (
                 layout {
                     show: false
                     width: 93
-                    sequence: 20
+                    sequence: 22
                 }
             )
 
@@ -537,7 +549,7 @@ page 21 (
                 layout {
                     show: false
                     width: 70
-                    sequence: 15
+                    sequence: 17
                 }
             )
 
@@ -545,7 +557,7 @@ page 21 (
                 column: @BASE_QTY
                 layout {
                     width: 70
-                    sequence: 13
+                    sequence: 15
                 }
             )
 
@@ -553,7 +565,23 @@ page 21 (
                 column: @BASE_RATE
                 layout {
                     width: 78
-                    sequence: 14
+                    sequence: 16
+                }
+            )
+
+            displayColumn (
+                column: @DISCOUNT_PERCENT
+                layout {
+                    width: 88
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @DISCOUNT_AMOUNT
+                layout {
+                    width: 117
+                    sequence: 10
                 }
             )
 
@@ -693,6 +721,44 @@ page 21 (
             }
             advanced {
                 customAttributes: readonly
+            }
+        )
+
+        column DISCOUNT_AMOUNT (
+            type: numberField
+            heading {
+                heading: Discount Amount
+                alignment: end
+            }
+            layout {
+                sequence: 240
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: DISCOUNT_AMOUNT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column DISCOUNT_PERCENT (
+            type: numberField
+            heading {
+                heading: Discount %
+                alignment: end
+            }
+            layout {
+                sequence: 230
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: DISCOUNT_PERCENT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
             }
         )
 
@@ -1087,6 +1153,7 @@ page 21 (
                 
                        I.DELIVERY_DATE
                 
+                
                 FROM TRN_SALES_INVOICE_MST I
                 
                 JOIN MST_CUSTOMER C
@@ -1301,6 +1368,9 @@ page 21 (
                 t-Form-fieldContainer--boldDisplay
             ]
             width: 30
+        }
+        validation {
+            valueRequired: true
         }
         advanced {
             customAttributes: readonly
@@ -1905,181 +1975,207 @@ page 21 (
         source {
             plsqlCode:
                 ```plsql
+                /* Formatted on 9/7/2026 3:13:03 PM (QP5 v5.388) */
                 DECLARE
-                
-                    v_count          NUMBER;
-                    v_balance        NUMBER;
-                    v_total_order    NUMBER;
-                    v_total_invoice  NUMBER;
-                
+                    V_COUNT             NUMBER := 0;
+                    V_TOTAL_ORDER       NUMBER := 0;
+                    V_TOTAL_INVOICE     NUMBER := 0;
+                    V_INVOICE_TOTAL     NUMBER := 0;
+                    V_GROSS_AMOUNT      NUMBER := 0;
+                    V_DISCOUNT_AMOUNT   NUMBER := 0;
+                    V_NET_AMOUNT        NUMBER := 0;
                 BEGIN
-                
                     ------------------------------------------------
                     -- Delete Validation
                     ------------------------------------------------
                 
-                    IF :APEX$ROW_STATUS='D' THEN
+                    IF :APEX$ROW_STATUS = 'D'
+                    THEN
+                        SELECT COUNT (*)
+                          INTO V_COUNT
+                          FROM TRN_DELIVERY_DTL  D
+                               JOIN TRN_DELIVERY_MST M ON M.DELIVERY_NO = D.DELIVERY_NO
+                         WHERE     D.PRODUCT_NO = :PRODUCT_NO
+                               AND M.INVOICE_NO = :P21_INVOICE_NO
+                               AND M.APPROVAL_STATUS = 'A';
                 
-                        SELECT COUNT(*)
-                        INTO v_count
-                        FROM TRN_DELIVERY_DTL D
-                             JOIN TRN_DELIVERY_MST M
-                               ON M.DELIVERY_NO=D.DELIVERY_NO
-                        WHERE D.PRODUCT_NO=:PRODUCT_NO
-                          AND M.INVOICE_NO=:P21_INVOICE_NO
-                          AND M.APPROVAL_STATUS='A';
-                
-                        IF v_count>0 THEN
-                
-                            RAISE_APPLICATION_ERROR
-                            (
+                        IF V_COUNT > 0
+                        THEN
+                            RAISE_APPLICATION_ERROR (
                                 -20001,
-                                'Delivery already completed. Delete not allowed.'
-                            );
-                
+                                'Delivery already completed. Delete not allowed.');
                         END IF;
                 
-                        SELECT COUNT(*)
-                        INTO v_count
-                        FROM TRN_CUSTOMER_RETURN_DTL R
-                             JOIN TRN_CUSTOMER_RETURN_MST M
-                               ON M.RETURN_NO=R.RETURN_NO
-                        WHERE R.PRODUCT_NO=:PRODUCT_NO
-                          AND M.INVOICE_NO=:P21_INVOICE_NO
-                          AND M.APPROVAL_STATUS='A';
                 
-                        IF v_count>0 THEN
+                        SELECT COUNT (*)
+                          INTO V_COUNT
+                          FROM TRN_CUSTOMER_RETURN_DTL  R
+                               JOIN TRN_CUSTOMER_RETURN_MST M ON M.RETURN_NO = R.RETURN_NO
+                         WHERE     R.PRODUCT_NO = :PRODUCT_NO
+                               AND M.INVOICE_NO = :P21_INVOICE_NO
+                               AND M.APPROVAL_STATUS = 'A';
                 
-                            RAISE_APPLICATION_ERROR
-                            (
+                        IF V_COUNT > 0
+                        THEN
+                            RAISE_APPLICATION_ERROR (
                                 -20001,
-                                'Customer return exists. Delete not allowed.'
-                            );
-                
+                                'Customer return exists. Delete not allowed.');
                         END IF;
-                
                     END IF;
+                
+                
+                    ------------------------------------------------
+                    -- Calculate Gross, Discount and Net Amount
+                    ------------------------------------------------
+                
+                    IF :APEX$ROW_STATUS IN ('C', 'U')
+                    THEN
+                        V_GROSS_AMOUNT := NVL ( :SALES_QTY, 0) * NVL ( :SALES_RATE, 0);
+                
+                        V_DISCOUNT_AMOUNT :=
+                            V_GROSS_AMOUNT * NVL ( :DISCOUNT_PERCENT, 0) / 100;
+                
+                        V_NET_AMOUNT := V_GROSS_AMOUNT - V_DISCOUNT_AMOUNT;
+                
+                        IF V_NET_AMOUNT < 0
+                        THEN
+                            RAISE_APPLICATION_ERROR (
+                                -20001,
+                                'Discount cannot be greater than sales amount.');
+                        END IF;
+                    END IF;
+                
                 
                     ------------------------------------------------
                     -- INSERT
                     ------------------------------------------------
                 
-                    IF :APEX$ROW_STATUS='C' THEN
-                
-                        INSERT INTO TRN_SALES_INVOICE_DTL
-                        (
-                            INVOICE_DTL_NO,
-                            INVOICE_NO,
-                            ORDER_DTL_NO,
-                            PRODUCT_NO,
-                            UOM_NO,
-                            PACK_QTY,
-                            ORDER_QTY,
-                            SALES_QTY,
-                            BASE_QTY,
-                            SALES_RATE,
-                            BASE_RATE,
-                            TOTAL_AMOUNT,
-                            CREATED_BY,
-                            CREATED_DATE
-                        )
-                        VALUES
-                        (
-                            SEQ_INVOICE_DTL_NO.NEXTVAL,
-                            :P21_INVOICE_NO,
-                            :ORDER_DTL_NO,
-                            :PRODUCT_NO,
-                            :UOM_NO,
-                            :PACK_QTY,
-                            :ORDER_QTY,
-                            :SALES_QTY,
-                            :BASE_QTY,
-                            :SALES_RATE,
-                            :BASE_RATE,
-                            NVL(:SALES_QTY,0) * NVL(:SALES_RATE,0),
-                            :APP_USER,
-                            SYSDATE
-                        );
-                
+                    IF :APEX$ROW_STATUS = 'C'
+                    THEN
+                        INSERT INTO TRN_SALES_INVOICE_DTL (INVOICE_DTL_NO,
+                                                           INVOICE_NO,
+                                                           ORDER_DTL_NO,
+                                                           PRODUCT_NO,
+                                                           UOM_NO,
+                                                           PACK_QTY,
+                                                           ORDER_QTY,
+                                                           SALES_QTY,
+                                                           BASE_QTY,
+                                                           SALES_RATE,
+                                                           BASE_RATE,
+                                                           TOTAL_AMOUNT,
+                                                           DISCOUNT_PERCENT,
+                                                           DISCOUNT_AMOUNT,
+                                                           CREATED_BY,
+                                                           CREATED_DATE)
+                             VALUES (SEQ_INVOICE_DTL_NO.NEXTVAL,
+                                     :P21_INVOICE_NO,
+                                     :ORDER_DTL_NO,
+                                     :PRODUCT_NO,
+                                     :UOM_NO,
+                                     :PACK_QTY,
+                                     :ORDER_QTY,
+                                     :SALES_QTY,
+                                     :BASE_QTY,
+                                     :SALES_RATE,
+                                     :BASE_RATE,
+                                     V_NET_AMOUNT,
+                                     NVL ( :DISCOUNT_PERCENT, 0),
+                                     V_DISCOUNT_AMOUNT,
+                                     :APP_USER,
+                                     SYSDATE);
                     ------------------------------------------------
                     -- UPDATE
                     ------------------------------------------------
                 
-                    ELSIF :APEX$ROW_STATUS='U' THEN
-                
+                    ELSIF :APEX$ROW_STATUS = 'U'
+                    THEN
                         UPDATE TRN_SALES_INVOICE_DTL
-                           SET UOM_NO       = :UOM_NO,
-                               PACK_QTY     = :PACK_QTY,
-                               ORDER_QTY    = :ORDER_QTY,
-                               SALES_QTY    = :SALES_QTY,
-                               BASE_QTY     = :BASE_QTY,
-                               SALES_RATE   = :SALES_RATE,
-                               BASE_RATE    = :BASE_RATE,
-                               TOTAL_AMOUNT = NVL(:SALES_QTY,0) * NVL(:SALES_RATE,0),
-                               UPDATED_BY   = :APP_USER,
+                           SET UOM_NO = :UOM_NO,
+                               PACK_QTY = :PACK_QTY,
+                               ORDER_QTY = :ORDER_QTY,
+                               SALES_QTY = :SALES_QTY,
+                               BASE_QTY = :BASE_QTY,
+                               SALES_RATE = :SALES_RATE,
+                               BASE_RATE = :BASE_RATE,
+                               TOTAL_AMOUNT = V_NET_AMOUNT,
+                               DISCOUNT_PERCENT = NVL ( :DISCOUNT_PERCENT, 0),
+                               DISCOUNT_AMOUNT = V_DISCOUNT_AMOUNT,
+                               UPDATED_BY = :APP_USER,
                                UPDATED_DATE = SYSDATE
                          WHERE INVOICE_DTL_NO = :INVOICE_DTL_NO;
-                
                     ------------------------------------------------
                     -- DELETE
                     ------------------------------------------------
                 
-                    ELSIF :APEX$ROW_STATUS='D' THEN
-                
-                        DELETE
-                        FROM TRN_SALES_INVOICE_DTL
-                        WHERE INVOICE_DTL_NO=:INVOICE_DTL_NO;
-                
+                    ELSIF :APEX$ROW_STATUS = 'D'
+                    THEN
+                        DELETE FROM TRN_SALES_INVOICE_DTL
+                              WHERE INVOICE_DTL_NO = :INVOICE_DTL_NO;
                     END IF;
+                
                 
                     ------------------------------------------------
                     -- Update Invoice Total
                     ------------------------------------------------
                 
-                 UPDATE TRN_SALES_INVOICE_MST I
-                   SET TOTAL_AMOUNT =
-                       (
-                           SELECT NVL(SUM(D.TOTAL_AMOUNT), 0)
-                             FROM TRN_SALES_INVOICE_DTL D
-                            WHERE D.INVOICE_NO = I.INVOICE_NO
-                       ),
-                       DUE_AMOUNT =
-                       (
-                           SELECT NVL(SUM(D.TOTAL_AMOUNT), 0)
-                             FROM TRN_SALES_INVOICE_DTL D
-                            WHERE D.INVOICE_NO = I.INVOICE_NO
-                       ),
-                       UPDATED_BY   = :APP_USER,
-                       UPDATED_DATE = SYSDATE
-                 WHERE I.INVOICE_NO = :P21_INVOICE_NO;
+                    SELECT NVL (SUM (D.TOTAL_AMOUNT), 0)
+                      INTO V_INVOICE_TOTAL
+                      FROM TRN_SALES_INVOICE_DTL D
+                     WHERE D.INVOICE_NO = :P21_INVOICE_NO;
+                
+                
+                    UPDATE TRN_SALES_INVOICE_MST I
+                       SET TOTAL_AMOUNT = V_INVOICE_TOTAL,
+                           DUE_AMOUNT = V_INVOICE_TOTAL - NVL (I.RECEIVED_AMOUNT, 0),
+                           UPDATED_BY = :APP_USER,
+                           UPDATED_DATE = SYSDATE
+                     WHERE I.INVOICE_NO = :P21_INVOICE_NO;
+                
+                
+                    ------------------------------------------------
+                    -- Calculate Order Quantity
+                    ------------------------------------------------
+                
+                    SELECT NVL (SUM (BASE_QTY), 0)
+                      INTO V_TOTAL_ORDER
+                      FROM TRN_SALES_ORDER_DTL
+                     WHERE ORDER_NO = :P21_ORDER_NO;
+                
+                
+                    ------------------------------------------------
+                    -- Calculate Invoiced Quantity
+                    ------------------------------------------------
+                
+                    SELECT NVL (SUM (D.BASE_QTY), 0)
+                      INTO V_TOTAL_INVOICE
+                      FROM TRN_SALES_INVOICE_DTL  D
+                           JOIN TRN_SALES_INVOICE_MST M ON M.INVOICE_NO = D.INVOICE_NO
+                     WHERE M.ORDER_NO = :P21_ORDER_NO;
+                
                 
                     ------------------------------------------------
                     -- Update Order Status
                     ------------------------------------------------
                 
-                    SELECT NVL(SUM(BASE_QTY),0)
-                    INTO v_total_order
-                    FROM TRN_SALES_ORDER_DTL
-                    WHERE ORDER_NO=:P21_ORDER_NO;
-                
-                    SELECT NVL(SUM(D.BASE_QTY),0)
-                    INTO v_total_invoice
-                    FROM TRN_SALES_INVOICE_DTL D
-                         JOIN TRN_SALES_INVOICE_MST M
-                           ON M.INVOICE_NO=D.INVOICE_NO
-                    WHERE M.ORDER_NO=:P21_ORDER_NO;
-                
                     UPDATE TRN_SALES_ORDER_MST
                        SET ORDER_STATUS =
-                           CASE
-                               WHEN v_total_invoice = 0 THEN 'P'
-                               WHEN v_total_invoice < v_total_order THEN 'PI'
-                               ELSE 'I'
-                           END,
-                           UPDATED_BY=:APP_USER,
-                           UPDATED_DATE=SYSDATE
-                     WHERE ORDER_NO=:P21_ORDER_NO;
+                               CASE
+                                   WHEN V_TOTAL_INVOICE = 0 THEN 'P'
+                                   WHEN V_TOTAL_INVOICE < V_TOTAL_ORDER THEN 'PI'
+                                   ELSE 'I'
+                               END,
+                           UPDATED_BY = :APP_USER,
+                           UPDATED_DATE = SYSDATE
+                     WHERE ORDER_NO = :P21_ORDER_NO;
                 
+                
+                    APEX_APPLICATION.g_print_success_message :=
+                        'Invoice details saved successfully.';
+                EXCEPTION
+                    WHEN OTHERS
+                    THEN
+                        RAISE_APPLICATION_ERROR (-20001, SQLERRM);
                 END;
                 ```
         }
@@ -2106,107 +2202,56 @@ page 21 (
                 DECLARE
                     V_DATA CLOB;
                 BEGIN
-                
                     SELECT JSON_ARRAYAGG(
                              JSON_OBJECT(
-                
                                'ORDER_DTL_NO' VALUE D.ORDER_DTL_NO,
-                
                                'PRODUCT_NO' VALUE D.PRODUCT_NO,
-                
                                'PRODUCT_CODE' VALUE P.PRODUCT_CODE,
-                
                                'PRODUCT_NAME' VALUE P.PRODUCT_NAME,
-                
                                'UOM_NO' VALUE D.UOM_NO,
-                
                                'PACK_QTY' VALUE D.PACK_QTY,
-                
                                'BASE_QTY' VALUE D.BASE_QTY,
-                
                                'BASE_RATE' VALUE D.BASE_RATE,
-                
                                'ORDER_QTY' VALUE D.ORDER_QTY,
                 
-                               'PREVIOUS_INVOICE_QTY' VALUE NVL
-                               (
-                                   (
-                                       SELECT SUM(I.SALES_QTY)
-                                         FROM TRN_SALES_INVOICE_DTL I
-                                        WHERE I.ORDER_DTL_NO=D.ORDER_DTL_NO
-                                   ),
-                                   0
-                               ),
+                               'PREVIOUS_INVOICE_QTY' VALUE NVL(X.INVOICED_QTY, 0),
                 
                                'BALANCE_QTY' VALUE
-                               (
-                                   D.ORDER_QTY-
-                                   NVL
-                                   (
-                                       (
-                                           SELECT SUM(I.SALES_QTY)
-                                             FROM TRN_SALES_INVOICE_DTL I
-                                            WHERE I.ORDER_DTL_NO=D.ORDER_DTL_NO
-                                       ),
-                                       0
-                                   )
-                               ),
+                                   D.ORDER_QTY - NVL(X.INVOICED_QTY, 0),
                 
                                'SALES_QTY' VALUE
-                               (
-                                   D.ORDER_QTY-
-                                   NVL
-                                   (
-                                       (
-                                           SELECT SUM(I.SALES_QTY)
-                                             FROM TRN_SALES_INVOICE_DTL I
-                                            WHERE I.ORDER_DTL_NO=D.ORDER_DTL_NO
-                                       ),
-                                       0
-                                   )
-                               ),
+                                   D.ORDER_QTY - NVL(X.INVOICED_QTY, 0),
                 
                                'SALES_RATE' VALUE D.SALES_RATE,
                 
-                               'TOTAL_AMOUNT' VALUE
-                               (
-                                   (
-                                       D.ORDER_QTY-
-                                       NVL
-                                       (
-                                           (
-                                               SELECT SUM(I.SALES_QTY)
-                                                 FROM TRN_SALES_INVOICE_DTL I
-                                                WHERE I.ORDER_DTL_NO=D.ORDER_DTL_NO
-                                           ),
-                                           0
-                                       )
-                                   )*D.SALES_RATE
-                               )
+                               'DISCOUNT_PERCENT' VALUE
+                                   NVL(D.DISCOUNT_PERCENT, 0),
                 
-                             ) RETURNING CLOB
+                               'DISCOUNT_AMOUNT' VALUE
+                                   NVL(D.DISCOUNT_AMOUNT, 0),
+                
+                               'TOTAL_AMOUNT' VALUE
+                                   NVL(D.TOTAL_AMOUNT, 0)
+                
+                             RETURNING CLOB)
+                           RETURNING CLOB
                            )
                     INTO V_DATA
                     FROM TRN_SALES_ORDER_DTL D
                          JOIN MST_PRODUCT P
-                           ON P.PRODUCT_NO=D.PRODUCT_NO
-                   WHERE D.ORDER_NO=APEX_APPLICATION.G_X01
-                     AND
-                     (
-                        D.ORDER_QTY-
-                        NVL
-                        (
-                            (
-                                SELECT SUM(I.SALES_QTY)
-                                  FROM TRN_SALES_INVOICE_DTL I
-                                 WHERE I.ORDER_DTL_NO=D.ORDER_DTL_NO
-                            ),
-                            0
-                        )
-                     )>0;
+                           ON P.PRODUCT_NO = D.PRODUCT_NO
+                         LEFT JOIN
+                         (
+                             SELECT ORDER_DTL_NO,
+                                    SUM(SALES_QTY) AS INVOICED_QTY
+                               FROM TRN_SALES_INVOICE_DTL
+                              GROUP BY ORDER_DTL_NO
+                         ) X
+                           ON X.ORDER_DTL_NO = D.ORDER_DTL_NO
+                   WHERE D.ORDER_NO = APEX_APPLICATION.G_X01
+                     AND D.ORDER_QTY - NVL(X.INVOICED_QTY, 0) > 0;
                 
-                    HTP.PRN(NVL(V_DATA,'[]'));
-                
+                    HTP.PRN(NVL(V_DATA, '[]'));
                 END;
                 ```
         }

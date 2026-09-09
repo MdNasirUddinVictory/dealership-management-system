@@ -1,0 +1,584 @@
+page 206 (
+    name: Supplier Balance Report
+    alias: SUPPLIER-BALANCE-REPORT
+    title: Supplier Balance Report
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb-2 (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 30
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region sales-report (
+        name: Supplier Account Statement
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                /* Formatted on 9/6/2026 11:31:34 AM (QP5 v5.388) */
+                WITH
+                    LEDGER_ENTRIES
+                    AS
+                        (/* Purchase = Credit / Payable */
+                         SELECT P.PURCHASE_DATE             AS TXN_DATE,
+                                P.PURCHASE_NO               AS DOCUMENT_NO,
+                                P.PURCHASE_CODE             AS DOCUMENT_CODE,
+                                P.SUPPLIER_NO,
+                                S.SUPPLIER_NAME,
+                                'PURCHASE'                  AS TRANSACTION_TYPE,
+                                0                           AS DEBIT_AMOUNT,
+                                NVL (P.TOTAL_AMOUNT, 0)     AS CREDIT_AMOUNT
+                           FROM TRN_PURCHASE_MST  P
+                                JOIN MST_SUPPLIER S ON S.SUPPLIER_NO = P.SUPPLIER_NO
+                          WHERE     P.APPROVAL_STATUS = 'A'
+                                AND (   :P206_SUPPLIER IS NULL
+                                     OR P.SUPPLIER_NO = :P206_SUPPLIER)
+                         UNION ALL
+                           /* Supplier Payment = Debit */
+                           SELECT T.TRANSACTION_DATE                   AS TXN_DATE,
+                                  T.TRANSACTION_NO                     AS DOCUMENT_NO,
+                                  T.TRANSACTION_CODE                   AS DOCUMENT_CODE,
+                                  T.PARTY_NO                           AS SUPPLIER_NO,
+                                  S.SUPPLIER_NAME,
+                                  'PAYMENT'                            AS TRANSACTION_TYPE,
+                                  NVL (SUM (D.ALLOCATE_AMOUNT), 0)     AS DEBIT_AMOUNT,
+                                  0                                    AS CREDIT_AMOUNT
+                             FROM TRN_TRANSACTION_MST T
+                                  JOIN TRN_TRANSACTION_DTL D
+                                      ON D.TRANSACTION_NO = T.TRANSACTION_NO
+                                  JOIN MST_SUPPLIER S ON S.SUPPLIER_NO = T.PARTY_NO
+                            WHERE     T.TRANSACTION_TYPE = 'P'
+                                  AND T.APPROVAL_STATUS = 'A'
+                                  AND D.REF_TYPE = 'PURCHASE'
+                                  AND ( :P206_SUPPLIER IS NULL OR T.PARTY_NO = :P206_SUPPLIER)
+                         GROUP BY T.TRANSACTION_DATE,
+                                  T.TRANSACTION_NO,
+                                  T.TRANSACTION_CODE,
+                                  T.PARTY_NO,
+                                  S.SUPPLIER_NAME),
+                    OPENING_BALANCE
+                    AS
+                        (  SELECT SUPPLIER_NO,
+                                  SUM (CREDIT_AMOUNT) - SUM (DEBIT_AMOUNT)    AS OPENING_BALANCE
+                             FROM LEDGER_ENTRIES
+                            WHERE TXN_DATE < TO_DATE ( :P206_FROM_DATE, 'MM/DD/YYYY')
+                         GROUP BY SUPPLIER_NO),
+                    PERIOD_ENTRIES
+                    AS
+                        (SELECT *
+                           FROM LEDGER_ENTRIES
+                          WHERE     TXN_DATE >= TO_DATE ( :P206_FROM_DATE, 'MM/DD/YYYY')
+                                AND TXN_DATE < TO_DATE ( :P206_T0_DATE, 'MM/DD/YYYY') + 1)
+                  SELECT P.TXN_DATE,
+                         P.DOCUMENT_NO,
+                         P.DOCUMENT_CODE,
+                         P.SUPPLIER_NO,
+                         P.SUPPLIER_NAME,
+                         P.TRANSACTION_TYPE,
+                         NVL (O.OPENING_BALANCE, 0)                                       AS OPENING_BALANCE,
+                         P.DEBIT_AMOUNT,
+                         P.CREDIT_AMOUNT,
+                           NVL (O.OPENING_BALANCE, 0)
+                         + SUM (P.CREDIT_AMOUNT - P.DEBIT_AMOUNT)
+                               OVER (PARTITION BY P.SUPPLIER_NO
+                                     ORDER BY P.TXN_DATE, P.DOCUMENT_NO
+                                     ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)    AS RUNNING_BALANCE
+                    FROM PERIOD_ENTRIES P
+                         LEFT JOIN OPENING_BALANCE O ON O.SUPPLIER_NO = P.SUPPLIER_NO
+                ORDER BY P.SUPPLIER_NO, P.TXN_DATE, P.DOCUMENT_NO;
+                ```
+            pageItemsToSubmit: [
+                P206_FROM_DATE
+                P206_T0_DATE
+                P206_SUPPLIER
+            ]
+        }
+        layout {
+            sequence: 40
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 36154787696190904
+        }
+
+        column CREDIT_AMOUNT (
+            type: plainText
+            heading {
+                heading: Purchase Amount
+                alignment: end
+            }
+            layout {
+                sequence: 90
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AL
+            }
+        )
+
+        column DEBIT_AMOUNT (
+            type: plainText
+            heading {
+                heading: Paid Amount
+                alignment: end
+            }
+            layout {
+                sequence: 80
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AK
+            }
+        )
+
+        column DOCUMENT_CODE (
+            type: plainText
+            heading {
+                heading: Purchase No
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: AG
+            }
+        )
+
+        column DOCUMENT_NO (
+            type: plainText
+            heading {
+                heading: Document No
+                alignment: end
+            }
+            layout {
+                sequence: 20
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AF
+            }
+        )
+
+        column OPENING_BALANCE (
+            type: plainText
+            heading {
+                heading: Previous Balance
+                alignment: end
+            }
+            layout {
+                sequence: 70
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AJ
+            }
+        )
+
+        column RUNNING_BALANCE (
+            type: plainText
+            heading {
+                heading: Balance Due
+                alignment: end
+            }
+            layout {
+                sequence: 100
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AM
+            }
+        )
+
+        column SUPPLIER_NAME (
+            type: plainText
+            heading {
+                heading: Supplier Name
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: AO
+            }
+        )
+
+        column SUPPLIER_NO (
+            type: plainText
+            heading {
+                heading: Supplier No
+                alignment: end
+            }
+            layout {
+                sequence: 10
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AN
+            }
+        )
+
+        column TRANSACTION_TYPE (
+            type: plainText
+            heading {
+                heading: Transaction
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: AI
+            }
+        )
+
+        column TXN_DATE (
+            type: plainText
+            heading {
+                heading: Date
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: AE
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn CREDIT_AMOUNT (
+                sequence: 5
+            )
+
+            displayColumn DEBIT_AMOUNT (
+                sequence: 6
+            )
+
+            displayColumn DOCUMENT_CODE (
+                sequence: 1
+            )
+
+            displayColumn OPENING_BALANCE (
+                sequence: 7
+            )
+
+            displayColumn RUNNING_BALANCE (
+                sequence: 8
+            )
+
+            displayColumn SUPPLIER_NAME (
+                sequence: 2
+            )
+
+            displayColumn TRANSACTION_TYPE (
+                sequence: 3
+            )
+
+            displayColumn TXN_DATE (
+                sequence: 4
+            )
+
+        )
+
+    )
+
+    pageItem P206_FROM_DATE (
+        type: datePicker
+        label {
+            label: From Date
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            slot: body
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+    )
+
+    pageItem P206_SUPPLIER (
+        type: popupLov
+        label {
+            label: Supplier Name
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-12-supplier
+            displayExtraValues: false
+        }
+        layout {
+            sequence: 30
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+    )
+
+    pageItem P206_T0_DATE (
+        type: datePicker
+        label {
+            label: To Date
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 206
+                clearCache: 12
+                action: clearRegions
+            }
+        }
+        advanced {
+            htmlDomId: pb-reset
+            customAttributes: disabled
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    dynamicAction new (
+        name: New
+        execution {
+            sequence: 10
+        }
+        when {
+            selectionType: items
+            items: [
+                P206_FROM_DATE
+                P206_T0_DATE
+                P206_SUPPLIER
+            ]
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @sales-report
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)
+

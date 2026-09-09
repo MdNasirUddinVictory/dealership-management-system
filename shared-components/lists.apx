@@ -4,57 +4,82 @@ list database-menu-access (
         type: sqlQuery
         sqlQuery:
             ```sql
+            WITH ROLE_ACCESS AS (
+                SELECT S.SUBMENU_NO,
+                       S.SUBMENU_ID,
+                       S.MENU_NO,
+                       S.SUBMENU_NAME,
+                       S.APEX_PAGE_NO,
+                       S.SUBMENU_TYPE,
+                       S.HIDE_FROM_MENU,
+                       S.SL_NO
+                FROM SA_USER U
+                JOIN SA_GRANTOBJECT G
+                  ON G.ROLE_NO = U.ROLE_NO
+                 AND G.CAN_VIEW = 1
+                 AND G.ACTIVE_FLAG = 1
+                JOIN SA_SUBMENU S
+                  ON S.SUBMENU_NO = G.SUBMENU_NO
+                WHERE U.USER_NO = :G_USER_NO
+                  AND S.HIDE_FROM_MENU = 0
+                  AND S.ACTIVE_FLAG = 1
+                  AND S.SUBMENU_TYPE IN ('F', 'R')
+            )
             SELECT LEVEL,
-                   OBJECT_NAME              LABEL,
+                   OBJECT_NAME AS LABEL,
                    CASE
-                       WHEN CONNECT_BY_ISLEAF = 1
-                       THEN
+                       WHEN CONNECT_BY_ISLEAF = 1 THEN
                               'f?p=&APP_ID.:'
-                           || RAW_PAGE_NO          -- actual page number for URL
+                           || RAW_PAGE_NO
                            || ':&APP_SESSION.:::'
-                           || RAW_CHILD_ITEM       -- original child item
-                   END                      TARGET,
-                   (DECODE (LEVEL,
-                            1, DECODE (PARENT_ITEM, '0', CHILD_ITEM, PARENT_ITEM),
-                            2, CHILD_ITEM,
-                            CHILD_ITEM))    VALUE,
-                   'fa fa-cube'             IMAGE,
+                           || RAW_CHILD_ITEM
+                   END AS TARGET,
+                   CASE
+                       WHEN LEVEL = 1
+                       THEN DECODE(PARENT_ITEM, '0', CHILD_ITEM, PARENT_ITEM)
+                       ELSE CHILD_ITEM
+                   END AS VALUE,
+                   'fa fa-cube' AS IMAGE,
                    OBJECT_ID,
                    PARENT_ITEM,
                    CHILD_ITEM
-              FROM (
-                    -- SUBMENU rows
-                    SELECT TO_CHAR (UDT.MENU_NO)                        PARENT_ITEM,
-                           'P_' || TO_CHAR (UDT.APEX_PAGE_NO)          CHILD_ITEM,   -- prefix P_
-                           TO_CHAR (UDT.APEX_PAGE_NO)                  RAW_PAGE_NO,
-                           'P_' || TO_CHAR (UDT.APEX_PAGE_NO)          RAW_CHILD_ITEM,
-                           UDT.SUBMENU_NAME                             OBJECT_NAME,
-                           (F_MODULE_SL (UDT.MENU_NO) + (NVL (UDT.SL_NO, 0.01) / 100))
-                                                                        DISPLAY_ORDER,
-                           SUBMENU_ID                                   OBJECT_ID,
-                           SL_NO
-                      FROM SA_USER_ACCESS_CTRL_V UDT
-                     WHERE     UDT.USER_NO    = :G_USER_NO
-                           AND UDT.HIDE_FROM_MENU = 0
-                           AND UDT.SUBMENU_TYPE IN ('F', 'R')
-                    UNION ALL
-                    -- MENU rows
-                    SELECT TO_CHAR (DECODE (M.PARENT_MENU_NO, NULL, 0, M.PARENT_MENU_NO))
-                                                                        PARENT_ITEM,
-                           TO_CHAR (M.MENU_NO)                         CHILD_ITEM,   -- no prefix (M_ optional)
-                           NULL                                        RAW_PAGE_NO,
-                           TO_CHAR (M.MENU_NO)                         RAW_CHILD_ITEM,
-                           M.MENU_NAME                                 OBJECT_NAME,
-                           F_MODULE_SL (M.MENU_NO)                     DISPLAY_ORDER,
-                           MENU_ID                                     OBJECT_ID,
-                           SL_NO
-                      FROM SA_MENU M
-                     WHERE     M.ACTIVE_FLAG = 1
-                           AND F_SHOW_MODULE (M.MENU_NO, :G_USER_NO, NULL) = 'Y'
-                   )
-             START WITH PARENT_ITEM = '0'
-             CONNECT BY PRIOR CHILD_ITEM = PARENT_ITEM
-             ORDER SIBLINGS BY SL_NO;
+            FROM (
+                /* Role allowed submenu/page */
+                SELECT TO_CHAR(R.MENU_NO) AS PARENT_ITEM,
+                       'P_' || TO_CHAR(R.APEX_PAGE_NO) AS CHILD_ITEM,
+                       TO_CHAR(R.APEX_PAGE_NO) AS RAW_PAGE_NO,
+                       'P_' || TO_CHAR(R.APEX_PAGE_NO) AS RAW_CHILD_ITEM,
+                       R.SUBMENU_NAME AS OBJECT_NAME,
+                       F_MODULE_SL(R.MENU_NO)
+                         + (NVL(R.SL_NO, 0.01) / 100) AS DISPLAY_ORDER,
+                       R.SUBMENU_ID AS OBJECT_ID,
+                       R.SL_NO
+                FROM ROLE_ACCESS R
+            
+                UNION ALL
+            
+                /* Parent menu যার অধীনে role allowed page আছে */
+                SELECT TO_CHAR(
+                           DECODE(M.PARENT_MENU_NO, NULL, 0, M.PARENT_MENU_NO)
+                       ) AS PARENT_ITEM,
+                       TO_CHAR(M.MENU_NO) AS CHILD_ITEM,
+                       NULL AS RAW_PAGE_NO,
+                       TO_CHAR(M.MENU_NO) AS RAW_CHILD_ITEM,
+                       M.MENU_NAME AS OBJECT_NAME,
+                       F_MODULE_SL(M.MENU_NO) AS DISPLAY_ORDER,
+                       M.MENU_ID AS OBJECT_ID,
+                       M.SL_NO
+                FROM SA_MENU M
+                WHERE M.ACTIVE_FLAG = 1
+                  AND EXISTS (
+                      SELECT 1
+                      FROM ROLE_ACCESS R
+                      WHERE R.MENU_NO = M.MENU_NO
+                  )
+            )
+            START WITH PARENT_ITEM = '0'
+            CONNECT BY PRIOR CHILD_ITEM = PARENT_ITEM
+            ORDER SIBLINGS BY SL_NO;
             ```
     }
 )

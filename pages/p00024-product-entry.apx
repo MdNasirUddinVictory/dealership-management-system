@@ -491,6 +491,7 @@ page 24 (
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
@@ -532,6 +533,7 @@ page 24 (
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30

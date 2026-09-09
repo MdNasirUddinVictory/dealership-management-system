@@ -518,6 +518,7 @@ page 16 (
             displayColumn (
                 column: @PURCHASE_CODE
                 layout {
+                    width: 105
                     sequence: 1
                 }
             )
@@ -525,6 +526,7 @@ page 16 (
             displayColumn (
                 column: @PURCHASE_DATE
                 layout {
+                    width: 101
                     sequence: 2
                 }
             )
@@ -532,6 +534,7 @@ page 16 (
             displayColumn (
                 column: @SUPPLIER_NAME
                 layout {
+                    width: 202
                     sequence: 3
                 }
             )
@@ -1065,7 +1068,19 @@ page 16 (
                            APPROVED_BY = :APP_USER,
                            APPROVED_DATE = SYSDATE
                      WHERE PURCHASE_NO = APEX_APPLICATION.G_X01;
-                
+                       ------------------------------------------------
+                                    -- Update the latest purchase rate after approval
+                                    ------------------------------------------------
+                                    FOR r IN (SELECT PRODUCT_NO, PURCHASE_RATE
+                                                FROM TRN_PURCHASE_DTL
+                                               WHERE PURCHASE_NO = APEX_APPLICATION.G_X01)
+                                    LOOP
+                                        UPDATE MST_PRODUCT
+                                           SET PURCHASE_RATE = r.PURCHASE_RATE,
+                                               UPDATED_BY = :APP_USER,
+                                               UPDATED_DATE = SYSDATE
+                                         WHERE PRODUCT_NO = r.PRODUCT_NO;
+                                    END LOOP;
                     ------------------------------------------------
                     -- Stock Ledger Posting
                     ------------------------------------------------

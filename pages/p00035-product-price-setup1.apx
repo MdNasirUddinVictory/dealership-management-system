@@ -1,0 +1,711 @@
+page 35 (
+    name: Product Price Setup
+    alias: PRODUCT-PRICE-SETUP1
+    title: Product Price Setup
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/modal-dialog
+        templateOptions: #DEFAULT#
+    }
+    dialog {
+        width: 60%
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: dialogHeader
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region register (
+        name: PRICE SETUP
+        type: form
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT sp.SALES_PRICE_NO,
+                       sp.PRODUCT_NO,
+                       p.PURCHASE_RATE,
+                       sp.UOM_NO,
+                       sp.SALES_RATE,
+                       sp.EFFECTIVE_DATE,
+                       sp.ACTIVE_FLAG,
+                       sp.CREATED_BY,
+                       sp.CREATED_DATE,
+                       sp.UPDATED_BY,
+                       sp.UPDATED_DATE
+                  FROM MST_SALES_PRICE sp
+                  JOIN MST_PRODUCT p
+                    ON p.PRODUCT_NO = sp.PRODUCT_NO;
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: contentBody
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--removeHeader js-removeLandmark
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        advanced {
+            htmlDomId: purchase-register
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+    )
+
+    pageItem P35_ACTIVE_FLAG (
+        type: radioGroup
+        label {
+            label: Active Flag
+            alignment: left
+        }
+        settings {
+            noOfCols: 2
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:Active;1,Inactive;0
+            displayExtraValues: false
+            displayNullValue: false
+        }
+        layout {
+            sequence: 50
+            region: @register
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
+                t-Form-fieldContainer--slimPadding
+            ]
+        }
+        source {
+            formRegion: @register
+            column: ACTIVE_FLAG
+            dataType: varchar2
+        }
+        default {
+            type: static
+            staticValue: 1
+        }
+    )
+
+    pageItem P35_CREATED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 60
+            region: @register
+            slot: regionBody
+        }
+        source {
+            formRegion: @register
+            column: CREATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P35_CREATED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 70
+            region: @register
+            slot: regionBody
+        }
+        source {
+            formRegion: @register
+            column: CREATED_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P35_EFFECTIVE_DATE (
+        type: datePicker
+        label {
+            label: Effective Date
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @register
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @register
+            column: EFFECTIVE_DATE
+            dataType: date
+        }
+        default {
+            type: expression
+            plsqlExpression: SYSDATE
+        }
+    )
+
+    pageItem P35_PRODUCT_NO (
+        type: popupLov
+        label {
+            label: Product Name
+            alignment: left
+        }
+        settings {
+            popupWidth: 500
+            additionalOutputs: UOM_NO:P35_UOM_NO,PURCHASE_RATE:P35_PURCHASE_RATE
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-11-product
+            displayExtraValues: false
+        }
+        layout {
+            sequence: 10
+            region: @register
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @register
+            column: PRODUCT_NO
+            dataType: number
+        }
+    )
+
+    pageItem P35_PURCHASE_RATE (
+        type: numberField
+        label {
+            label: Purchase Rate
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @register
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        advanced {
+            customAttributes: readonly
+        }
+        source {
+            formRegion: @register
+            column: PURCHASE_RATE
+            dataType: number
+        }
+    )
+
+    pageItem P35_SALES_PRICE_NO (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 10
+            region: @register
+            slot: regionBody
+        }
+        source {
+            formRegion: @register
+            column: SALES_PRICE_NO
+            dataType: number
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P35_SALES_RATE (
+        type: numberField
+        label {
+            label: Sales Rate
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @register
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @register
+            column: SALES_RATE
+            dataType: number
+        }
+    )
+
+    pageItem P35_UOM_NO (
+        type: selectList
+        label {
+            label: UOM
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT U.UOM_NAME AS DISPLAY_VALUE, U.UOM_NO AS RETURN_VALUE
+                  FROM MST_PRODUCT P JOIN MST_UOM U ON U.UOM_NO = P.UOM_NO
+                 WHERE     P.PRODUCT_NO = :P35_PRODUCT_NO
+                       AND P.ACTIVE_FLAG = '1'
+                       AND U.ACTIVE_FLAG = '1'
+                UNION
+                SELECT U.UOM_NAME AS DISPLAY_VALUE, U.UOM_NO AS RETURN_VALUE
+                  FROM MST_UOM_CONVERSION C JOIN MST_UOM U ON U.UOM_NO = C.CONVERT_UOM_NO
+                 WHERE     C.PRODUCT_NO = :P35_PRODUCT_NO
+                       AND C.ACTIVE_FLAG = '1'
+                       AND U.ACTIVE_FLAG = '1'
+                ORDER BY DISPLAY_VALUE;
+                ```
+            displayExtraValues: false
+            displayNullValue: false
+        }
+        cascadingLov {
+            parentItems: P35_PRODUCT_NO
+            itemsToSubmit: P35_PRODUCT_NO
+        }
+        layout {
+            sequence: 10
+            region: @register
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
+                t-Form-fieldContainer--slimPadding
+            ]
+            height: 1
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @register
+            column: UOM_NO
+            dataType: number
+        }
+    )
+
+    pageItem P35_UPDATED_BY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 80
+            region: @register
+            slot: regionBody
+        }
+        source {
+            formRegion: @register
+            column: UPDATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P35_UPDATED_DATE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 90
+            region: @register
+            slot: regionBody
+        }
+        source {
+            formRegion: @register
+            column: UPDATED_DATE
+            dataType: date
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 50
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P35_SALES_PRICE_NO
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 35
+                clearCache: 35
+                action: clearRegions
+            }
+        }
+        advanced {
+            htmlDomId: pb-reset
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+        }
+        serverSideCondition {
+            type: itemIsNull
+            item: P35_SALES_PRICE_NO
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 40
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P35_SALES_PRICE_NO
+        }
+    )
+
+    process delete (
+        name: DELETE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                    DELETE FROM MST_SALES_PRICE
+                     WHERE SALES_PRICE_NO = :P35_SALES_PRICE_NO;
+                
+                    apex_application.g_print_success_message :=
+                        'Sales price deleted successfully.';
+                END;
+                ```
+        }
+        execution {
+            sequence: 30
+        }
+        advanced {
+            executionMappingIdentifier: 15308738227803518
+        }
+        serverSideCondition {
+            whenButtonPressed: @delete
+        }
+    )
+
+    process initialize-form-product-price-setup (
+        name: Initialize form Product Price Setup
+        type: formInitialization
+        formRegion: @register
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+        advanced {
+            executionMappingIdentifier: 15307498817803505
+        }
+    )
+
+    process process-form-price-setup (
+        name: Process form PRICE SETUP
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    l_purchase_rate MST_PRODUCT.PURCHASE_RATE%TYPE;
+                BEGIN
+                    SELECT PURCHASE_RATE
+                      INTO l_purchase_rate
+                      FROM MST_PRODUCT
+                     WHERE PRODUCT_NO = :P35_PRODUCT_NO;
+                
+                    IF :P35_SALES_RATE < l_purchase_rate THEN
+                        raise_application_error(
+                            -20001,
+                            'Sales rate cannot be less than purchase rate.'
+                        );
+                    END IF;
+                
+                    INSERT INTO MST_SALES_PRICE (
+                        SALES_PRICE_NO,
+                        PRODUCT_NO,
+                        UOM_NO,
+                        SALES_RATE,
+                        EFFECTIVE_DATE,
+                        ACTIVE_FLAG,
+                        CREATED_BY,
+                        CREATED_DATE
+                    )
+                    VALUES (
+                        SEQ_SALES_PRICE.NEXTVAL,
+                        :P35_PRODUCT_NO,
+                        :P35_UOM_NO,
+                        :P35_SALES_RATE,
+                        NVL(:P35_EFFECTIVE_DATE, SYSDATE),
+                        '1',
+                        :APP_USER,
+                        SYSDATE
+                    );
+                
+                    apex_application.g_print_success_message :=
+                        'New sales price saved successfully.';
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+        successMessage {
+            successMessage:
+                ```
+                
+                
+                ```
+        }
+        error {
+            errorMessage: #SQLERRM_TEXT#
+        }
+        advanced {
+            executionMappingIdentifier: 15308618574803517
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+    process update (
+        name: UPDATE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                  DECLARE
+                    l_purchase_rate NUMBER;
+                BEGIN
+                    SELECT PURCHASE_RATE
+                      INTO l_purchase_rate
+                      FROM MST_PRODUCT
+                     WHERE PRODUCT_NO = :P35_PRODUCT_NO;
+                
+                    IF :P35_SALES_RATE < l_purchase_rate THEN
+                        raise_application_error(
+                            -20001,
+                            'Sales rate cannot be less than purchase rate.'
+                        );
+                    END IF;
+                
+                    
+                    UPDATE MST_SALES_PRICE
+                           SET PRODUCT_NO     = :P35_PRODUCT_NO,
+                               UOM_NO         = :P35_UOM_NO,
+                               SALES_RATE     = :P35_SALES_RATE,
+                               EFFECTIVE_DATE = :P35_EFFECTIVE_DATE,
+                               ACTIVE_FLAG    = :P35_ACTIVE_FLAG,
+                               UPDATED_BY     = :APP_USER,
+                               UPDATED_DATE   = SYSDATE
+                         WHERE SALES_PRICE_NO = :P35_SALES_PRICE_NO;
+                
+                        apex_application.g_print_success_message :=
+                            'Sales price updated successfully.';
+                
+                END;
+                  
+                  
+                ```
+        }
+        execution {
+            sequence: 20
+        }
+        advanced {
+            executionMappingIdentifier: 15308949070803520
+        }
+    )
+
+)
+

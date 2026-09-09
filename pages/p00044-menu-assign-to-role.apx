@@ -1,0 +1,1575 @@
+page 44 (
+    name: Menu Assign To Role
+    alias: MENU-ASSIGN-TO-ROLE
+    title: Menu Assign To Role
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            function grantObject() {
+                var roleNo = $v('P44_ROLE_NO');
+                var submenuNo = $v('P44_SUBMENU_NO');
+            
+                if (!roleNo) {
+                    apex.message.alert('Please select a role.');
+                    return;
+                }
+            
+                if (!submenuNo) {
+                    apex.message.alert('Please select at least one page.');
+                    return;
+                }
+            
+                apex.server.process(
+                    'AJX_GRANT_OBJ',
+                    {
+                        x01: roleNo,       // ROLE_NO
+                        x02: submenuNo     // SUBMENU_NO
+                    },
+                    {
+                        success: function (pData) {
+                            console.log(pData);
+            
+                            if (String(pData.stat) === '200') {
+                                apex.message.showPageSuccess(
+                                    pData.message || 'Role permission inserted successfully.'
+                                );
+            
+                                apex.region('object').refresh();
+                                apex.region('submenu').refresh();
+                            } else {
+                                apex.message.showErrors([
+                                    {
+                                        type: 'error',
+                                        location: 'page',
+                                        message: pData.message || 'Role permission insert failed.',
+                                        unsafe: false
+                                    }
+                                ]);
+                            }
+                        },
+            
+                        error: function (jqXHR, textStatus, errorThrown) {
+                            console.log(jqXHR.responseText);
+            
+                            apex.message.showErrors([
+                                {
+                                    type: 'error',
+                                    location: 'page',
+                                    message: errorThrown || 'Something went wrong.',
+                                    unsafe: false
+                                }
+                            ]);
+                        },
+            
+                        dataType: 'json'
+                    }
+                );
+            }
+            ```
+    }
+    css {
+        inline:
+            ```css
+            div#userpermission .t-Region-header {
+                height: 35px;
+                /* line-height: 28px; */
+            }
+            
+            #userpermission_heading{
+                text-align: center;
+                font-weight: 700;
+            }
+            
+            #userperm{
+              font-size: x-large;
+                color: #b90b0b;
+                font-weight: 700;
+                font-synthesis-small-caps: revert-layer;
+                font-synthesis-style: none;  
+            }
+            
+            
+            ```
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb-2 (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 50
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region div-id-userperm-class-fa-fa-pencile-user-wise-menu-permission-div (
+        name: "<div id=\"userperm\"class=\"fa fa-pencile\">User Wise Menu Permission</div> "
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--removeHeader js-removeLandmark
+                t-Region--scrollBody
+                t-Form--slimPadding
+                t-Form--stretchInputs
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        advanced {
+            htmlDomId: userpermission
+        }
+    )
+
+    region grand-object (
+        name: GRAND-OBJECT
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select M.GR_OBJECT_NO,
+                       M.SUBMENU_NO,
+                       U.ROLE_NAME,
+                       M.CAN_VIEW,
+                       M.CAN_MODIFY,
+                       M.CAN_REMOVE,
+                       M.CAN_SHARE,
+                       M.CAN_CREATE,
+                       M.ROLE_NO,
+                       SM.SUBMENU_NAME
+                  from SA_GRANTOBJECT M,SA_ROLE U,SA_SUBMENU SM
+                  WHERE M.ROLE_NO = U.ROLE_NO(+)
+                  AND M.SUBMENU_NO = SM.SUBMENU_NO(+)
+                ```
+        }
+        layout {
+            sequence: 40
+            parentRegion: @div-id-userperm-class-fa-fa-pencile-user-wise-menu-permission-div
+            slot: subRegions
+            startNewRow: false
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        masterDetail {
+            masterRegion: @user
+        }
+        advanced {
+            htmlDomId: object
+        }
+        edit {
+            enabled: true
+            allowedOperations: delete
+        }
+        componentAppearance {
+            selectFirstRow: false
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                saveButton
+            ]
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
+        }
+        heading {
+            fixedTo: region
+            fixedReportHeight: 450
+        }
+        advanced {
+            savedReportMappingIdentifier: 24081155353870728888
+        }
+
+        savedReport primary (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @ROLE_NO
+                layout {
+                    sequence: 11
+                }
+            )
+
+            displayColumn (
+                column: @ROLE_NAME
+                layout {
+                    width: 109
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @GR_OBJECT_NO
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @SUBMENU_NO
+                layout {
+                    show: false
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @CAN_VIEW
+                layout {
+                    width: 56
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @CAN_MODIFY
+                layout {
+                    width: 57
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @CAN_REMOVE
+                layout {
+                    width: 69
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @CAN_SHARE
+                layout {
+                    show: false
+                    width: 56
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @CAN_CREATE
+                layout {
+                    show: false
+                    sequence: 10
+                }
+            )
+
+            displayColumn (
+                column: @SUBMENU_NAME
+                layout {
+                    width: 178
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+        )
+
+        column APEX$ROW_ACTION (
+            type: actionsMenu
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 10
+            }
+        )
+
+        column CAN_CREATE (
+            type: checkbox
+            heading {
+                heading: Create
+                alignment: center
+            }
+            settings {
+                useDefaults: false
+                checkedValue: 1
+                uncheckedValue: 0
+            }
+            layout {
+                sequence: 100
+                columnAlignment: center
+            }
+            source {
+                databaseColumn: CAN_CREATE
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column CAN_MODIFY (
+            type: checkbox
+            heading {
+                heading: Modify
+                alignment: center
+            }
+            settings {
+                useDefaults: false
+                checkedValue: 1
+                uncheckedValue: 0
+            }
+            layout {
+                sequence: 70
+                columnAlignment: center
+            }
+            source {
+                databaseColumn: CAN_MODIFY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column CAN_REMOVE (
+            type: checkbox
+            heading {
+                heading: Remove
+                alignment: center
+            }
+            settings {
+                useDefaults: false
+                checkedValue: 1
+                uncheckedValue: 0
+            }
+            layout {
+                sequence: 80
+                columnAlignment: center
+            }
+            source {
+                databaseColumn: CAN_REMOVE
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column CAN_SHARE (
+            type: checkbox
+            heading {
+                heading: Share
+                alignment: center
+            }
+            settings {
+                useDefaults: false
+                checkedValue: 1
+                uncheckedValue: 0
+            }
+            layout {
+                sequence: 90
+                columnAlignment: center
+            }
+            source {
+                databaseColumn: CAN_SHARE
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column CAN_VIEW (
+            type: checkbox
+            heading {
+                heading: View
+                alignment: center
+            }
+            settings {
+                useDefaults: false
+                checkedValue: 1
+                uncheckedValue: 0
+            }
+            layout {
+                sequence: 60
+                columnAlignment: center
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: CAN_VIEW
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column GR_OBJECT_NO (
+            type: hidden
+            layout {
+                sequence: 30
+            }
+            source {
+                databaseColumn: GR_OBJECT_NO
+                dataType: number
+                primaryKey: true
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column ROLE_NAME (
+            type: textField
+            heading {
+                heading: Role Name
+            }
+            layout {
+                sequence: 140
+            }
+            validation {
+                maxLength: 100
+            }
+            source {
+                databaseColumn: ROLE_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column ROLE_NO (
+            type: hidden
+            heading {
+                heading: Role No
+            }
+            layout {
+                sequence: 130
+            }
+            source {
+                databaseColumn: ROLE_NO
+                dataType: number
+            }
+            masterDetail {
+                masterColumn: @ROLE_NO
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column SUBMENU_NAME (
+            type: textField
+            heading {
+                heading: Submenu Name
+                alignment: center
+            }
+            layout {
+                sequence: 120
+            }
+            validation {
+                valueRequired: true
+                maxLength: 50
+            }
+            source {
+                databaseColumn: SUBMENU_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column SUBMENU_NO (
+            type: numberField
+            heading {
+                heading: Submenu No
+                alignment: end
+            }
+            layout {
+                sequence: 40
+                columnAlignment: end
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: SUBMENU_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    region submenu (
+        name: SUBMENU
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT 
+                  S.SUBMENU_NO,
+                  S.SUBMENU_ID,
+                  S.MENU_NO,
+                  S.SUBMENU_NAME,
+                  S.SUBMENU_TYPE,
+                  S.ACTIVE_FLAG,
+                  S.CAN_VIEW,
+                  S.CAN_MODIFY,
+                  S.CAN_REMOVE,
+                  S.CAN_CREATE
+                FROM SA_SUBMENU S
+                WHERE NOT EXISTS (
+                  SELECT 1 
+                  FROM SA_GRANTOBJECT G
+                  WHERE G.SUBMENU_NO = S.SUBMENU_NO
+                    AND G.ROLE_NO = TO_NUMBER(REGEXP_SUBSTR(:P44_ROLE_NO, '\d+'))
+                );
+                
+                ```
+            pageItemsToSubmit: P44_ROLE_NO
+        }
+        layout {
+            sequence: 30
+            parentRegion: @div-id-userperm-class-fa-fa-pencile-user-wise-menu-permission-div
+            slot: subRegions
+            startNewRow: false
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        advanced {
+            htmlDomId: submenu
+        }
+        edit {
+            enabled: true
+            allowedOperations: update
+        }
+        componentAppearance {
+            selectFirstRow: false
+            fixedRowHeight: false
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+            ]
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
+        }
+        heading {
+            fixedTo: region
+            fixedReportHeight: 450
+        }
+        advanced {
+            savedReportMappingIdentifier: 24066686446198716072
+        }
+
+        savedReport 79725536 (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @SUBMENU_NO
+                layout {
+                    show: false
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @CAN_VIEW
+                layout {
+                    width: 50
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @CAN_MODIFY
+                layout {
+                    width: 58
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @CAN_REMOVE
+                layout {
+                    width: 65
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @CAN_CREATE
+                layout {
+                    width: 65.475
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @ACTIVE_FLAG
+                layout {
+                    show: false
+                    width: 97.475
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @SUBMENU_ID
+                layout {
+                    width: 88.475
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @MENU_NO
+                layout {
+                    show: false
+                    sequence: 10
+                }
+            )
+
+            displayColumn (
+                column: @SUBMENU_NAME
+                layout {
+                    width: 202.05
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @SUBMENU_TYPE
+                layout {
+                    show: false
+                    sequence: 11
+                }
+            )
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    frozen: true
+                    sequence: 1
+                }
+            )
+
+        )
+
+        column ACTIVE_FLAG (
+            type: numberField
+            heading {
+                heading: Active Flag
+                alignment: end
+            }
+            layout {
+                sequence: 80
+                columnAlignment: end
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: ACTIVE_FLAG
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column APEX$ROW_ACTION (
+            type: hidden
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                type: none
+            }
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 10
+            }
+        )
+
+        column CAN_CREATE (
+            type: checkbox
+            heading {
+                heading: Create
+                alignment: center
+            }
+            settings {
+                useDefaults: false
+                checkedValue: 1
+                uncheckedValue: 0
+            }
+            layout {
+                sequence: 70
+                columnAlignment: center
+            }
+            source {
+                databaseColumn: CAN_CREATE
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column CAN_MODIFY (
+            type: checkbox
+            heading {
+                heading: Modify
+                alignment: center
+            }
+            settings {
+                useDefaults: false
+                checkedValue: 1
+                uncheckedValue: 0
+            }
+            layout {
+                sequence: 50
+                columnAlignment: center
+            }
+            source {
+                databaseColumn: CAN_MODIFY
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column CAN_REMOVE (
+            type: checkbox
+            heading {
+                heading: Remove
+                alignment: center
+            }
+            settings {
+                useDefaults: false
+                checkedValue: 1
+                uncheckedValue: 0
+            }
+            layout {
+                sequence: 60
+                columnAlignment: center
+            }
+            source {
+                databaseColumn: CAN_REMOVE
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column CAN_VIEW (
+            type: checkbox
+            heading {
+                heading: View
+                alignment: center
+            }
+            settings {
+                useDefaults: false
+                checkedValue: 1
+                uncheckedValue: 0
+            }
+            layout {
+                sequence: 40
+                columnAlignment: center
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: CAN_VIEW
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column MENU_NO (
+            type: numberField
+            heading {
+                heading: Menu No
+                alignment: end
+            }
+            layout {
+                sequence: 100
+                columnAlignment: end
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: MENU_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column SUBMENU_ID (
+            type: textField
+            heading {
+                heading: Submenu ID
+                alignment: center
+            }
+            layout {
+                sequence: 90
+            }
+            validation {
+                valueRequired: true
+                maxLength: 10
+            }
+            source {
+                databaseColumn: SUBMENU_ID
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column SUBMENU_NAME (
+            type: textField
+            heading {
+                heading: Submenu Name
+                alignment: center
+            }
+            layout {
+                sequence: 110
+            }
+            validation {
+                valueRequired: true
+                maxLength: 50
+            }
+            source {
+                databaseColumn: SUBMENU_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column SUBMENU_NO (
+            type: numberField
+            heading {
+                heading: Submenu No
+                alignment: end
+            }
+            layout {
+                sequence: 30
+                columnAlignment: end
+            }
+            validation {
+                valueRequired: true
+            }
+            source {
+                databaseColumn: SUBMENU_NO
+                dataType: number
+                primaryKey: true
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column SUBMENU_TYPE (
+            type: textField
+            heading {
+                heading: Submenu Type
+                alignment: center
+            }
+            layout {
+                sequence: 120
+            }
+            validation {
+                valueRequired: true
+                maxLength: 1
+            }
+            source {
+                databaseColumn: SUBMENU_TYPE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    region user (
+        name: USER
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select ROLE_NO,
+                       ROLE_NAME
+                  from SA_ROLE
+                ```
+        }
+        layout {
+            sequence: 10
+            parentRegion: @div-id-userperm-class-fa-fa-pencile-user-wise-menu-permission-div
+            slot: subRegions
+            columnSpan: 2
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        advanced {
+            htmlDomId: user
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+            addRowIfEmpty: false
+        }
+        toolbar {
+            show: false
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
+        }
+        heading {
+            fixedTo: region
+            fixedReportHeight: 450
+        }
+        advanced {
+            savedReportMappingIdentifier: 24081157074948728905
+        }
+
+        savedReport 81341614 (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @ROLE_NO
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @ROLE_NAME
+                layout {
+                    sequence: 7
+                }
+            )
+
+        )
+
+        column ROLE_NAME (
+            type: textField
+            heading {
+                heading: Role Name
+            }
+            layout {
+                sequence: 20
+            }
+            validation {
+                valueRequired: true
+                maxLength: 100
+            }
+            source {
+                databaseColumn: ROLE_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column ROLE_NO (
+            type: hidden
+            heading {
+                heading: Role No
+            }
+            settings {
+                valueProtected: false
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                databaseColumn: ROLE_NO
+                dataType: number
+                primaryKey: true
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    pageItem P44_ROLE_NO (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 20
+            slot: body
+        }
+        source {
+            used: always
+        }
+    )
+
+    pageItem P44_SUBMENU_NO (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        source {
+            used: always
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 60
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
+    button grand-object (
+        buttonName: Grand_Object
+        label: Grand Object
+        layout {
+            sequence: 10
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--success
+                t-Button--iconLeft
+            ]
+            icon: fa-check
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        advanced {
+            htmlDomId: pb-com
+        }
+    )
+
+    button revoke-object (
+        buttonName: Revoke_Object
+        label: Revoke Object
+        layout {
+            sequence: 20
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 30
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 50
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    dynamicAction da-get-submenu-no (
+        name: DA_GET_SUBMENU_NO
+        execution {
+            sequence: 20
+        }
+        when {
+            event: region/interactiveGrid/interactivegridselectionchange
+            selectionType: region
+            region: @submenu
+        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                        let gridsrl = apex.region('submenu').widget().interactiveGrid('getViews', 'grid');
+                        let modelsrl = gridsrl.model;
+                        let selectedRow3 = gridsrl.view$.grid('getSelection');
+                        let subMenuNo =[];
+                        for (i = 0; i < selectedRow3.length; i++) {
+                            id = $(selectedRow3[i][0]).data('id');
+                            var r = modelsrl.getRecord(id);
+                            
+                            // userNo += Number(modelsrl.getValue(r, "USER_NO"));
+                            let u = Number(modelsrl.getValue(r, "SUBMENU_NO")); // for multiple select 
+                            subMenuNo.push(u);
+                            
+                            // let v = Number(modelsrl.getValue(r, "USER_NO")); // for single select 
+                            // $s("P2_S_USER_NO", v);
+                    
+                        }
+                        
+                    $s("P44_SUBMENU_NO",',' +subMenuNo +','); // Set Multiple user no
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction new (
+        name: New
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @grand-object
+        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                    grantObject();
+                    apex.region('user').refresh();
+                    apex.region('submenu').refresh();
+                    apex.region('object').refresh();
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction new-2 (
+        name: New_1
+        execution {
+            sequence: 30
+        }
+        when {
+            event: region/interactiveGrid/interactivegridselectionchange
+            selectionType: region
+            region: @user
+        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                        let gridsrl = apex.region('user').widget().interactiveGrid('getViews', 'grid');
+                        let modelsrl = gridsrl.model;
+                        let selectedRow3 = gridsrl.view$.grid('getSelection');
+                        let userNo =[];
+                        for (i = 0; i < selectedRow3.length; i++) {
+                            id = $(selectedRow3[i][0]).data('id');
+                            var r = modelsrl.getRecord(id);
+                            
+                            // userNo += Number(modelsrl.getValue(r, "USER_NO"));
+                            let u = Number(modelsrl.getValue(r, "ROLE_NO")); // for multiple select 
+                            userNo.push(u);
+                            
+                            // let v = Number(modelsrl.getValue(r, "USER_NO")); // for single select 
+                            // $s("P2_S_USER_NO", v);
+                    
+                        }
+                        
+                    $s("P44_ROLE_NO", ','+userNo+','); // Set Multiple user no
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction new-3 (
+        name: New_2
+        execution {
+            sequence: 40
+        }
+        when {
+            selectionType: items
+            items: P44_ROLE_NO
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @submenu
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process ajx-grant-obj (
+        name: AJX_GRANT_OBJ
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                /* Formatted on 9/6/2026 5:44:58 PM (QP5 v5.388) */
+                DECLARE
+                    V_MSG   VARCHAR2 (100);
+                    V_PK    NUMBER;
+                
+                    CURSOR CUR_ROLE IS
+                        SELECT ROLE_NO
+                          FROM SA_ROLE
+                         WHERE     INSTR (',' || APEX_APPLICATION.G_X01 || ',',
+                                          ',' || ROLE_NO || ',') >
+                                   0
+                               AND ACTIVE_FLAG = 1;
+                
+                    CURSOR CUR_MENU IS
+                        SELECT SUBMENU_NO
+                          FROM SA_SUBMENU
+                         WHERE INSTR (',' || APEX_APPLICATION.G_X02 || ',',
+                                      ',' || SUBMENU_NO || ',') >
+                               0;
+                BEGIN
+                    APEX_JSON.OPEN_OBJECT;
+                
+                    FOR I IN CUR_ROLE
+                    LOOP
+                        FOR K IN CUR_MENU
+                        LOOP
+                            SELECT NVL (MAX (TO_NUMBER (GR_OBJECT_NO)), 0) + 1
+                              INTO V_PK
+                              FROM SA_GRANTOBJECT;
+                
+                            INSERT INTO SA_GRANTOBJECT (GR_OBJECT_NO,
+                                                        SUBMENU_NO,
+                                                        ROLE_NO,
+                                                        CAN_VIEW,
+                                                        CAN_MODIFY,
+                                                        CAN_REMOVE,
+                                                        CAN_SHARE,
+                                                        CAN_CREATE,
+                                                        ACTIVE_FLAG,
+                                                        USER_NO)
+                                 VALUES (V_PK,
+                                         K.SUBMENU_NO,
+                                         I.ROLE_NO,
+                                         1,
+                                         1,
+                                         1,
+                                         1,
+                                         1,
+                                         1,
+                                         -1);
+                        END LOOP;
+                    END LOOP;
+                
+                    V_MSG := 'Role Permission Granted Successfully';
+                
+                    APEX_JSON.WRITE ('stat', '200');
+                    APEX_JSON.WRITE ('message', V_MSG);
+                    APEX_JSON.CLOSE_ALL;
+                EXCEPTION
+                    WHEN OTHERS
+                    THEN
+                        APEX_JSON.WRITE ('stat', '400');
+                        APEX_JSON.WRITE ('message', SQLERRM);
+                        APEX_JSON.CLOSE_ALL;
+                END;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: ajaxCallback
+        }
+        advanced {
+            executionMappingIdentifier: 14709690902244039
+        }
+    )
+
+    process grand-object-save-interactive-grid-data (
+        name: GRAND-OBJECT - Save Interactive Grid Data
+        type: executeCode
+        editableRegion: @grand-object
+        source {
+            plsqlCode:
+                ```plsql
+                CASE :APEX$ROW_STATUS WHEN 'C' THEN NULL;
+                WHEN  'U' THEN NULL;
+                WHEN 'D' THEN 
+                DELETE SA_GRANTOBJECT
+                WHERE GR_OBJECT_NO = :GR_OBJECT_NO;
+                END CASE;
+                ```
+        }
+        execution {
+            sequence: 30
+        }
+        advanced {
+            executionMappingIdentifier: 14701980372243990
+        }
+    )
+
+)
+

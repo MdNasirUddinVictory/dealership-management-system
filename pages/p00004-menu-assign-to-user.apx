@@ -123,14 +123,14 @@ page 4 (
         formAutoComplete: false
     }
 
-    region breadcrumb (
+    region breadcrumb-2 (
         name: Breadcrumb
         type: breadcrumb
         source {
             breadcrumb: @breadcrumb
         }
         layout {
-            sequence: 30
+            sequence: 50
             slot: breadcrumbBar
         }
         appearance {
@@ -139,7 +139,12 @@ page 4 (
                 #DEFAULT#
                 t-ButtonRegion--stickToBottom
                 t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
             ]
+            cssClasses: breadcrumb
         }
         componentAppearance {
             breadcrumbTemplate: @/breadcrumb
@@ -158,6 +163,7 @@ page 4 (
             template: @/standard
             templateOptions: [
                 #DEFAULT#
+                t-Region--removeHeader js-removeLandmark
                 t-Region--scrollBody
                 t-Form--slimPadding
                 t-Form--stretchInputs
@@ -224,9 +230,6 @@ page 4 (
             controls: [
                 searchCol
                 searchField
-                actionsMenu
-                resetButton
-                saveButton
             ]
         }
         download {
@@ -652,7 +655,6 @@ page 4 (
             controls: [
                 searchCol
                 searchField
-                actionsMenu
             ]
         }
         download {
@@ -1257,12 +1259,43 @@ page 4 (
         }
     )
 
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 60
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
     button grand-object (
         buttonName: Grand_Object
         label: Grand Object
         layout {
             sequence: 10
-            region: @breadcrumb
+            region: @breadcrumb-2
             slot: next
         }
         appearance {
@@ -1270,7 +1303,6 @@ page 4 (
             hot: true
             templateOptions: [
                 #DEFAULT#
-                t-Button--small
                 t-Button--success
                 t-Button--iconLeft
             ]
@@ -1289,7 +1321,7 @@ page 4 (
         label: Revoke Object
         layout {
             sequence: 20
-            region: @breadcrumb
+            region: @breadcrumb-2
             slot: next
         }
         appearance {
@@ -1297,13 +1329,64 @@ page 4 (
             hot: true
             templateOptions: [
                 #DEFAULT#
-                t-Button--small
                 t-Button--iconLeft
             ]
             icon: fa-trash-o
         }
         behavior {
             action: definedByDynamicAction
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 30
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 50
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
         }
     )
 
@@ -1365,7 +1448,13 @@ page 4 (
         action native-javascript-code (
             action: executeJsCode
             settings {
-                jsCode: grantObject();
+                jsCode:
+                    ```javascript-browser
+                    grantObject();
+                    apex.region('user').refresh();
+                    apex.region('submenu').refresh();
+                    apex.region('object').refresh();
+                    ```
             }
             execution {
                 sequence: 10
@@ -1550,103 +1639,6 @@ page 4 (
         }
         advanced {
             executionMappingIdentifier: 8045871773392862408
-        }
-    )
-
-    process new (
-        name: New
-        type: executeCode
-        source {
-            plsqlCode:
-                ```plsql
-                DECLARE
-                    V_MSG               VARCHAR2 (100);
-                    V_CUTDTL_NO_ARRAY   APEX_APPLICATION_GLOBAL.VC_ARR2;
-                    v_pk                NUMBER;
-                
-                    /* CURSOR CUR_EMP IS
-                        SELECT USER_NO
-                          FROM HR_EMP
-                         WHERE INSTR (',' || APEX_APPLICATION.G_x01, ',' || USER_NO || ',') > 0
-                         AND USER_NO IS NOT NULL; */
-                    CURSOR CUR_EMP IS
-                        SELECT USER_NO
-                          FROM SA_USERS
-                         WHERE INSTR (',' || APEX_APPLICATION.G_x01, ',' || USER_NO || ',') > 0
-                         AND USER_NO IS NOT NULL;
-                
-                    CURSOR CUR_MENU IS
-                        SELECT SUBMENU_NO
-                          FROM SA_SUBMENU
-                         WHERE INSTR (',' || APEX_APPLICATION.G_x02,',' || SUBMENU_NO || ',') > 0;
-                
-                    CURSOR CUR_COM IS
-                        SELECT COMPANY_NO
-                          FROM SA_COMPANY
-                         WHERE INSTR (':' || NVL ( APEX_APPLICATION.G_x09, COMPANY_NO) || ':', ':' || COMPANY_NO || ':') > 0;
-                BEGIN
-                    APEX_JSON.OPEN_OBJECT;
-                    V_CUTDTL_NO_ARRAY :=
-                        APEX_UTIL.STRING_TO_TABLE (APEX_APPLICATION.G_X01, ',');
-                
-                    FOR I IN CUR_EMP
-                    LOOP
-                        FOR J IN CUR_COM
-                        LOOP
-                            FOR K IN CUR_MENU
-                            LOOP
-                                SELECT NVL (MAX (TO_NUMBER (GR_OBJECT_NO)), 0) + 1
-                                  INTO v_pk
-                                  FROM SA_GRANTOBJECT;
-                
-                                -- v_pk := S_SA_GRANTOBJECT.nextval;
-                                INSERT INTO SA_GRANTOBJECT (GR_OBJECT_NO,
-                                                            SUBMENU_NO,
-                                                            USER_NO,
-                                                            CAN_VIEW,
-                                                            CAN_MODIFY,
-                                                            CAN_REMOVE,
-                                                            CAN_SHARE,
-                                                            CAN_CREATE,
-                                                            ROLE_NO,
-                                                            ACTIVE_FLAG,
-                                                            COMPANY_NO)
-                                     VALUES (v_pk,
-                                             K.SUBMENU_NO,
-                                             I.USER_NO,
-                                             1,                      --APEX_APPLICATION.G_X03,
-                                             1,                      --APEX_APPLICATION.G_X04,
-                                             1,                      --APEX_APPLICATION.G_X05,
-                                             1,                     -- APEX_APPLICATION.G_X06,
-                                             1,                      --APEX_APPLICATION.G_X07,
-                                             APEX_APPLICATION.G_X10,
-                                             1,                      --APEX_APPLICATION.G_X08,
-                                             J.COMPANY_NO);
-                            END LOOP;
-                        END LOOP;
-                    END LOOP;
-                
-                    V_MSG := 'Successfully Inserted';
-                    APEX_JSON.WRITE ('stat', '200');
-                    --    APEX_JSON.WRITE ('V_LINEINPUT_NO', V_LINEINPUT_NO);
-                    APEX_JSON.CLOSE_ALL;
-                EXCEPTION
-                    WHEN OTHERS
-                    THEN
-                        APEX_JSON.WRITE ('stat', SQLERRM);
-                        APEX_JSON.CLOSE_ALL;
-                END;
-                ```
-        }
-        execution {
-            sequence: 10
-            point: ajaxCallback
-        }
-        advanced {
-            executionMappingIdentifier: 8045880125522862420
-        }
-        config {
-            buildOption: @commented-out
         }
     )
 

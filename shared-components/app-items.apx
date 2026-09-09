@@ -6,3 +6,9 @@ appItem G_USER_NO (
     }
 )
 
+appItem G_USER_TYPE (
+    security {
+        escapeSpecialChars: false
+    }
+)
+

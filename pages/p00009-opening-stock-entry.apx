@@ -705,14 +705,13 @@ page 9 (
         behavior {
             action: redirectThisApp
             target: {
-                page: 24
-                clearCache: 24
+                page: 9
+                clearCache: 9
                 action: clearRegions
             }
         }
         advanced {
             htmlDomId: pb-reset
-            customAttributes: disabled
         }
     )
 
@@ -743,7 +742,6 @@ page 9 (
         }
         advanced {
             htmlDomId: pb-delete
-            customAttributes: disabled
         }
     )
 
@@ -769,7 +767,6 @@ page 9 (
         }
         advanced {
             htmlDomId: pb-save
-            customAttributes: disabled
         }
     )
 
@@ -795,7 +792,6 @@ page 9 (
         }
         advanced {
             htmlDomId: pb-update
-            customAttributes: disabled
         }
     )
 
@@ -856,6 +852,9 @@ page 9 (
         }
         advanced {
             executionMappingIdentifier: 8129065651435016243
+        }
+        serverSideCondition {
+            whenButtonPressed: @delete
         }
     )
 
@@ -971,6 +970,9 @@ page 9 (
         }
         advanced {
             executionMappingIdentifier: 8129065283753016243
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
         }
     )
 

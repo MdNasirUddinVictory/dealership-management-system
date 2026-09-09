@@ -241,7 +241,7 @@ lov lov-105-invoice-lov (
 )
 
 lov lov-11-product (
-    name: LOV_11_PRODUCT
+    name: LOV_11_PRODUCT(COMMON)
     source {
         type: sqlQuery
         sqlQuery:
@@ -251,13 +251,15 @@ lov lov-11-product (
             
                    PRODUCT_CODE,
             
-                   PRODUCT_NAME,
+                   PRODUCT_CODE ||' - '|| PRODUCT_NAME PRODUCT_NAME,
             
                    PURCHASE_RATE,
             
                    SALES_RATE,
             
-                   MIN_STOCK_QTY
+                   MIN_STOCK_QTY,
+            
+                   UOM_NO
             
             FROM MST_PRODUCT
             
@@ -268,8 +270,83 @@ lov lov-11-product (
     }
     columnMapping {
         return: PRODUCT_NO
-        display: PRODUCT_CODE
+        display: PRODUCT_NAME
     }
+
+    column PRODUCT_CODE (
+        heading {
+            heading: Product Code
+        }
+        layout {
+            sequence: 20
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column PRODUCT_NAME (
+        heading {
+            heading: Product Name
+        }
+        layout {
+            sequence: 30
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column PRODUCT_NO (
+        show: false
+        layout {
+            sequence: 10
+        }
+        source {
+            dataType: number
+        }
+        advanced {
+            searchable: false
+        }
+    )
+
+    column PURCHASE_RATE (
+        heading {
+            heading: Purchase Rate
+        }
+        layout {
+            sequence: 40
+        }
+        source {
+            dataType: number
+        }
+    )
+
+    column SALES_RATE (
+        heading {
+            heading: Sales Rate
+        }
+        layout {
+            sequence: 50
+        }
+        source {
+            dataType: number
+        }
+    )
+
+    column UOM_NO (
+        show: false
+        heading {
+            heading: Uom No
+        }
+        layout {
+            sequence: 10
+        }
+        source {
+            dataType: number
+        }
+    )
+
 )
 
 lov lov-12-product (
@@ -453,9 +530,9 @@ lov lov-17-customer-lov (
         type: sqlQuery
         sqlQuery:
             ```sql
-              SELECT CUSTOMER_CODE || ' - ' || CUSTOMER_NAME     CUSTOMER_SHOP_NAME,
+              SELECT CUSTOMER_CODE || ' - ' || CONTACT_PERSON     CUSTOMER_SHOP_NAME,
                      CUSTOMER_NO,
-                     CONTACT_PERSON                              CUSTOMER_NAME,
+                     CUSTOMER_NAME                              SHOP_NAME,
                      MOBILE_NO,
                      ADDRESS
                 FROM MST_CUSTOMER
@@ -481,18 +558,6 @@ lov lov-17-customer-lov (
         }
     )
 
-    column CUSTOMER_NAME (
-        heading {
-            heading: Customer Name
-        }
-        layout {
-            sequence: 30
-        }
-        source {
-            dataType: varchar2
-        }
-    )
-
     column CUSTOMER_NO (
         show: false
         layout {
@@ -508,7 +573,7 @@ lov lov-17-customer-lov (
 
     column CUSTOMER_SHOP_NAME (
         heading {
-            heading: Shop Name
+            heading: Customer Name
         }
         layout {
             sequence: 20
@@ -531,6 +596,18 @@ lov lov-17-customer-lov (
         }
     )
 
+    column SHOP_NAME (
+        heading {
+            heading: Shop Name
+        }
+        layout {
+            sequence: 21
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
 )
 
 lov lov-17-product (
@@ -539,26 +616,39 @@ lov lov-17-product (
         type: sqlQuery
         sqlQuery:
             ```sql
-            SELECT P.PRODUCT_NO,
-                   P.PRODUCT_CODE || ' - ' || P.PRODUCT_NAME AS PRODUCT_NAME,
-                   P.DESCRIPTION,
-                   P.UOM_NO,
-                   U.UOM_NAME,
-                   P.PURCHASE_RATE,
-                   P.SALES_RATE,
-                   NVL(S.STOCK_QTY,0) AS STOCK_QTY
-            FROM MST_PRODUCT P
-            JOIN MST_UOM U
-              ON U.UOM_NO = P.UOM_NO
-            LEFT JOIN
-            (
-                SELECT PRODUCT_NO,
-                       SUM(QTY_IN) - SUM(QTY_OUT) AS STOCK_QTY
-                  FROM TRN_STOCK_LEDGER
-                 GROUP BY PRODUCT_NO
-            ) S
-              ON S.PRODUCT_NO = P.PRODUCT_NO
-            WHERE P.ACTIVE_FLAG = 1
+            /* Formatted on 9/8/2026 1:00:42 PM (QP5 v5.388) */
+            WITH
+                CURRENT_PRICE
+                AS
+                    (SELECT PRODUCT_NO,
+                            UOM_NO,
+                            SALES_RATE,
+                            ROW_NUMBER ()
+                                OVER (PARTITION BY PRODUCT_NO, UOM_NO
+                                      ORDER BY EFFECTIVE_DATE DESC, SALES_PRICE_NO DESC)    AS RN
+                       FROM MST_SALES_PRICE
+                      WHERE ACTIVE_FLAG = '1' AND EFFECTIVE_DATE <= SYSDATE)
+              SELECT P.PRODUCT_NO,
+                     P.PRODUCT_CODE || ' - ' || P.PRODUCT_NAME     AS PRODUCT_NAME,
+                     P.DESCRIPTION,
+                     P.UOM_NO,
+                     U.UOM_NAME,
+                     P.PURCHASE_RATE,
+                     NVL (CP.SALES_RATE, 0)                        AS SALES_RATE,
+                     NVL (S.STOCK_QTY, 0)                          AS STOCK_QTY
+                FROM MST_PRODUCT P
+                     JOIN MST_UOM U ON U.UOM_NO = P.UOM_NO AND U.ACTIVE_FLAG = '1'
+                     LEFT JOIN CURRENT_PRICE CP
+                         ON     CP.PRODUCT_NO = P.PRODUCT_NO
+                            AND CP.UOM_NO = P.UOM_NO
+                            AND CP.RN = 1
+                     LEFT JOIN
+                     (  SELECT PRODUCT_NO,
+                               SUM (NVL (QTY_IN, 0)) - SUM (NVL (QTY_OUT, 0))    AS STOCK_QTY
+                          FROM TRN_STOCK_LEDGER
+                      GROUP BY PRODUCT_NO) S
+                         ON S.PRODUCT_NO = P.PRODUCT_NO
+               WHERE P.ACTIVE_FLAG = 1
             ORDER BY P.PRODUCT_NAME;
             ```
     }
@@ -1203,14 +1293,21 @@ lov mst-product-category-category-code (
 )
 
 lov mst-uom-uom-code (
-    name: MST_UOM.UOM_CODE
+    name: LOV_UOM_CODE(COMMON)
     source {
-        tableName: MST_UOM
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            SELECT U.UOM_CODE || ' - ' || U.UOM_NAME AS DISPLAY_VALUE,
+                   U.UOM_NO AS RETURN_VALUE
+              FROM MST_UOM U
+             WHERE U.ACTIVE_FLAG = '1'
+             ORDER BY U.UOM_NAME
+            ```
     }
     columnMapping {
-        return: UOM_NO
-        display: UOM_CODE
-        defaultSort: UOM_CODE
+        return: RETURN_VALUE
+        display: DISPLAY_VALUE
     }
 )
 

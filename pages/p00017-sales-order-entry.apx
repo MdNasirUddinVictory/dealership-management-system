@@ -12,44 +12,171 @@ page 17 (
     javaScript {
         functionAndGlobalVariableDeclaration:
             ```javascript-browser
-            function salesCalculate() {
+            function addProductToSalesOrder() {
+                var productNo = $v('P17_PRODUCT_NO');
+                if (!productNo) { return; }
+                var model = apex.region('sales_dtl').widget().interactiveGrid('getViews', 'grid').model;
+                var duplicate = false;
+                model.forEach(function (record) {
+                    var existingProduct = model.getValue(record, 'PRODUCT_NO');
+                    if (existingProduct != null && String(existingProduct) === String(productNo)) { duplicate = true; }
+                });
+                if (duplicate) {
+                    apex.message.alert('This product is already added.');
+                    return;
+                }
+                apex.server.process('ADD_TO_CART_PRODUCT', { x01: productNo, x02: $v('P17_CUSTOMER_NO') }, {
+                    dataType: 'text',
+                    success: function (pData) {
+                        try {
+                            var json = JSON.parse(pData);
+                            if (!json || json.length === 0) {
+                                apex.message.alert('Product information not found.');
+                                return;
+                            }
+                            var item = json[0];
+                            var rec = model.insertNewRecord();
+                            model.setRecordValue(rec, 'PRODUCT_NO', item.PRODUCT_NO == null ? '' : String(item.PRODUCT_NO));
+                            model.setRecordValue(rec, 'PRODUCT_CODE', item.PRODUCT_CODE == null ? '' : String(item.PRODUCT_CODE));
+                            model.setRecordValue(rec, 'PRODUCT_NAME', item.PRODUCT_NAME == null ? '' : String(item.PRODUCT_NAME));
+                            model.setRecordValue(rec, 'DESCRIPTION', item.DESCRIPTION == null ? '' : String(item.DESCRIPTION));
+                            model.setRecordValue(rec, 'UOM_NO', item.UOM_NO == null ? '' : String(item.UOM_NO));
+                            model.setRecordValue(rec, 'UOM_NAME', item.UOM_NAME == null ? '' : String(item.UOM_NAME));
+                            model.setRecordValue(rec, 'ORDER_QTY', item.ORDER_QTY == null ? '0' : String(item.ORDER_QTY));
+                            model.setRecordValue(rec, 'PACK_QTY', item.PACK_QTY == null ? '0' : String(item.PACK_QTY));
+                            model.setRecordValue(rec, 'BASE_QTY', item.BASE_QTY == null ? '0' : String(item.BASE_QTY));
+                            model.setRecordValue(rec, 'SALES_RATE', item.SALES_RATE == null ? '0' : String(item.SALES_RATE));
+                            model.setRecordValue(rec, 'BASE_RATE', item.BASE_RATE == null ? '0' : String(item.BASE_RATE));
+                            model.setRecordValue(rec, 'STOCK_QTY', item.STOCK_QTY == null ? '0' : String(item.STOCK_QTY));
+                            model.setRecordValue(rec, 'DISCOUNT_PERCENT', item.DISCOUNT_PERCENT == null ? '0' : String(item.DISCOUNT_PERCENT));
+                            model.setRecordValue(rec, 'DISCOUNT_AMOUNT', item.DISCOUNT_AMOUNT == null ? '0' : String(item.DISCOUNT_AMOUNT));
+                            model.setRecordValue(rec, 'TOTAL_AMOUNT', item.TOTAL_AMOUNT == null ? '0' : String(item.TOTAL_AMOUNT));
+                            var totalAmount = 0;
+                            var totalDiscount = 0;
+                            model.forEach(function (record) {
+                                totalAmount += parseFloat(model.getValue(record, 'SALES_RATE')) || 0;
+                                totalDiscount += parseFloat(model.getValue(record, 'DISCOUNT_AMOUNT')) || 0;
+                            });
+                            var payableAmount = totalAmount - totalDiscount;
+                            $s('P17_TOTAL_ORDER_AMOUNT', totalAmount.toFixed(2));
+                            $s('P17_TOTAL_DISCOUNT', totalDiscount.toFixed(2));
+                            $s('P17_PAYABLE_AMOUNT', payableAmount.toFixed(2));
+                            $s('P17_PRODUCT_NO', '');
+                            apex.message.showPageSuccess((item.PRODUCT_NAME || 'Product') + ' added successfully.');
+                        } catch (e) {
+                            console.error('Product JSON Error:', e);
+                            console.error('JSON DATA:', pData);
+                            apex.message.alert(e.message);
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('ADD_TO_CART_PRODUCT Error:', error);
+                        apex.message.alert('Error loading product information.');
+                    }
+                });
+            }
             
-                var qty    = Number($v("ORDER_QTY")) || 0;
-                var rate   = Number($v("SALES_RATE")) || 0;
+            
+            
+            
+            
+            
+            
+            function salesCalculate() {
+                var qty = Number($v("ORDER_QTY")) || 0;
+                var rate = Number($v("SALES_RATE")) || 0;
                 var factor = Number($v("PACK_QTY")) || 1;
-                var stock  = Number($v("STOCK_QTY")) || 0;
+                var stock = Number($v("STOCK_QTY")) || 0;
+                var customerNo = $v("P17_CUSTOMER_NO");
+                var productNo = $v("PRODUCT_NO");
             
                 if (factor <= 0) {
                     factor = 1;
                 }
             
-                var baseQty  = qty * factor;
-                var baseRate = rate / factor;
-                var totalAmt = qty * rate;
+                var baseQty = qty * factor;
+                var grossAmount = qty * rate;
             
-                $s("BASE_QTY", baseQty);
-                $s("BASE_RATE", baseRate.toFixed(2));
-                $s("TOTAL_AMOUNT", totalAmt.toFixed(2));
+                apex.server.process(
+                    "GET_PRODUCT_DISCOUNT",
+                    {
+                        x01: productNo,
+                        x02: customerNo
+                    },
+                    {
+                        success: function (data) {
+                            var discountPercent = Number(data) || 0;
+                            var discountAmount =
+                                grossAmount * discountPercent / 100;
+            
+                            var netAmount = grossAmount - discountAmount;
+            
+                            $s("BASE_QTY", baseQty);
+                            $s("BASE_RATE", (rate / factor).toFixed(2));
+                            $s("DISCOUNT_PERCENT", discountPercent.toFixed(2));
+                            $s("DISCOUNT_AMOUNT", discountAmount.toFixed(2));
+                            $s("TOTAL_AMOUNT", netAmount.toFixed(2));
+                        },
+                        dataType: "text"
+                    }
+                );
             
                 if (baseQty > stock) {
-            
-                    // apex.message.clearErrors();
-            
-                    // apex.message.showErrors([
-                    // {
-                    //     type: "error",
-                    //     location: "page",
-                    //     message: "Available Stock : " + stock +
-                    //              " | Required : " + baseQty,
-                    //     unsafe: false
-                    // }]);
-                     
                     $s("ORDER_QTY", "");
                     $s("BASE_QTY", "");
                     $s("TOTAL_AMOUNT", "");
-                    apex.message.alert("Available Stock : " + stock + " | Required : " + baseQty);
-                }
             
+                    apex.message.alert(
+                        "Available Stock : " + stock +
+                        " | Required : " + baseQty
+                    );
+                }
+            }
+            
+            
+            
+            ```
+    }
+    css {
+        inline:
+            ```css
+            /* Interactive Grid Header Height */
+            .a-GV-header {
+                height: 28px !important;
+                min-height: 28px !important;
+                background-color: rgb(59, 195, 105);
+            }
+            /* SALES RATE */
+            #SALES_RATE{
+                background: #fff7ed !important;
+                color: #c2410c !important;
+                font-weight: 700 !important;
+                text-align: right;
+                border: 1px solid #fb923c !important;
+                border-radius: 5px !important;
+            }
+            
+            /* ORDER QTY */
+            #ORDER_QTY {
+                background: #eff6ff !important;
+                color: #1d4ed8 !important;
+                font-weight: 700 !important;
+                text-align: right;
+                border: 1px solid #60a5fa !important;
+                border-radius: 5px !important;
+            }
+            
+            /* Focus করলে আরও highlight */
+            #SALES_RATE input:focus {
+                background: #ffedd5 !important;
+                color: #9a3412 !important;
+                box-shadow: 0 0 0 2px rgba(251,146,60,.25) !important;
+            }
+            
+            #ORDER_QTY input:focus {
+                background: #dbeafe !important;
+                color: #1e40af !important;
+                box-shadow: 0 0 0 2px rgba(96,165,250,.25) !important;
             }
             ```
     }
@@ -245,14 +372,18 @@ page 17 (
             pageItemsToSubmit: P17_CUSTOMER_NO
         }
         layout {
-            sequence: 20
-            parentRegion: @main
-            slot: regionBody
+            sequence: 10
+            parentRegion: @entry
+            slot: subRegions
             startNewRow: false
+            newColumn: false
         }
         appearance {
             template: @/blank-with-attributes
             templateOptions: #DEFAULT#
+        }
+        config {
+            buildOption: @commented-out
         }
     )
 
@@ -294,21 +425,22 @@ page 17 (
                        O.DELIVERY_DATE,
                        O.TOTAL_AMOUNT,
                        O.TOTAL_QTY,
-                       (SELECT COUNT (*) INVOICE_CNT
-                          FROM TRN_SALES_INVOICE_MST I
-                         WHERE I.ORDER_NO = O.ORDER_NO)
-                          INVOICE_CNT
+                       I.INVOICE_CNT,
+                       I.INVOICE_NO,
+                       I.INVOICE_CODE
                   FROM TRN_SALES_ORDER_MST O
-                       JOIN MST_CUSTOMER C ON C.CUSTOMER_NO = O.CUSTOMER_NO
-                 WHERE O.ORDER_NO = :P17_ORDER_NO;
+                       , MST_CUSTOMER C ,
+                        (SELECT COUNT (*) INVOICE_CNT,INVOICE_NO  ,INVOICE_CODE,ORDER_NO
+                          FROM TRN_SALES_INVOICE_MST 
+                         GROUP BY INVOICE_CODE, INVOICE_NO,ORDER_NO) I
+                          
+                       WHERE  C.CUSTOMER_NO = O.CUSTOMER_NO AND I.ORDER_NO = O.ORDER_NO
+                 AND  O.ORDER_NO = :P17_ORDER_NO;
                 ```
         }
         layout {
-            sequence: 10
-            parentRegion: @main
-            slot: regionBody
-            startNewRow: false
-            columnSpan: 9
+            sequence: 555
+            slot: body
         }
         appearance {
             template: @/standard
@@ -338,12 +470,32 @@ page 17 (
         name: MAIN
         type: staticContent
         layout {
-            sequence: 10
+            sequence: 20
             slot: body
         }
         appearance {
             template: @/blank-with-attributes
             templateOptions: #DEFAULT#
+        }
+    )
+
+    region new (
+        name: Customer Summery
+        type: staticContent
+        layout {
+            sequence: 50
+            parentRegion: @main
+            slot: regionBody
+            startNewRow: false
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--noPadding
+                t-Region--removeHeader js-removeLandmark
+                t-Region--scrollBody
+            ]
         }
     )
 
@@ -355,75 +507,60 @@ page 17 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                SELECT *
-                FROM
-                (
-                SELECT
-                       D.ORDER_DTL_NO,
+                SELECT * FROM (
+                SELECT D.ORDER_DTL_NO,
                        D.ORDER_NO,
-                
                        D.PRODUCT_NO,
-                       --P.PRODUCT_CODE,
-                       --P.PRODUCT_NAME,
                        P.DESCRIPTION,
                        P.BRAND_NO,
-                
+                       P.PRODUCT_NAME,
+                       P.PRODUCT_CODE,
                        D.UOM_NO,
                        U.UOM_NAME,
-                
                        D.PACK_QTY,
                        D.ORDER_QTY,
                        D.BASE_QTY,
-                
                        D.SALES_RATE,
                        D.BASE_RATE,
-                
                        D.TOTAL_AMOUNT,
-                
                        D.INVOICED_QTY,
                        D.DELIVERED_QTY,
                        D.BALANCE_QTY,
-                
-                       NVL(STK.STOCK_QTY,0) STOCK_QTY,
-                
+                       D.DISCOUNT_PERCENT,
+                       D.DISCOUNT_AMOUNT,
+                       NVL(STK.STOCK_QTY, 0) AS STOCK_QTY,
                        D.REMARKS,
-                
                        CASE
-                           WHEN M.ORDER_STATUS = 'P'
-                           THEN 'UD'
+                           WHEN M.ORDER_STATUS = 'P' THEN 'UD'
                            ELSE 'X'
-                       END ROW_STATUS
+                       END AS ROW_STATUS
+                  FROM TRN_SALES_ORDER_DTL D
+                  JOIN TRN_SALES_ORDER_MST M
+                    ON M.ORDER_NO = D.ORDER_NO
+                  JOIN MST_PRODUCT P
+                    ON P.PRODUCT_NO = D.PRODUCT_NO
+                  LEFT JOIN MST_UOM U
+                    ON U.UOM_NO = D.UOM_NO
+                  LEFT JOIN
+                  (
+                      SELECT PRODUCT_NO,
+                             SUM(NVL(QTY_IN, 0))
+                             - SUM(NVL(QTY_OUT, 0)) AS STOCK_QTY
+                        FROM TRN_STOCK_LEDGER
+                       GROUP BY PRODUCT_NO
+                  ) STK
+                    ON STK.PRODUCT_NO = D.PRODUCT_NO
+                 WHERE D.ORDER_NO = :P17_ORDER_NO
                 
-                FROM TRN_SALES_ORDER_DTL D
-                
-                JOIN TRN_SALES_ORDER_MST M
-                  ON M.ORDER_NO = D.ORDER_NO
-                
-                JOIN MST_PRODUCT P
-                  ON P.PRODUCT_NO = D.PRODUCT_NO
-                
-                LEFT JOIN MST_UOM U
-                  ON U.UOM_NO = D.UOM_NO
-                
-                LEFT JOIN
-                (
-                    SELECT PRODUCT_NO,
-                           SUM(NVL(QTY_IN,0)) - SUM(NVL(QTY_OUT,0)) STOCK_QTY
-                      FROM TRN_STOCK_LEDGER
-                     GROUP BY PRODUCT_NO
-                ) STK
-                ON STK.PRODUCT_NO = D.PRODUCT_NO
-                
-                WHERE D.ORDER_NO = :P17_ORDER_NO
-                
-                ORDER BY D.ORDER_DTL_NO
-                );
+                 ORDER BY D.ORDER_DTL_NO);
                 ```
             pageItemsToSubmit: P17_ORDER_NO
         }
         layout {
-            sequence: 30
-            slot: body
+            sequence: 40
+            parentRegion: @main
+            slot: regionBody
+            columnSpan: 9
         }
         appearance {
             template: @/interactive-report
@@ -434,6 +571,9 @@ page 17 (
                 margin-top-none
                 margin-bottom-none
             ]
+        }
+        advanced {
+            htmlDomId: sales_dtl
         }
         edit {
             enabled: true
@@ -448,20 +588,16 @@ page 17 (
         componentAppearance {
             selectFirstRow: false
         }
-        toolbar {
-            controls: [
-                searchCol
-                searchField
-                actionsMenu
-            ]
+        pagination {
+            showTotalCount: false
         }
-        download {
-            formats: [
-                csv
-                html
-                excel
-                pdf
-            ]
+        toolbar {
+            show: false
+        }
+        enableUsersTo {
+            flashback: false
+            defineChartView: false
+            download: false
         }
         advanced {
             savedReportMappingIdentifier: 17018187675040628312
@@ -477,34 +613,43 @@ page 17 (
             }
 
             displayColumn (
+                column: @PRODUCT_CODE
+                layout {
+                    width: 97
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
                 column: @STOCK_QTY
                 layout {
                     width: 80
-                    sequence: 6
+                    sequence: 11
                 }
             )
 
             displayColumn (
                 column: @PRODUCT_NO
                 layout {
-                    width: 146
-                    sequence: 2
+                    show: false
+                    width: 218
+                    sequence: 4
                 }
             )
 
             displayColumn (
                 column: @SALES_RATE
                 layout {
-                    width: 85
-                    sequence: 8
+                    width: 103
+                    sequence: 6
                 }
             )
 
             displayColumn (
                 column: @TOTAL_AMOUNT
                 layout {
-                    width: 102
-                    sequence: 9
+                    width: 111.646
+                    sequence: 8
                 }
             )
 
@@ -519,21 +664,21 @@ page 17 (
             displayColumn (
                 column: @ORDER_DTL_NO
                 layout {
-                    sequence: 10
+                    sequence: 14
                 }
             )
 
             displayColumn (
                 column: @ORDER_NO
                 layout {
-                    sequence: 11
+                    sequence: 15
                 }
             )
 
             displayColumn (
                 column: @ORDER_QTY
                 layout {
-                    width: 76
+                    width: 70
                     sequence: 7
                 }
             )
@@ -543,7 +688,7 @@ page 17 (
                 layout {
                     show: false
                     width: 93
-                    sequence: 12
+                    sequence: 16
                 }
             )
 
@@ -552,7 +697,7 @@ page 17 (
                 layout {
                     show: false
                     width: 104
-                    sequence: 13
+                    sequence: 17
                 }
             )
 
@@ -560,7 +705,7 @@ page 17 (
                 column: @BALANCE_QTY
                 layout {
                     show: false
-                    sequence: 14
+                    sequence: 18
                 }
             )
 
@@ -568,7 +713,7 @@ page 17 (
                 column: @REMARKS
                 layout {
                     width: 94
-                    sequence: 18
+                    sequence: 22
                 }
             )
 
@@ -576,15 +721,15 @@ page 17 (
                 column: @ROW_STATUS
                 layout {
                     show: false
-                    sequence: 19
+                    sequence: 23
                 }
             )
 
             displayColumn (
                 column: @DESCRIPTION
                 layout {
-                    width: 121
-                    sequence: 3
+                    width: 210
+                    sequence: 5
                 }
             )
 
@@ -593,7 +738,7 @@ page 17 (
                 layout {
                     show: false
                     width: 92
-                    sequence: 20
+                    sequence: 24
                 }
             )
 
@@ -601,7 +746,7 @@ page 17 (
                 column: @UOM_NO
                 layout {
                     width: 92
-                    sequence: 5
+                    sequence: 13
                 }
             )
 
@@ -609,7 +754,7 @@ page 17 (
                 column: @UOM_NAME
                 layout {
                     width: 89
-                    sequence: 4
+                    sequence: 12
                 }
             )
 
@@ -617,23 +762,47 @@ page 17 (
                 column: @PACK_QTY
                 layout {
                     width: 69
-                    sequence: 17
+                    sequence: 21
                 }
             )
 
             displayColumn (
                 column: @BASE_QTY
                 layout {
-                    width: 91.99999237060547
-                    sequence: 15
+                    width: 68.65625649414062
+                    sequence: 19
                 }
             )
 
             displayColumn (
                 column: @BASE_RATE
                 layout {
-                    width: 83
-                    sequence: 16
+                    width: 90.3333
+                    sequence: 20
+                }
+            )
+
+            displayColumn (
+                column: @DISCOUNT_PERCENT
+                layout {
+                    width: 84
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
+                column: @DISCOUNT_AMOUNT
+                layout {
+                    width: 93
+                    sequence: 10
+                }
+            )
+
+            displayColumn (
+                column: @PRODUCT_NAME
+                layout {
+                    width: 152
+                    sequence: 3
                 }
             )
 
@@ -646,13 +815,6 @@ page 17 (
             }
         )
 
-        column APEX$ROW_SELECTOR (
-            type: rowSelector
-            layout {
-                sequence: 10
-            }
-        )
-
         column BALANCE_QTY (
             type: hidden
             heading {
@@ -662,7 +824,7 @@ page 17 (
                 valueProtected: false
             }
             layout {
-                sequence: 220
+                sequence: 250
             }
             source {
                 databaseColumn: BALANCE_QTY
@@ -677,10 +839,9 @@ page 17 (
             type: numberField
             heading {
                 heading: Base Qty
-                alignment: end
             }
             layout {
-                sequence: 180
+                sequence: 190
                 columnAlignment: end
             }
             source {
@@ -688,7 +849,11 @@ page 17 (
                 dataType: number
             }
             columnFilter {
-                lovType: none
+                enabled: false
+            }
+            enableUsersTo {
+                sort: false
+                hide: false
             }
             advanced {
                 htmlDomId: BASE_QTY
@@ -699,11 +864,10 @@ page 17 (
         column BASE_RATE (
             type: numberField
             heading {
-                heading: Base Rate
-                alignment: end
+                heading: Base Price
             }
             layout {
-                sequence: 190
+                sequence: 200
                 columnAlignment: end
             }
             source {
@@ -711,7 +875,11 @@ page 17 (
                 dataType: number
             }
             columnFilter {
-                lovType: none
+                enabled: false
+            }
+            enableUsersTo {
+                sort: false
+                hide: false
             }
             advanced {
                 htmlDomId: BASE_RATE
@@ -723,10 +891,9 @@ page 17 (
             type: numberField
             heading {
                 heading: Brand No
-                alignment: end
             }
             layout {
-                sequence: 140
+                sequence: 150
                 columnAlignment: end
             }
             source {
@@ -735,6 +902,16 @@ page 17 (
             }
             columnFilter {
                 lovType: none
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+            enableUsersTo {
+                sort: false
+                hide: false
+            }
+            advanced {
+                customAttributes: readonly
             }
         )
 
@@ -747,7 +924,7 @@ page 17 (
                 valueProtected: false
             }
             layout {
-                sequence: 210
+                sequence: 240
             }
             source {
                 databaseColumn: DELIVERED_QTY
@@ -764,7 +941,7 @@ page 17 (
                 heading: Description
             }
             layout {
-                sequence: 70
+                sequence: 90
             }
             validation {
                 maxLength: 500
@@ -774,19 +951,66 @@ page 17 (
                 dataType: varchar2
             }
             columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
-                lovType: none
+                enabled: false
             }
             enableUsersTo {
                 sort: false
+                hide: false
             }
             advanced {
                 htmlDomId: DESCRIPTION
+                customAttributes: readonly
+            }
+        )
+
+        column DISCOUNT_AMOUNT (
+            type: numberField
+            heading {
+                heading: Discount(Tk.)
+            }
+            layout {
+                sequence: 220
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: DISCOUNT_AMOUNT
+                dataType: number
+            }
+            columnFilter {
+                enabled: false
+            }
+            enableUsersTo {
+                sort: false
+                hide: false
+            }
+            advanced {
+                htmlDomId: DISCOUNT_AMOUNT
+                customAttributes: readonly
+            }
+        )
+
+        column DISCOUNT_PERCENT (
+            type: numberField
+            heading {
+                heading: Discount %
+            }
+            layout {
+                sequence: 210
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: DISCOUNT_PERCENT
+                dataType: number
+            }
+            columnFilter {
+                enabled: false
+            }
+            enableUsersTo {
+                sort: false
+                hide: false
+            }
+            advanced {
+                htmlDomId: DISCOUNT_PERCENT
                 customAttributes: readonly
             }
         )
@@ -800,7 +1024,7 @@ page 17 (
                 valueProtected: false
             }
             layout {
-                sequence: 200
+                sequence: 230
             }
             source {
                 databaseColumn: INVOICED_QTY
@@ -849,11 +1073,10 @@ page 17 (
         column ORDER_QTY (
             type: numberField
             heading {
-                heading: Sales Qty
-                alignment: end
+                heading: Quantity
             }
             layout {
-                sequence: 100
+                sequence: 120
                 columnAlignment: end
             }
             validation {
@@ -864,7 +1087,11 @@ page 17 (
                 dataType: number
             }
             columnFilter {
-                lovType: none
+                enabled: false
+            }
+            enableUsersTo {
+                sort: false
+                hide: false
             }
             advanced {
                 htmlDomId: ORDER_QTY
@@ -875,10 +1102,9 @@ page 17 (
             type: numberField
             heading {
                 heading: Pack Qty
-                alignment: end
             }
             layout {
-                sequence: 170
+                sequence: 180
                 columnAlignment: end
             }
             source {
@@ -886,7 +1112,11 @@ page 17 (
                 dataType: number
             }
             columnFilter {
-                lovType: none
+                enabled: false
+            }
+            enableUsersTo {
+                sort: false
+                hide: false
             }
             advanced {
                 htmlDomId: PACK_QTY
@@ -894,22 +1124,68 @@ page 17 (
             }
         )
 
-        column PRODUCT_NO (
-            type: popupLov
+        column PRODUCT_CODE (
+            type: textField
+            heading {
+                heading: Product Code
+            }
+            layout {
+                sequence: 80
+            }
+            validation {
+                valueRequired: true
+                maxLength: 50
+            }
+            source {
+                databaseColumn: PRODUCT_CODE
+                dataType: varchar2
+            }
+            columnFilter {
+                enabled: false
+            }
+            enableUsersTo {
+                sort: false
+                hide: false
+            }
+            advanced {
+                htmlDomId: PRODUCT_CODE
+                customAttributes: readonly
+            }
+        )
+
+        column PRODUCT_NAME (
+            type: textField
             heading {
                 heading: Product Name
             }
-            settings {
-                displayAs: modalDialog
-                fetchOnSearch: true
-                popupWidth: 700
-                additionalOutputs: STOCK_QTY:STOCK_QTY,UOM_NO:UOM_NO,DESCRIPTION:DESCRIPTION,UOM_NAME:UOM_NAME,SALES_RATE:SALES_RATE
+            layout {
+                sequence: 70
             }
-            lov {
-                type: sharedComponent
-                lov: @lov-17-product
-                displayExtraValues: false
-                nullDisplayValue: --Select--
+            validation {
+                valueRequired: true
+                maxLength: 300
+            }
+            source {
+                databaseColumn: PRODUCT_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                enabled: false
+            }
+            enableUsersTo {
+                sort: false
+                hide: false
+            }
+            advanced {
+                htmlDomId: PRODUCT_NAME
+                customAttributes: readonly
+            }
+        )
+
+        column PRODUCT_NO (
+            type: textField
+            heading {
+                heading: Product Name
             }
             layout {
                 sequence: 60
@@ -922,13 +1198,11 @@ page 17 (
                 dataType: number
             }
             columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
                 lovType: useLov
+            }
+            enableUsersTo {
+                sort: false
+                hide: false
             }
             advanced {
                 htmlDomId: PRODUCT_NO
@@ -941,7 +1215,7 @@ page 17 (
                 heading: Remarks
             }
             layout {
-                sequence: 120
+                sequence: 140
             }
             validation {
                 maxLength: 500
@@ -951,16 +1225,11 @@ page 17 (
                 dataType: varchar2
             }
             columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
-                lovType: none
+                enabled: false
             }
             enableUsersTo {
                 sort: false
+                hide: false
             }
         )
 
@@ -985,14 +1254,12 @@ page 17 (
         )
 
         column SALES_RATE (
-            type: numberField
+            type: textField
             heading {
-                heading: Sales Rate
-                alignment: end
+                heading: Sales Price(Tk.)
             }
             layout {
-                sequence: 90
-                columnAlignment: end
+                sequence: 110
             }
             validation {
                 valueRequired: true
@@ -1002,7 +1269,11 @@ page 17 (
                 dataType: number
             }
             columnFilter {
-                lovType: none
+                enabled: false
+            }
+            enableUsersTo {
+                sort: false
+                hide: false
             }
             advanced {
                 htmlDomId: SALES_RATE
@@ -1010,21 +1281,23 @@ page 17 (
         )
 
         column STOCK_QTY (
-            type: numberField
+            type: textField
             heading {
                 heading: Stock Qty
-                alignment: end
             }
             layout {
-                sequence: 80
-                columnAlignment: end
+                sequence: 100
             }
             source {
                 databaseColumn: STOCK_QTY
                 dataType: number
             }
             columnFilter {
-                lovType: none
+                enabled: false
+            }
+            enableUsersTo {
+                sort: false
+                hide: false
             }
             advanced {
                 htmlDomId: STOCK_QTY
@@ -1035,11 +1308,10 @@ page 17 (
         column TOTAL_AMOUNT (
             type: numberField
             heading {
-                heading: Total Amount
-                alignment: end
+                heading: MRP Total (Tk.)
             }
             layout {
-                sequence: 110
+                sequence: 130
                 columnAlignment: end
             }
             source {
@@ -1049,18 +1321,13 @@ page 17 (
             columnFilter {
                 lovType: none
             }
+            enableUsersTo {
+                sort: false
+                hide: false
+            }
             advanced {
                 htmlDomId: TOTAL_AMOUNT
                 customAttributes: readonly
-                columnInitJavaScriptFunction:
-                    ```javascript-browser
-                    function(options) {
-                        options.defaultGridColumnOptions = {
-                            aggregates:["SUM"]
-                        };
-                        return options;
-                    }
-                    ```
             }
         )
 
@@ -1070,7 +1337,7 @@ page 17 (
                 heading: Base UOM
             }
             layout {
-                sequence: 160
+                sequence: 170
             }
             validation {
                 maxLength: 50
@@ -1080,12 +1347,11 @@ page 17 (
                 dataType: varchar2
             }
             columnFilter {
-                performanceImpactingOperators: [
-                    contains
-                    startsWith
-                    caseInsensitive
-                    regexp
-                ]
+                enabled: false
+            }
+            enableUsersTo {
+                sort: false
+                hide: false
             }
             advanced {
                 htmlDomId: UOM_NAME
@@ -1137,53 +1403,31 @@ page 17 (
                 itemsToSubmit: PRODUCT_NO
             }
             layout {
-                sequence: 150
+                sequence: 160
             }
             source {
                 databaseColumn: UOM_NO
                 dataType: number
+            }
+            enableUsersTo {
+                hide: false
             }
             advanced {
                 htmlDomId: UOM_NO
             }
         )
 
-        page {
-            borderWidth: 0.5
-            borderColor: #666666
-        }
     )
 
     pageItem P17_ADDRESS (
-        type: textField
-        label {
-            label: Address
-            alignment: left
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
-            sequence: 100
+            sequence: 80
             region: @entry
             slot: regionBody
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                margin-top-none
-                margin-bottom-none
-                t-Form-fieldContainer--slimPadding
-                t-Form-fieldContainer--boldDisplay
-            ]
-            width: 30
-        }
-        validation {
-            maxLength: 500
-        }
-        advanced {
-            customAttributes: readonly
         }
         source {
             formRegion: @entry
@@ -1198,7 +1442,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 180
+            sequence: 160
             region: @entry
             slot: regionBody
         }
@@ -1215,7 +1459,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 210
+            sequence: 190
             region: @entry
             slot: regionBody
         }
@@ -1232,7 +1476,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 220
+            sequence: 200
             region: @entry
             slot: regionBody
         }
@@ -1249,7 +1493,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 110
+            sequence: 90
             region: @entry
             slot: regionBody
         }
@@ -1266,7 +1510,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 60
+            sequence: 30
             region: @entry
             slot: regionBody
         }
@@ -1275,45 +1519,43 @@ page 17 (
             column: CUSTOMER_NAME
             dataType: varchar2
         }
-        serverSideCondition {
-            type: itemIsNotNull
-            item: P17_ORDER_NO
-        }
     )
 
     pageItem P17_CUSTOMER_NO (
         type: popupLov
         label {
-            label: Customer Name
+            label: Customer
             alignment: left
         }
         settings {
             fetchOnSearch: true
             popupWidth: 500
+            additionalOutputs: ADDRESS:P17_ADDRESS,MOBILE_NO:P17_MOBILE_NO
         }
         lov {
             type: sharedComponent
             lov: @lov-17-customer-lov
             displayExtraValues: false
-            nullDisplayValue: --Select--
         }
         layout {
-            sequence: 70
-            region: @entry
+            sequence: 30
+            region: @main
             slot: regionBody
             alignment: left
+            startNewRow: false
+            labelColumnSpan: 0
         }
         appearance {
-            template: @/optional-above
+            template: @/required
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
-                margin-top-none
-                margin-bottom-none
+                t-Form-fieldContainer--indicatorAsterisk
+                t-Form-fieldContainer--large
                 t-Form-fieldContainer--slimPadding
-                t-Form-fieldContainer--boldDisplay
             ]
             width: 30
+            valuePlaceholder: Select Customer
         }
         validation {
             valueRequired: true
@@ -1331,7 +1573,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 170
+            sequence: 150
             region: @entry
             slot: regionBody
         }
@@ -1364,29 +1606,14 @@ page 17 (
     )
 
     pageItem P17_DELIVERY_DATE (
-        type: datePicker
-        label {
-            label: Delivery Date
-            alignment: left
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
-            sequence: 80
+            sequence: 70
             region: @entry
             slot: regionBody
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                margin-top-none
-                margin-bottom-none
-                t-Form-fieldContainer--slimPadding
-                t-Form-fieldContainer--boldDisplay
-            ]
-            width: 30
         }
         source {
             formRegion: @entry
@@ -1405,7 +1632,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 160
+            sequence: 140
             region: @entry
             slot: regionBody
         }
@@ -1426,7 +1653,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 130
+            sequence: 110
             region: @entry
             slot: regionBody
         }
@@ -1437,35 +1664,77 @@ page 17 (
         }
     )
 
+    pageItem P17_INVOICE_CODE (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: INVOICE_CODE
+            dataType: varchar2
+        }
+    )
+
+    pageItem P17_INVOICE_NO (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: INVOICE_NO
+            dataType: number
+        }
+    )
+
     pageItem P17_MOBILE_NO (
-        type: textField
+        type: textFieldWithAutocomplete
         label {
             label: Mobile No
             alignment: left
         }
+        search {
+            minChars: 5
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery: SELECT MOBILE_NO  D FROM MST_CUSTOMER
+            displayExtraValues: false
+        }
         layout {
-            sequence: 90
-            region: @entry
+            sequence: 20
+            region: @main
             slot: regionBody
             alignment: left
+            startNewRow: false
+            columnSpan: 2
+            labelColumnSpan: 0
         }
         appearance {
-            template: @/optional-above
+            template: @/required
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
-                margin-top-none
-                margin-bottom-none
+                t-Form-fieldContainer--indicatorAsterisk
+                t-Form-fieldContainer--large
                 t-Form-fieldContainer--slimPadding
-                t-Form-fieldContainer--boldDisplay
             ]
             width: 30
+            valuePlaceholder: Input Mobile Number
         }
         validation {
-            maxLength: 30
-        }
-        advanced {
-            customAttributes: readonly
+            valueRequired: true
         }
         source {
             formRegion: @entry
@@ -1475,25 +1744,14 @@ page 17 (
     )
 
     pageItem P17_ORDER_CODE (
-        type: displayOnly
-        label {
-            label: Order Code
-            alignment: left
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
             sequence: 10
             region: @entry
             slot: regionBody
-            alignment: left
-            labelColumnSpan: 1
-        }
-        appearance {
-            template: @/optional
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--slimPadding
-            ]
         }
         source {
             formRegion: @entry
@@ -1512,7 +1770,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 150
+            sequence: 130
             region: @entry
             slot: regionBody
         }
@@ -1533,7 +1791,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 140
+            sequence: 120
             region: @entry
             slot: regionBody
         }
@@ -1551,7 +1809,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 200
+            sequence: 180
             region: @entry
             slot: regionBody
         }
@@ -1583,13 +1841,79 @@ page 17 (
         }
     )
 
+    pageItem P17_PAYABLE_AMOUNT (
+        type: numberField
+        label {
+            label: Grand Total
+            alignment: left
+        }
+        settings {
+            numberAlignment: end
+        }
+        layout {
+            sequence: 90
+            region: @new
+            slot: regionBody
+            alignment: left
+            labelColumnSpan: 4
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        source {
+            used: always
+        }
+    )
+
+    pageItem P17_PRODUCT_NO (
+        type: popupLov
+        label {
+            label: Product No
+            alignment: left
+        }
+        settings {
+            fetchOnSearch: true
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-17-product
+            displayExtraValues: false
+        }
+        layout {
+            sequence: 10
+            region: @main
+            slot: regionBody
+            alignment: left
+            columnSpan: 7
+            labelColumnSpan: 0
+        }
+        appearance {
+            template: @/hidden
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+            valuePlaceholder: Select Product
+        }
+    )
+
     pageItem P17_REMARKS (
         type: hidden
         settings {
             valueProtected: false
         }
         layout {
-            sequence: 190
+            sequence: 170
             region: @entry
             slot: regionBody
         }
@@ -1601,24 +1925,14 @@ page 17 (
     )
 
     pageItem P17_TOTAL_AMOUNT (
-        type: displayOnly
-        label {
-            label: Total Amount
-            alignment: left
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
             sequence: 20
             region: @entry
             slot: regionBody
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-            ]
         }
         source {
             formRegion: @entry
@@ -1631,13 +1945,76 @@ page 17 (
         }
     )
 
+    pageItem P17_TOTAL_DISCOUNT (
+        type: numberField
+        label {
+            label: "(-) Discount "
+            alignment: left
+        }
+        settings {
+            numberAlignment: end
+        }
+        layout {
+            sequence: 80
+            region: @new
+            slot: regionBody
+            alignment: left
+            labelColumnSpan: 4
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        source {
+            used: always
+        }
+    )
+
+    pageItem P17_TOTAL_ORDER_AMOUNT (
+        type: numberField
+        label {
+            label: Subtotal
+            alignment: left
+        }
+        settings {
+            numberAlignment: end
+        }
+        layout {
+            sequence: 70
+            region: @new
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            labelColumnSpan: 4
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        source {
+            used: always
+        }
+    )
+
     pageItem P17_TOTAL_QTY (
         type: hidden
         settings {
             valueProtected: false
         }
         layout {
-            sequence: 120
+            sequence: 100
             region: @entry
             slot: regionBody
         }
@@ -1654,7 +2031,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 230
+            sequence: 210
             region: @entry
             slot: regionBody
         }
@@ -1671,7 +2048,7 @@ page 17 (
             valueProtected: false
         }
         layout {
-            sequence: 240
+            sequence: 220
             region: @entry
             slot: regionBody
         }
@@ -1776,6 +2153,31 @@ page 17 (
         }
     )
 
+    button print (
+        buttonName: PRINT
+        label: Print
+        layout {
+            sequence: 100
+            region: @new
+            slot: regionBody
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--primary
+                t-Button--iconLeft
+                t-Button--stretch
+            ]
+            icon: fa-print
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
     button save (
         buttonName: SAVE
         label: Save
@@ -1855,19 +2257,29 @@ page 17 (
             eventScope: dynamic
         }
         when {
+            event: custom
+            customEvent: input
             selectionType: columns
             interactiveGrid: @register_1
             columns: [
                 ORDER_QTY
                 SALES_RATE
                 PACK_QTY
+                PRODUCT_NO
             ]
         }
 
         action native-javascript-code (
             action: executeJsCode
             settings {
-                jsCode: salesCalculate();
+                jsCode:
+                    ```javascript-browser
+                    salesCalculate();
+                    
+                    
+                    
+                     
+                    ```
             }
             execution {
                 sequence: 10
@@ -1886,13 +2298,6 @@ page 17 (
             selectionType: items
             items: P17_MOBILE_NO
         }
-        clientSideCondition {
-            type: itemIsNull
-            item: P17_CUSTOMER_NO
-        }
-        config {
-            buildOption: @commented-out
-        }
 
         action native-execute-plsql-code (
             action: executeServerSideCode
@@ -1901,31 +2306,37 @@ page 17 (
                     ```plsql
                     BEGIN
                     
-                        SELECT CUSTOMER_NO,
-                               CUSTOMER_NAME,
-                               ADDRESS
-                          INTO :P17_CUSTOMER_NO,
-                               :P17_CUSTOMER_NAME,
-                               :P17_DELIVERY_ADDRESS
-                          FROM (
-                                SELECT *
-                                  FROM MST_CUSTOMER
-                                 WHERE MOBILE_NO = :P17_CONTACT_NO
-                                   AND NVL(ACTIVE_FLAG,1) = 1
-                                 ORDER BY CUSTOMER_NO DESC
-                               )
-                         WHERE ROWNUM = 1;
+                        -- First clear old values
+                        :P17_CUSTOMER_NO      := NULL;
+                        :P17_CUSTOMER_NAME    := NULL;
+                        :P17_DELIVERY_ADDRESS := NULL;
                     
-                    EXCEPTION
-                        WHEN NO_DATA_FOUND THEN
+                        BEGIN
+                            SELECT CUSTOMER_NO,
+                                   CUSTOMER_NAME,
+                                   ADDRESS
+                              INTO :P17_CUSTOMER_NO,
+                                   :P17_CUSTOMER_NAME,
+                                   :P17_DELIVERY_ADDRESS
+                              FROM (
+                                    SELECT CUSTOMER_NO,
+                                           CUSTOMER_NAME,
+                                           ADDRESS
+                                      FROM MST_CUSTOMER
+                                     WHERE MOBILE_NO = :P17_MOBILE_NO
+                                       AND NVL(ACTIVE_FLAG, 1) = 1
+                                     ORDER BY CUSTOMER_NO DESC
+                                   )
+                             WHERE ROWNUM = 1;
                     
-                            :P17_CUSTOMER_NO      := NULL;
-                            :P17_CUSTOMER_NAME    := NULL;
-                            :P17_DELIVERY_ADDRESS := NULL;
+                        EXCEPTION
+                            WHEN NO_DATA_FOUND THEN
+                                NULL;
+                        END;
                     
                     END;
                     ```
-                itemsToSubmit: P17_CONTACT_NO
+                itemsToSubmit: P17_MOBILE_NO
                 itemsToReturn: [
                     P17_CUSTOMER_NO
                     P17_CUSTOMER_NAME
@@ -1934,7 +2345,6 @@ page 17 (
             }
             execution {
                 sequence: 10
-                fireOnInit: false
             }
         )
 
@@ -1989,32 +2399,69 @@ page 17 (
     dynamicAction new_4 (
         name: New
         execution {
-            sequence: 60
-            eventScope: dynamic
+            sequence: 80
         }
         when {
-            selectionType: items
-            items: P17_CUSTOMER_NO
+            selectionType: columns
+            interactiveGrid: @register_1
+            columns: SALES_RATE
         }
 
-        action native-set-value (
-            action: executeServerSideCode
+        action native-javascript-code (
+            action: executeJsCode
             settings {
-                plsqlCode:
-                    ```plsql
-                    SELECT
-                           MOBILE_NO ,
-                           ADDRESS INTO :P17_MOBILE_NO,:P17_ADDRESS
-                    FROM MST_CUSTOMER
-                    WHERE NVL(ACTIVE_FLAG,1) = 1
-                    AND CUSTOMER_NO = :P17_CUSTOMER_NO
-                    ORDER BY CUSTOMER_NAME;
+                jsCode:
+                    ```javascript-browser
+                    setTimeout(function () {
+                    
+                        var model = apex.region('sales_dtl')
+                            .widget()
+                            .interactiveGrid('getViews', 'grid')
+                            .model;
+                    
+                        var totalAmount = 0;
+                        var totalDiscount = 0;
+                    
+                        model.forEach(function (record) {
+                    
+                            var rate = parseFloat(
+                                model.getValue(record, 'SALES_RATE')
+                            ) || 0;
+                    
+                            var qty = parseFloat(
+                                model.getValue(record, 'ORDER_QTY')
+                            ) || 0;
+                    
+                            var discount = parseFloat(
+                                model.getValue(record, 'DISCOUNT_AMOUNT')
+                            ) || 0;
+                    
+                            // Rate × Qty
+                            totalAmount += rate * qty;
+                    
+                            // Total Discount
+                            totalDiscount += discount;
+                        });
+                    
+                        var payableAmount = totalAmount - totalDiscount;
+                    
+                        $s(
+                            'P17_TOTAL_ORDER_AMOUNT',
+                            totalAmount.toFixed(2)
+                        );
+                    
+                        $s(
+                            'P17_TOTAL_DISCOUNT',
+                            totalDiscount.toFixed(2)
+                        );
+                    
+                        $s(
+                            'P17_PAYABLE_AMOUNT',
+                            payableAmount.toFixed(2)
+                        );
+                    
+                    }, 100);
                     ```
-                itemsToSubmit: P17_CUSTOMER_NO
-                itemsToReturn: [
-                    P17_MOBILE_NO
-                    P17_ADDRESS
-                ]
             }
             execution {
                 sequence: 10
@@ -2022,6 +2469,266 @@ page 17 (
             }
         )
 
+    )
+
+    dynamicAction new_5 (
+        name: New
+        execution {
+            sequence: 70
+        }
+        when {
+            selectionType: items
+            items: P17_PRODUCT_NO
+        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode: addProductToSalesOrder();
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process add-to-cart-product (
+        name: ADD_TO_CART_PRODUCT
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                /* Formatted on 9/8/2026 5:08:07 PM (QP5 v5.388) */
+                DECLARE
+                    V_DATA   CLOB;
+                BEGIN
+                    SELECT JSON_ARRAYAGG (
+                               JSON_OBJECT (
+                                   /* =========================================
+                                      PRODUCT INFORMATION
+                                   ========================================= */
+                
+                                   'PRODUCT_NO' VALUE P.PRODUCT_NO,
+                                   'PRODUCT_CODE' VALUE P.PRODUCT_CODE,
+                                   'PRODUCT_NAME' VALUE P.PRODUCT_NAME,
+                                   'DESCRIPTION' VALUE P.DESCRIPTION,
+                                   /* =========================================
+                                      UOM
+                                   ========================================= */
+                
+                                   'UOM_NO' VALUE P.UOM_NO,
+                                   'UOM_NAME' VALUE U.UOM_NAME,
+                                   /* =========================================
+                                      QUANTITY
+                                   ========================================= */
+                
+                                   'ORDER_QTY' VALUE 1,
+                                   'PACK_QTY' VALUE  1,
+                                  'BASE_QTY' VALUE 1,
+                                   /* =========================================
+                                      SALES RATE
+                                   ========================================= */
+                
+                                   'SALES_RATE' VALUE NVL (CP.SALES_RATE, 0),
+                                   'BASE_RATE' VALUE NVL (CP.SALES_RATE, 0),
+                
+                                   /* =========================================
+                                      STOCK
+                                   ========================================= */
+                
+                                   'STOCK_QTY' VALUE NVL (S.STOCK_QTY, 0),
+                                   /* =========================================
+                                      DISCOUNT %
+                                   ========================================= */
+                
+                                   'DISCOUNT_PERCENT' VALUE
+                                       NVL (
+                                           (SELECT DISCOUNT_PERCENT
+                                             FROM (  SELECT D.DISCOUNT_PERCENT
+                                                       FROM MST_DISCOUNT_CONFIG D
+                                                      WHERE     D.ACTIVE_FLAG = 1
+                                                            AND SYSDATE >= D.EFFECTIVE_FROM
+                                                            AND (   D.EFFECTIVE_TO IS NULL
+                                                                 OR SYSDATE <= D.EFFECTIVE_TO)
+                                                            AND (   D.PRODUCT_NO IS NULL
+                                                                 OR D.PRODUCT_NO = P.PRODUCT_NO)
+                                                            AND (   D.CATEGORY_NO IS NULL
+                                                                 OR D.CATEGORY_NO =
+                                                                    P.CATEGORY_NO)
+                                                            AND (   D.CUSTOMER_NO IS NULL
+                                                                 OR D.CUSTOMER_NO =
+                                                                    APEX_APPLICATION.G_X02)
+                                                   ORDER BY D.PRIORITY DESC,
+                                                            D.DISCOUNT_CONFIG_NO DESC)
+                                            WHERE ROWNUM = 1),
+                                           0),
+                                   /* =========================================
+                                      DISCOUNT AMOUNT
+                
+                                      Gross = ORDER_QTY × SALES_RATE
+                                      Discount = Gross × Discount% / 100
+                                   ========================================= */
+                
+                                   'DISCOUNT_AMOUNT' VALUE
+                                       ROUND (
+                                             (1 * NVL (CP.SALES_RATE, 0))
+                                           * NVL (
+                                                 (SELECT DISCOUNT_PERCENT
+                                                   FROM (  SELECT D.DISCOUNT_PERCENT
+                                                             FROM MST_DISCOUNT_CONFIG D
+                                                            WHERE     D.ACTIVE_FLAG = 1
+                                                                  AND SYSDATE >=
+                                                                      D.EFFECTIVE_FROM
+                                                                  AND (   D.EFFECTIVE_TO
+                                                                              IS NULL
+                                                                       OR SYSDATE <=
+                                                                          D.EFFECTIVE_TO)
+                                                                  AND (   D.PRODUCT_NO IS NULL
+                                                                       OR D.PRODUCT_NO =
+                                                                          P.PRODUCT_NO)
+                                                                  AND (   D.CATEGORY_NO IS NULL
+                                                                       OR D.CATEGORY_NO =
+                                                                          P.CATEGORY_NO)
+                                                                  AND (   D.CUSTOMER_NO IS NULL
+                                                                       OR D.CUSTOMER_NO =
+                                                                          APEX_APPLICATION.G_X02)
+                                                         ORDER BY D.PRIORITY DESC,
+                                                                  D.DISCOUNT_CONFIG_NO DESC)
+                                                  WHERE ROWNUM = 1),
+                                                 0)
+                                           / 100,
+                                           2),
+                                   /* =========================================
+                                      TOTAL AMOUNT
+                
+                                      Gross - Discount
+                                   ========================================= */
+                
+                                   'TOTAL_AMOUNT' VALUE
+                                       ROUND (
+                                             (1 * NVL (CP.SALES_RATE, 0))
+                                           - (  (1 * NVL (CP.SALES_RATE, 0))
+                                              * NVL (
+                                                    (SELECT DISCOUNT_PERCENT
+                                                      FROM (  SELECT D.DISCOUNT_PERCENT
+                                                                FROM MST_DISCOUNT_CONFIG D
+                                                               WHERE     D.ACTIVE_FLAG = 1
+                                                                     AND SYSDATE >=
+                                                                         D.EFFECTIVE_FROM
+                                                                     AND (   D.EFFECTIVE_TO
+                                                                                 IS NULL
+                                                                          OR SYSDATE <=
+                                                                             D.EFFECTIVE_TO)
+                                                                     AND (   D.PRODUCT_NO
+                                                                                 IS NULL
+                                                                          OR D.PRODUCT_NO =
+                                                                             P.PRODUCT_NO)
+                                                                     AND (   D.CATEGORY_NO
+                                                                                 IS NULL
+                                                                          OR D.CATEGORY_NO =
+                                                                             P.CATEGORY_NO)
+                                                                     AND (   D.CUSTOMER_NO
+                                                                                 IS NULL
+                                                                          OR D.CUSTOMER_NO =
+                                                                             APEX_APPLICATION.G_X02)
+                                                            ORDER BY D.PRIORITY DESC,
+                                                                     D.DISCOUNT_CONFIG_NO DESC)
+                                                     WHERE ROWNUM = 1),
+                                                    0)
+                                              / 100),
+                                           2)
+                                   RETURNING CLOB)
+                               RETURNING CLOB)
+                      INTO V_DATA
+                      FROM MST_PRODUCT  P
+                           JOIN MST_UOM U ON U.UOM_NO = P.UOM_NO AND U.ACTIVE_FLAG = '1'
+                           /* =========================================
+                              CURRENT SALES PRICE
+                           ========================================= */
+                
+                           LEFT JOIN
+                           (SELECT PRODUCT_NO,
+                                   UOM_NO,
+                                   SALES_RATE,
+                                   ROW_NUMBER ()
+                                       OVER (
+                                           PARTITION BY PRODUCT_NO, UOM_NO
+                                           ORDER BY EFFECTIVE_DATE DESC, SALES_PRICE_NO DESC)    RN
+                              FROM MST_SALES_PRICE
+                             WHERE ACTIVE_FLAG = '1' AND EFFECTIVE_DATE <= SYSDATE) CP
+                               ON     CP.PRODUCT_NO = P.PRODUCT_NO
+                                  AND CP.UOM_NO = P.UOM_NO
+                                  AND CP.RN = 1
+                           /* =========================================
+                              CURRENT STOCK
+                           ========================================= */
+                
+                           LEFT JOIN
+                           (  SELECT PRODUCT_NO,
+                                     SUM (NVL (QTY_IN, 0)) - SUM (NVL (QTY_OUT, 0))    AS STOCK_QTY
+                                FROM TRN_STOCK_LEDGER
+                            GROUP BY PRODUCT_NO) S
+                               ON S.PRODUCT_NO = P.PRODUCT_NO
+                     WHERE P.PRODUCT_NO = APEX_APPLICATION.G_X01 AND P.ACTIVE_FLAG = 1;
+                
+                    HTP.PRN (NVL (V_DATA, '[]'));
+                END;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: ajaxCallback
+        }
+        advanced {
+            executionMappingIdentifier: 15309683437803527
+        }
+    )
+
+    process get-product-discount (
+        name: GET_PRODUCT_DISCOUNT
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                /* Formatted on 9/7/2026 2:43:29 PM (QP5 v5.388) */
+                DECLARE
+                    V_DISCOUNT_PERCENT   NUMBER := 0;
+                BEGIN
+                    SELECT DISCOUNT_PERCENT
+                      INTO V_DISCOUNT_PERCENT
+                      FROM (  SELECT D.DISCOUNT_PERCENT
+                                FROM MST_DISCOUNT_CONFIG D
+                                     JOIN MST_PRODUCT P
+                                         ON P.PRODUCT_NO = APEX_APPLICATION.G_X01
+                               WHERE     D.ACTIVE_FLAG = 1
+                                     AND SYSDATE >= D.EFFECTIVE_FROM
+                                     AND (D.EFFECTIVE_TO IS NULL OR SYSDATE <= D.EFFECTIVE_TO)
+                                     AND (   D.PRODUCT_NO IS NULL
+                                          OR D.PRODUCT_NO = APEX_APPLICATION.G_X01)
+                                     AND (   D.CATEGORY_NO IS NULL
+                                          OR D.CATEGORY_NO = P.CATEGORY_NO)
+                                     AND (   D.CUSTOMER_NO IS NULL
+                                          OR D.CUSTOMER_NO = APEX_APPLICATION.G_X02)
+                            ORDER BY D.PRIORITY DESC, D.DISCOUNT_CONFIG_NO DESC)
+                     WHERE ROWNUM = 1;
+                
+                    HTP.P (V_DISCOUNT_PERCENT);
+                EXCEPTION
+                    WHEN NO_DATA_FOUND
+                    THEN
+                        HTP.P ('0');
+                END;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: ajaxCallback
+        }
+        advanced {
+            executionMappingIdentifier: 15160183944336121
+        }
     )
 
     process initialize-form-sales-entry_1 (
@@ -2322,6 +3029,8 @@ page 17 (
                             INVOICED_QTY,
                             DELIVERED_QTY,
                             BALANCE_QTY,
+                            DISCOUNT_AMOUNT,
+                            DISCOUNT_PERCENT,
                             REMARKS,
                             CREATED_BY,
                             CREATED_DATE
@@ -2341,6 +3050,8 @@ page 17 (
                             0,
                             0,
                             :BASE_QTY,
+                            :DISCOUNT_AMOUNT,
+                            :DISCOUNT_PERCENT,
                             :REMARKS,
                             :APP_USER,
                             SYSDATE
@@ -2370,6 +3081,8 @@ page 17 (
                                BASE_RATE     = :BASE_RATE,
                                TOTAL_AMOUNT  = :TOTAL_AMOUNT,
                                BALANCE_QTY   = :BASE_QTY - NVL(INVOICED_QTY,0),
+                               DISCOUNT_AMOUNT = :DISCOUNT_AMOUNT,
+                               DISCOUNT_PERCENT = :DISCOUNT_PERCENT,
                                REMARKS       = :REMARKS,
                                UPDATED_BY    = :APP_USER,
                                UPDATED_DATE  = SYSDATE

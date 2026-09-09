@@ -1,0 +1,992 @@
+page 100 (
+    name: Sales Report
+    alias: SALES-REPORT1
+    title: Sales Report
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb-2 (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 30
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--stickToBottom
+                t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+            cssClasses: breadcrumb
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region sales-report (
+        name: Stock Report
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT
+                       i.invoice_no AS "Invoice No",
+                       i.invoice_code AS "Invoice Code",
+                       i.invoice_date AS "Invoice Date",
+                
+                       o.order_code AS "Order No",
+                
+                       c.customer_code AS "Customer Code",
+                       c.customer_name AS "Customer Name",
+                       c.mobile_no AS "Mobile No",
+                
+                       p.product_code AS "Product Code",
+                       p.product_name AS "Product Name",
+                       pc.category_name AS "Category",
+                
+                       d.sales_qty AS "Sales Quantity",
+                       d.delivered_qty AS "Delivered Quantity",
+                       NVL(d.sales_qty, 0)
+                       - NVL(d.delivered_qty, 0) AS "Remaining Quantity",
+                
+                       d.sales_rate AS "Sales Rate",
+                       NVL(d.total_amount, 0) AS "Item-wise Total",
+                
+                       NVL(i.total_amount, 0) AS "Invoice Amount",
+                       NVL(i.received_amount, 0) AS "Received Amount",
+                       NVL(i.due_amount, 0) AS "Due Amount",
+                
+                       CASE i.payment_status
+                           WHEN 'UP' THEN 'Unpaid'
+                           WHEN 'PP' THEN 'Partially Paid'
+                           WHEN 'P'  THEN 'Paid'
+                       END AS "Payment Status",
+                
+                       CASE i.delivery_status
+                           WHEN 'P' THEN 'Pending'
+                           WHEN 'D' THEN 'Delivered'
+                       END AS "Delivery Status",
+                
+                       NVL(r.return_qty, 0) AS "Returned Quantity",
+                
+                       i.delivery_by AS "Delivery By",
+                       i.delivery_date AS "Delivery Date",
+                       i.created_by AS "Created By",
+                       i.created_date AS "Created Date"
+                
+                FROM trn_sales_invoice_mst i
+                
+                LEFT JOIN trn_sales_invoice_dtl d
+                  ON d.invoice_no = i.invoice_no
+                
+                LEFT JOIN mst_customer c
+                  ON c.customer_no = i.customer_no
+                
+                LEFT JOIN mst_product p
+                  ON p.product_no = d.product_no
+                
+                LEFT JOIN mst_product_category pc
+                  ON pc.category_no = p.category_no
+                
+                LEFT JOIN trn_sales_order_mst o
+                  ON o.order_no = i.order_no
+                
+                LEFT JOIN (
+                    SELECT
+                           d.invoice_dtl_no,
+                           SUM(NVL(d.return_qty, 0)) AS return_qty
+                    FROM trn_customer_return_dtl d
+                    JOIN trn_customer_return_mst m
+                      ON m.return_no = d.return_no
+                    WHERE m.approval_status = 'A'
+                    GROUP BY d.invoice_dtl_no
+                ) r
+                  ON r.invoice_dtl_no = d.invoice_dtl_no
+                
+                WHERE (:P100_FROM_DATE IS NULL
+                       OR i.invoice_date >= TO_DATE(:P100_FROM_DATE, 'MM/DD/YYYY'))
+                  AND (:P100_TO_DATE IS NULL
+                       OR i.invoice_date < TO_DATE(:P100_TO_DATE, 'MM/DD/YYYY') + 1)
+                  AND (:P100_CUSTOMER_NO IS NULL
+                       OR i.customer_no = :P100_CUSTOMER_NO)
+                  AND (:P100_PRODUCT_NO IS NULL
+                       OR d.product_no = :P100_PRODUCT_NO)
+                  AND (:P100_CATEGORY_NO IS NULL
+                       OR p.category_no = :P100_CATEGORY_NO)
+                
+                ORDER BY
+                       i.invoice_date DESC,
+                       i.invoice_no DESC,
+                       d.invoice_dtl_no;
+                ```
+            pageItemsToSubmit: [
+                P100_CATEGORY_NO
+                P100_PRODUCT_NO
+                P100_STATUS
+                P100_CUSTOMER_NO
+                P100_FROM_DATE
+                P100_TO_DATE
+            ]
+        }
+        layout {
+            sequence: 70
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 87045619453565135
+        }
+
+        column Category (
+            type: plainText
+            heading {
+                heading: Category
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: BQ
+            }
+        )
+
+        column "Created By" (
+            type: plainText
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 250
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: CS
+            }
+        )
+
+        column "Created Date" (
+            type: plainText
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 260
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: CT
+            }
+        )
+
+        column "Customer Code" (
+            type: plainText
+            heading {
+                heading: Customer Code
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: CD
+            }
+        )
+
+        column "Customer Name" (
+            type: plainText
+            heading {
+                heading: Customer Name
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: CE
+            }
+        )
+
+        column "Delivered Quantity" (
+            type: plainText
+            heading {
+                heading: Delivered Quantity
+                alignment: end
+            }
+            layout {
+                sequence: 140
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: CH
+            }
+        )
+
+        column "Delivery By" (
+            type: plainText
+            heading {
+                heading: Delivery By
+            }
+            layout {
+                sequence: 230
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: CQ
+            }
+        )
+
+        column "Delivery Date" (
+            type: plainText
+            heading {
+                heading: Delivery Date
+            }
+            layout {
+                sequence: 240
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: CR
+            }
+        )
+
+        column "Delivery Status" (
+            type: plainText
+            heading {
+                heading: Delivery Status
+            }
+            layout {
+                sequence: 210
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: CO
+            }
+        )
+
+        column "Due Amount" (
+            type: plainText
+            heading {
+                heading: Due Amount
+                alignment: end
+            }
+            layout {
+                sequence: 190
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: CM
+            }
+        )
+
+        column "Invoice Amount" (
+            type: plainText
+            heading {
+                heading: Invoice Amount
+                alignment: end
+            }
+            layout {
+                sequence: 170
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: CK
+            }
+        )
+
+        column "Invoice Code" (
+            type: plainText
+            heading {
+                heading: Invoice Code
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: CA
+            }
+        )
+
+        column "Invoice Date" (
+            type: plainText
+            heading {
+                heading: Invoice Date
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: CB
+            }
+        )
+
+        column "Invoice No" (
+            type: plainText
+            heading {
+                heading: Invoice No
+                alignment: end
+            }
+            layout {
+                sequence: 60
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: BZ
+            }
+        )
+
+        column "Item-wise Total" (
+            type: plainText
+            heading {
+                heading: Item-wise Total
+                alignment: end
+            }
+            layout {
+                sequence: 270
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: CU
+            }
+        )
+
+        column "Mobile No" (
+            type: plainText
+            heading {
+                heading: Mobile No
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: CF
+            }
+        )
+
+        column "Order No" (
+            type: plainText
+            heading {
+                heading: Order No
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: CC
+            }
+        )
+
+        column "Payment Status" (
+            type: plainText
+            heading {
+                heading: Payment Status
+            }
+            layout {
+                sequence: 200
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: CN
+            }
+        )
+
+        column "Product Code" (
+            type: plainText
+            heading {
+                heading: Product Code
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: BO
+            }
+        )
+
+        column "Product Name" (
+            type: plainText
+            heading {
+                heading: Product Name
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: BP
+            }
+        )
+
+        column "Received Amount" (
+            type: plainText
+            heading {
+                heading: Received Amount
+                alignment: end
+            }
+            layout {
+                sequence: 180
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: CL
+            }
+        )
+
+        column "Remaining Quantity" (
+            type: plainText
+            heading {
+                heading: Remaining Quantity
+                alignment: end
+            }
+            layout {
+                sequence: 150
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: CI
+            }
+        )
+
+        column "Returned Quantity" (
+            type: plainText
+            heading {
+                heading: Returned Quantity
+                alignment: end
+            }
+            layout {
+                sequence: 220
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: CP
+            }
+        )
+
+        column "Sales Quantity" (
+            type: plainText
+            heading {
+                heading: Sales Quantity
+                alignment: end
+            }
+            layout {
+                sequence: 130
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: CG
+            }
+        )
+
+        column "Sales Rate" (
+            type: plainText
+            heading {
+                heading: Sales Rate
+                alignment: end
+            }
+            layout {
+                sequence: 50
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: BS
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn "Customer Name" (
+                sequence: 3
+            )
+
+            displayColumn "Delivered Quantity" (
+                sequence: 10
+            )
+
+            displayColumn "Delivery Status" (
+                sequence: 14
+            )
+
+            displayColumn "Due Amount" (
+                sequence: 9
+            )
+
+            displayColumn "Invoice Amount" (
+                sequence: 8
+            )
+
+            displayColumn "Invoice Code" (
+                sequence: 1
+            )
+
+            displayColumn "Invoice Date" (
+                sequence: 2
+            )
+
+            displayColumn "Item-wise Total" (
+                sequence: 7
+            )
+
+            displayColumn "Payment Status" (
+                sequence: 15
+            )
+
+            displayColumn "Product Name" (
+                sequence: 4
+            )
+
+            displayColumn "Received Amount" (
+                sequence: 11
+            )
+
+            displayColumn "Remaining Quantity" (
+                sequence: 12
+            )
+
+            displayColumn "Returned Quantity" (
+                sequence: 13
+            )
+
+            displayColumn "Sales Quantity" (
+                sequence: 6
+            )
+
+            displayColumn "Sales Rate" (
+                sequence: 5
+            )
+
+        )
+
+    )
+
+    pageItem P100_CATEGORY_NO (
+        type: selectList
+        label {
+            label: Category No
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT
+                       category_name AS display_value,
+                       category_no AS return_value
+                FROM mst_product_category
+                
+                ORDER BY category_name;
+                ```
+            displayExtraValues: false
+        }
+        layout {
+            sequence: 10
+            slot: body
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            height: 1
+        }
+    )
+
+    pageItem P100_CUSTOMER_NO (
+        type: selectList
+        label {
+            label: Customer Name
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @lov-17-customer-lov
+            displayExtraValues: false
+        }
+        layout {
+            sequence: 30
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            height: 1
+        }
+    )
+
+    pageItem P100_FROM_DATE (
+        type: datePicker
+        label {
+            label: From Date
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+    )
+
+    pageItem P100_PRODUCT_NO (
+        type: selectList
+        label {
+            label: "Product "
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                SELECT
+                       p.product_code || ' - ' || p.product_name AS display_value,
+                       p.product_no AS return_value
+                FROM mst_product p
+                WHERE p.category_no = :P100_CATEGORY_NO
+                ORDER BY p.product_name;
+                ```
+            displayExtraValues: false
+        }
+        cascadingLov {
+            parentItems: P100_CATEGORY_NO
+            itemsToSubmit: P100_CATEGORY_NO
+        }
+        layout {
+            sequence: 20
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            height: 1
+        }
+    )
+
+    pageItem P100_STATUS (
+        type: selectList
+        label {
+            label: Status
+            alignment: left
+        }
+        lov {
+            type: staticValues
+            staticValues: STATIC2:ALL;ALL,Pending;P,Delivery;A,Reject;R
+            displayExtraValues: false
+            displayNullValue: false
+        }
+        layout {
+            sequence: 60
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            height: 1
+        }
+    )
+
+    pageItem P100_TO_DATE (
+        type: datePicker
+        label {
+            label: To Date
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            slot: body
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 100
+                clearCache: 12
+                action: clearRegions
+            }
+        }
+        advanced {
+            htmlDomId: pb-reset
+            customAttributes: disabled
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
+        }
+    )
+
+    dynamicAction new (
+        name: New
+        execution {
+            sequence: 10
+        }
+        when {
+            selectionType: items
+            items: [
+                P100_CATEGORY_NO
+                P100_PRODUCT_NO
+                P100_STATUS
+                P100_CUSTOMER_NO
+                P100_FROM_DATE
+                P100_TO_DATE
+            ]
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @sales-report
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)
+

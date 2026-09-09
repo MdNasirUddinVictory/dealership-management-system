@@ -492,7 +492,7 @@ page 102 (
             displayColumn (
                 column: @DESCRIPTION
                 layout {
-                    width: 137
+                    width: 165
                     sequence: 6
                 }
             )
@@ -639,7 +639,7 @@ page 102 (
             displayColumn (
                 column: @PRODUCT_NAME
                 layout {
-                    width: 122
+                    width: 212
                     sequence: 4
                 }
             )
@@ -1237,6 +1237,7 @@ page 102 (
             template: @/interactive-report
             templateOptions: [
                 #DEFAULT#
+                t-IRR-region--noBorders
                 t-IRR-region--removeHeader js-removeLandmark
                 t-Form--slimPadding
                 margin-top-none
@@ -1416,6 +1417,8 @@ page 102 (
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
             ]
             width: 30
         }
@@ -1462,6 +1465,8 @@ page 102 (
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
             ]
             width: 30
         }
@@ -1491,6 +1496,8 @@ page 102 (
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
             ]
             width: 30
         }
@@ -1519,6 +1526,8 @@ page 102 (
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
             ]
             width: 30
         }
@@ -1567,6 +1576,8 @@ page 102 (
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
             ]
             width: 30
         }
@@ -1598,6 +1609,8 @@ page 102 (
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
             ]
             width: 30
         }
@@ -1654,6 +1667,8 @@ page 102 (
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
             ]
             width: 30
         }
@@ -1707,6 +1722,8 @@ page 102 (
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
             ]
             width: 30
         }
@@ -1755,24 +1772,14 @@ page 102 (
     )
 
     pageItem P102_VOUCHER_NO (
-        type: numberField
-        label {
-            label: Voucher No
-            alignment: left
+        type: hidden
+        settings {
+            valueProtected: false
         }
         layout {
             sequence: 10
             region: @register_1
             slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-            ]
-            width: 30
         }
         source {
             formRegion: @register_1
@@ -1801,6 +1808,10 @@ page 102 (
         }
         behavior {
             warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P102_RETURN_NO
         }
     )
 

@@ -200,6 +200,7 @@ page 11 (
             displayColumn (
                 column: @QTY_IN
                 layout {
+                    width: 66.2083
                     sequence: 8
                 }
             )
@@ -222,7 +223,7 @@ page 11 (
             displayColumn (
                 column: @PRODUCT_NAME
                 layout {
-                    width: 141
+                    width: 263
                     sequence: 2
                 }
             )
@@ -541,6 +542,8 @@ page 11 (
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
             ]
             width: 30
         }
@@ -563,6 +566,8 @@ page 11 (
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
             ]
             width: 30
         }
@@ -595,6 +600,8 @@ page 11 (
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
             ]
             width: 30
         }
@@ -632,6 +639,8 @@ page 11 (
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
             ]
             height: 1
         }

@@ -51,15 +51,14 @@ page 2 (
         formAutoComplete: false
     }
 
-    region breadcrumb (
+    region breadcrumb-2 (
         name: Breadcrumb
-        title: Breadcrumb
         type: breadcrumb
         source {
             breadcrumb: @breadcrumb
         }
         layout {
-            sequence: 20
+            sequence: 30
             slot: breadcrumbBar
         }
         appearance {
@@ -68,7 +67,10 @@ page 2 (
                 #DEFAULT#
                 t-ButtonRegion--stickToBottom
                 t-ButtonRegion--slimPadding
+                t-ButtonRegion--noBorder
                 t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
             ]
             cssClasses: breadcrumb
         }
@@ -912,12 +914,43 @@ page 2 (
         }
     )
 
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 60
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+            customAttributes: disabled
+        }
+    )
+
     button new (
         buttonName: New
         label: New
         layout {
-            sequence: 10
-            region: @breadcrumb
+            sequence: 30
+            region: @breadcrumb-2
             slot: next
         }
         appearance {
@@ -940,21 +973,20 @@ page 2 (
             warnOnUnsavedChanges: doNotCheck
         }
         advanced {
-            htmlDomId: pb-new
+            htmlDomId: pb-reset
         }
     )
 
-    button save (
-        buttonName: Save
+    button save-2 (
+        buttonName: SAVE
         label: Save
         layout {
-            sequence: 20
-            region: @breadcrumb
+            sequence: 40
+            region: @breadcrumb-2
             slot: next
         }
         appearance {
             buttonTemplate: @/text-with-icon
-            hot: true
             templateOptions: [
                 #DEFAULT#
                 t-Button--small
@@ -967,6 +999,33 @@ page 2 (
         }
         advanced {
             htmlDomId: pb-save
+            customAttributes: disabled
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 50
+            region: @breadcrumb-2
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--small
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+            customAttributes: disabled
         }
     )
 
@@ -1037,9 +1096,6 @@ page 2 (
         }
         advanced {
             executionMappingIdentifier: 8034953009540538123
-        }
-        serverSideCondition {
-            whenButtonPressed: @save
         }
     )
 

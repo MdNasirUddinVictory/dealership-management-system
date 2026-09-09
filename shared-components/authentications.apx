@@ -23,7 +23,7 @@ authentication database-user-authentication (
                     INTO --v_user_info, 
                     :G_USER_NO,:G_USER_TYPE
                 FROM SA_USER
-                    WHERE UPPER(USER_NAME) = UPPER(P_USERNAME)
+                    WHERE UPPER(USER_ID) = UPPER(P_USERNAME)
                     AND USER_PWD = P_PASSWORD --V_ISVALIDATE
                    -- GROUP BY USER_NO
                     ;

@@ -704,14 +704,6 @@ page 19 (
                 rowsPerPage: 50
             }
 
-            displayColumn CREATED_BY (
-                sequence: 11
-            )
-
-            displayColumn CREATED_DATE (
-                sequence: 12
-            )
-
             displayColumn CUSTOMER_NAME (
                 sequence: 5
             )

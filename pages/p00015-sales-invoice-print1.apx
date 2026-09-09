@@ -49,15 +49,11 @@ page 15 (
         source {
             plsqlFunctionBody:
                 ```plsql
-                /* Formatted on 8/29/2026 2:52:08 PM (QP5 v5.388) */
+                /* Formatted on 9/7/2026 3:56:48 PM (QP5 v5.388) */
                 DECLARE
                     v_html            CLOB := '';
                     v_invoice_count   NUMBER := 0;
                 BEGIN
-                    /* =========================================================
-                       INVOICE HEADER
-                       ========================================================= */
-                
                     FOR H
                         IN (  SELECT I.INVOICE_NO,
                                      I.INVOICE_CODE,
@@ -81,51 +77,37 @@ page 15 (
                                FROM TRN_SALES_INVOICE_MST I
                                     LEFT JOIN MST_CUSTOMER C ON C.CUSTOMER_NO = I.CUSTOMER_NO
                                     LEFT JOIN TRN_SALES_ORDER_MST O ON O.ORDER_NO = I.ORDER_NO
-                            --   WHERE     /* =========================
-                            --                FROM DATE
-                            --                ========================= */
+                              --   WHERE     /* =========================
+                              --                FROM DATE
+                              --                ========================= */
                 
-                            --             (   :P207_FROM_DATE IS NULL
-                            --              OR I.INVOICE_DATE >=
-                            --                 TO_DATE ( :P207_FROM_DATE, 'MM/DD/YYYY'))
-                                    /* =========================
-                                       TO DATE
-                                       ========================= */
+                              --             (   :P207_FROM_DATE IS NULL
+                              --              OR I.INVOICE_DATE >=
+                              --                 TO_DATE ( :P207_FROM_DATE, 'MM/DD/YYYY'))
+                              /* =========================
+                                 TO DATE
+                                 ========================= */
                 
-                                    -- WHERE (   :P207_TO_DATE IS NULL
-                                    --      OR I.INVOICE_DATE <
-                                    --         TO_DATE ( :P207_TO_DATE, 'MM/DD/YYYY') + 1)
-                                    /* =========================
-                                       CUSTOMER FILTER
-                                       ========================= */
+                              -- WHERE (   :P207_TO_DATE IS NULL
+                              --      OR I.INVOICE_DATE <
+                              --         TO_DATE ( :P207_TO_DATE, 'MM/DD/YYYY') + 1)
+                              /* =========================
+                                 CUSTOMER FILTER
+                                 ========================= */
                 
-                                    where (  -- :P207_CUSTOMER_NO_PREVIEW IS NULL
-                                       --  OR 
-                                        
-                                          I.INVOICE_NO = :P15_INVOICE_NO)
-                                    /* =========================
-                                       INVOICE FILTER
-                                       ========================= */
+                              WHERE I.INVOICE_NO = :P15_INVOICE_NO
+                           /* =========================
+                              INVOICE FILTER
+                              ========================= */
                 
-                                    -- AND (  :P207_INVOICE_NO_PREVIEW IS NULL
-                                    --      OR
-                                    --       I.INVOICE_NO = :P207_INVOICE_NO_PREVIEW)
+                           -- AND (  :P207_INVOICE_NO_PREVIEW IS NULL
+                           --      OR
+                           --       I.INVOICE_NO = :P207_INVOICE_NO_PREVIEW)
                            ORDER BY I.INVOICE_DATE DESC, I.INVOICE_NO DESC)
                     LOOP
                         v_invoice_count := v_invoice_count + 1;
                 
-                
-                        /* =====================================================
-                           INVOICE CARD START
-                           ===================================================== */
-                
                         v_html := v_html || '<div class="inv-report-card">';
-                
-                
-                        /* =====================================================
-                           PRINT BUTTON
-                           ===================================================== */
-                
                         v_html := v_html || '<div class="invoice-print-btn">
                 
                                 <button
@@ -139,14 +121,7 @@ page 15 (
                 
                             </div>';
                 
-                
-                        /* =====================================================
-                           HEADER
-                           ===================================================== */
-                
                         v_html := v_html || '<div class="inv-header">
-                
-                
                                 <div class="inv-company">
                 
                                     <div class="inv-company-name">
@@ -162,8 +137,6 @@ page 15 (
                                     </div>
                 
                                 </div>
-                
-                
                                 <div class="inv-title">
                 
                                     <div class="inv-title-main">
@@ -186,11 +159,6 @@ page 15 (
                 
                             <div class="inv-line"></div>';
                 
-                
-                        /* =====================================================
-                           CUSTOMER / INVOICE INFORMATION
-                           ===================================================== */
-                
                         v_html :=
                                v_html
                             || '<div class="inv-info">
@@ -210,8 +178,6 @@ page 15 (
                             || '
                 
                                     </div>
-                
-                
                                     <div>
                 
                                         <span class="fa fa-calendar"></span>
@@ -412,6 +378,7 @@ page 15 (
                                         <th class="num">Balance</th>
                 
                                         <th class="num">Rate</th>
+                                        <th class="num">Discount %</th>
                 
                                         <th class="num">Amount</th>
                 
@@ -446,7 +413,10 @@ page 15 (
                                              NVL (D.TOTAL_AMOUNT, 0)
                                                  AS TOTAL_AMOUNT,
                                              NVL (R.RETURN_QTY, 0)
-                                                 AS RETURN_QTY
+                                                 AS RETURN_QTY,
+                                                   NVL (D.DISCOUNT_PERCENT, 0)
+                                                 AS DISCOUNT_PERCENT
+                                                 
                                        FROM TRN_SALES_INVOICE_DTL D
                                             LEFT JOIN MST_PRODUCT P
                                                 ON P.PRODUCT_NO = D.PRODUCT_NO
@@ -543,6 +513,14 @@ page 15 (
                 
                                             '
                                     || TO_CHAR (D.SALES_RATE, 'FM999999990.00')
+                                    || '
+                
+                                        </td>
+                                        
+                                          <td class="num">
+                
+                                            '
+                                    || TO_CHAR (D.DISCOUNT_PERCENT, 'FM999999990.00')
                                     || '
                 
                                         </td>
@@ -1545,8 +1523,6 @@ page 15 (
                             }
                 
                         }
-                
-                
                     </style>' || v_html;
                 
                 
