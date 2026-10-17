@@ -118,10 +118,11 @@ page 35 (
             region: @register
             slot: regionBody
             alignment: left
-            startNewRow: false
+            columnSpan: 11
+            labelColumnSpan: 3
         }
         appearance {
-            template: @/optional-above
+            template: @/optional
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
@@ -186,10 +187,11 @@ page 35 (
             region: @register
             slot: regionBody
             alignment: left
-            startNewRow: false
+            columnSpan: 11
+            labelColumnSpan: 3
         }
         appearance {
-            template: @/optional-above
+            template: @/optional
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
@@ -233,9 +235,11 @@ page 35 (
             region: @register
             slot: regionBody
             alignment: left
+            columnSpan: 11
+            labelColumnSpan: 3
         }
         appearance {
-            template: @/optional-above
+            template: @/optional
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
@@ -266,14 +270,16 @@ page 35 (
             region: @register
             slot: regionBody
             alignment: left
-            startNewRow: false
+            columnSpan: 11
+            labelColumnSpan: 3
         }
         appearance {
-            template: @/optional-above
+            template: @/optional
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
                 t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
@@ -320,9 +326,11 @@ page 35 (
             region: @register
             slot: regionBody
             alignment: left
+            columnSpan: 11
+            labelColumnSpan: 3
         }
         appearance {
-            template: @/optional-above
+            template: @/optional
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
@@ -377,10 +385,11 @@ page 35 (
             region: @register
             slot: regionBody
             alignment: left
-            startNewRow: false
+            columnSpan: 11
+            labelColumnSpan: 3
         }
         appearance {
-            template: @/optional-above
+            template: @/optional
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
@@ -561,7 +570,7 @@ page 35 (
                 BEGIN
                     DELETE FROM MST_SALES_PRICE
                      WHERE SALES_PRICE_NO = :P35_SALES_PRICE_NO;
-                
+                     :P35_SALES_PRICE_NO := NULL;
                     apex_application.g_print_success_message :=
                         'Sales price deleted successfully.';
                 END;
@@ -597,44 +606,204 @@ page 35 (
         source {
             plsqlCode:
                 ```plsql
+                /* Formatted on 9/15/2026 5:33:03 PM (QP5 v5.388) */
                 DECLARE
-                    l_purchase_rate MST_PRODUCT.PURCHASE_RATE%TYPE;
+                    l_base_uom         NUMBER;
+                    l_selected_uom     NUMBER;
+                    l_sales_rate       NUMBER;
+                    l_effective_date   DATE;
                 BEGIN
-                    SELECT PURCHASE_RATE
-                      INTO l_purchase_rate
+                    /* =========================================================
+                       GET PRODUCT BASE UOM
+                       ========================================================= */
+                    SELECT UOM_NO
+                      INTO l_base_uom
                       FROM MST_PRODUCT
                      WHERE PRODUCT_NO = :P35_PRODUCT_NO;
                 
-                    IF :P35_SALES_RATE < l_purchase_rate THEN
-                        raise_application_error(
-                            -20001,
-                            'Sales rate cannot be less than purchase rate.'
-                        );
+                
+                    /* =========================================================
+                       BASIC VALIDATION
+                       ========================================================= */
+                    IF :P35_PRODUCT_NO IS NULL
+                    THEN
+                        RAISE_APPLICATION_ERROR (-20001, 'Please select a product.');
                     END IF;
                 
-                    INSERT INTO MST_SALES_PRICE (
-                        SALES_PRICE_NO,
-                        PRODUCT_NO,
-                        UOM_NO,
-                        SALES_RATE,
-                        EFFECTIVE_DATE,
-                        ACTIVE_FLAG,
-                        CREATED_BY,
-                        CREATED_DATE
-                    )
-                    VALUES (
-                        SEQ_SALES_PRICE.NEXTVAL,
-                        :P35_PRODUCT_NO,
-                        :P35_UOM_NO,
-                        :P35_SALES_RATE,
-                        NVL(:P35_EFFECTIVE_DATE, SYSDATE),
-                        '1',
-                        :APP_USER,
-                        SYSDATE
-                    );
                 
-                    apex_application.g_print_success_message :=
-                        'New sales price saved successfully.';
+                    IF :P35_UOM_NO IS NULL
+                    THEN
+                        RAISE_APPLICATION_ERROR (-20001, 'Please select a UOM.');
+                    END IF;
+                
+                
+                    IF NVL ( :P35_SALES_RATE, 0) <= 0
+                    THEN
+                        RAISE_APPLICATION_ERROR (-20001,
+                                                 'Sales rate must be greater than zero.');
+                    END IF;
+                
+                
+                    /* =========================================================
+                       VARIABLES
+                       ========================================================= */
+                    l_selected_uom := :P35_UOM_NO;
+                    l_sales_rate := ROUND ( :P35_SALES_RATE, 4);
+                    l_effective_date := NVL ( :P35_EFFECTIVE_DATE, SYSDATE);
+                
+                
+                    /* =========================================================
+                       SAVE SELECTED UOM PRICE
+                
+                       Example:
+                
+                       Product       = Kishwan Biscuit
+                       Selected UOM  = Box
+                       Sales Rate    = 2000
+                
+                       Box Price = 2000
+                       ========================================================= */
+                    INSERT INTO MST_SALES_PRICE (SALES_PRICE_NO,
+                                                 PRODUCT_NO,
+                                                 UOM_NO,
+                                                 SALES_RATE,
+                                                 EFFECTIVE_DATE,
+                                                 ACTIVE_FLAG,
+                                                 CREATED_BY,
+                                                 CREATED_DATE)
+                         VALUES (SEQ_SALES_PRICE.NEXTVAL,
+                                 :P35_PRODUCT_NO,
+                                 l_selected_uom,
+                                 l_sales_rate,
+                                 l_effective_date,
+                                 '1',
+                                 :APP_USER,
+                                 SYSDATE);
+                
+                
+                    /* =========================================================
+                       SELECTED UOM = CONVERSION UOM
+                
+                       Example:
+                
+                       Base UOM      = Pieces
+                       Conversion    = Box
+                       Factor        = 24
+                       Box Sales     = 2000
+                
+                       Pieces Price
+                       = 2000 / 24
+                       = 83.3333
+                       ========================================================= */
+                    IF l_selected_uom <> l_base_uom
+                    THEN
+                        FOR r
+                            IN (SELECT BASE_UOM_NO, CONVERT_UOM_NO, CONVERSION_FACTOR
+                                 FROM MST_UOM_CONVERSION
+                                WHERE     PRODUCT_NO = :P35_PRODUCT_NO
+                                      AND BASE_UOM_NO = l_base_uom
+                                      AND CONVERT_UOM_NO = l_selected_uom
+                                      AND ACTIVE_FLAG = '1'
+                                      AND CONVERSION_FACTOR > 0)
+                        LOOP
+                            l_sales_rate := ROUND ( :P35_SALES_RATE / r.CONVERSION_FACTOR, 4);
+                
+                
+                            /* =================================================
+                               SAVE BASE UOM PRICE
+                               ================================================= */
+                            INSERT INTO MST_SALES_PRICE (SALES_PRICE_NO,
+                                                         PRODUCT_NO,
+                                                         UOM_NO,
+                                                         SALES_RATE,
+                                                         EFFECTIVE_DATE,
+                                                         ACTIVE_FLAG,
+                                                         CREATED_BY,
+                                                         CREATED_DATE)
+                                 VALUES (SEQ_SALES_PRICE.NEXTVAL,
+                                         :P35_PRODUCT_NO,
+                                         r.BASE_UOM_NO,
+                                         l_sales_rate,
+                                         l_effective_date,
+                                         '1',
+                                         :APP_USER,
+                                         SYSDATE);
+                        END LOOP;
+                    /* =========================================================
+                       SELECTED UOM = BASE UOM
+                
+                       Example:
+                
+                       Base UOM      = KG
+                       Conversion    = Bag
+                       Factor        = 25
+                       KG Sales      = 80
+                
+                       Bag Price
+                       = 80 × 25
+                       = 2000
+                       ========================================================= */
+                    ELSE
+                        FOR r
+                            IN (SELECT CONVERT_UOM_NO, CONVERSION_FACTOR
+                                 FROM MST_UOM_CONVERSION
+                                WHERE     PRODUCT_NO = :P35_PRODUCT_NO
+                                      AND BASE_UOM_NO = l_base_uom
+                                      AND ACTIVE_FLAG = '1'
+                                      AND CONVERSION_FACTOR > 0)
+                        LOOP
+                            l_sales_rate := ROUND ( :P35_SALES_RATE * r.CONVERSION_FACTOR, 4);
+                
+                
+                            /* =================================================
+                               SAVE CONVERSION UOM PRICE
+                               ================================================= */
+                            INSERT INTO MST_SALES_PRICE (SALES_PRICE_NO,
+                                                         PRODUCT_NO,
+                                                         UOM_NO,
+                                                         SALES_RATE,
+                                                         EFFECTIVE_DATE,
+                                                         ACTIVE_FLAG,
+                                                         CREATED_BY,
+                                                         CREATED_DATE)
+                                 VALUES (SEQ_SALES_PRICE.NEXTVAL,
+                                         :P35_PRODUCT_NO,
+                                         r.CONVERT_UOM_NO,
+                                         l_sales_rate,
+                                         l_effective_date,
+                                         '1',
+                                         :APP_USER,
+                                         SYSDATE);
+                        END LOOP;
+                    END IF;
+                
+                
+                    /* =========================================================
+                       SUCCESS MESSAGE
+                       ========================================================= */
+                    APEX_APPLICATION.g_print_success_message :=
+                        'Sales price saved successfully.';
+                EXCEPTION
+                    /* =========================================================
+                       PRODUCT NOT FOUND
+                       ========================================================= */
+                    WHEN NO_DATA_FOUND
+                    THEN
+                        RAISE_APPLICATION_ERROR (-20001, 'Product information not found.');
+                    /* =========================================================
+                       DUPLICATE PRICE
+                       ========================================================= */
+                    WHEN DUP_VAL_ON_INDEX
+                    THEN
+                        RAISE_APPLICATION_ERROR (
+                            -20001,
+                            'Sales price already exists for this product and UOM.');
+                    /* =========================================================
+                       OTHER ERROR
+                       ========================================================= */
+                    WHEN OTHERS
+                    THEN
+                        RAISE;
                 END;
                 ```
         }
@@ -665,38 +834,105 @@ page 35 (
         source {
             plsqlCode:
                 ```plsql
-                  DECLARE
+                DECLARE
                     l_purchase_rate NUMBER;
+                    l_base_uom      NUMBER;
+                    l_sales_rate    NUMBER;
                 BEGIN
-                    SELECT PURCHASE_RATE
-                      INTO l_purchase_rate
+                    SELECT UOM_NO,
+                           PURCHASE_RATE
+                      INTO l_base_uom,
+                           l_purchase_rate
                       FROM MST_PRODUCT
                      WHERE PRODUCT_NO = :P35_PRODUCT_NO;
                 
-                    IF :P35_SALES_RATE < l_purchase_rate THEN
-                        raise_application_error(
+                    IF NVL(:P35_SALES_RATE,0) <= 0 THEN
+                        RAISE_APPLICATION_ERROR(
                             -20001,
-                            'Sales rate cannot be less than purchase rate.'
+                            'Sales rate must be greater than zero.'
                         );
                     END IF;
                 
-                    
-                    UPDATE MST_SALES_PRICE
+                    IF :P35_UOM_NO = l_base_uom THEN
+                
+                        IF :P35_SALES_RATE < l_purchase_rate THEN
+                            RAISE_APPLICATION_ERROR(
+                                -20001,
+                                'Sales rate cannot be less than purchase rate.'
+                            );
+                        END IF;
+                
+                        UPDATE MST_SALES_PRICE
                            SET PRODUCT_NO     = :P35_PRODUCT_NO,
                                UOM_NO         = :P35_UOM_NO,
                                SALES_RATE     = :P35_SALES_RATE,
-                               EFFECTIVE_DATE = :P35_EFFECTIVE_DATE,
+                               EFFECTIVE_DATE = NVL(:P35_EFFECTIVE_DATE,SYSDATE),
                                ACTIVE_FLAG    = :P35_ACTIVE_FLAG,
                                UPDATED_BY     = :APP_USER,
                                UPDATED_DATE   = SYSDATE
                          WHERE SALES_PRICE_NO = :P35_SALES_PRICE_NO;
                 
-                        apex_application.g_print_success_message :=
-                            'Sales price updated successfully.';
+                        /* Update All Conversion UOM Prices */
+                        FOR R IN
+                        (
+                            SELECT CONVERT_UOM_NO,
+                                   CONVERSION_FACTOR
+                              FROM MST_UOM_CONVERSION
+                             WHERE PRODUCT_NO = :P35_PRODUCT_NO
+                               AND BASE_UOM_NO = l_base_uom
+                               AND ACTIVE_FLAG = '1'
+                               AND CONVERSION_FACTOR > 0
+                        )
+                        LOOP
                 
+                            l_sales_rate :=
+                                ROUND(
+                                    :P35_SALES_RATE / R.CONVERSION_FACTOR,
+                                    4
+                                );
+                
+                            UPDATE MST_SALES_PRICE
+                               SET SALES_RATE     = l_sales_rate,
+                                   EFFECTIVE_DATE = NVL(:P35_EFFECTIVE_DATE,SYSDATE),
+                                   ACTIVE_FLAG    = :P35_ACTIVE_FLAG,
+                                   UPDATED_BY     = :APP_USER,
+                                   UPDATED_DATE   = SYSDATE
+                             WHERE PRODUCT_NO = :P35_PRODUCT_NO
+                               AND UOM_NO = R.CONVERT_UOM_NO;
+                
+                        END LOOP;
+                
+                    ELSE
+                
+                        /* Direct Conversion UOM Price Update */
+                        UPDATE MST_SALES_PRICE
+                           SET PRODUCT_NO     = :P35_PRODUCT_NO,
+                               UOM_NO         = :P35_UOM_NO,
+                               SALES_RATE     = :P35_SALES_RATE,
+                               EFFECTIVE_DATE = NVL(:P35_EFFECTIVE_DATE,SYSDATE),
+                               ACTIVE_FLAG    = :P35_ACTIVE_FLAG,
+                               UPDATED_BY     = :APP_USER,
+                               UPDATED_DATE   = SYSDATE
+                         WHERE SALES_PRICE_NO = :P35_SALES_PRICE_NO;
+                
+                    END IF;
+                
+                    apex_application.g_print_success_message :=
+                        'Sales price updated successfully.';
+                
+                EXCEPTION
+                    WHEN NO_DATA_FOUND THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            'Product information not found.'
+                        );
+                
+                    WHEN OTHERS THEN
+                        RAISE_APPLICATION_ERROR(
+                            -20001,
+                            SQLERRM
+                        );
                 END;
-                  
-                  
                 ```
         }
         execution {
@@ -704,6 +940,9 @@ page 35 (
         }
         advanced {
             executionMappingIdentifier: 15308949070803520
+        }
+        serverSideCondition {
+            whenButtonPressed: @update
         }
     )
 

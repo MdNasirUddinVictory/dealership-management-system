@@ -3190,6 +3190,7 @@ page 27 (
                                                      TRANSACTION_TYPE,
                                                      TRANSACTION_DATE,
                                                      TOTAL_AMOUNT,
+                                                     NET_AMOUNT,
                                                      APPROVAL_STATUS,
                                                      CREATED_BY,
                                                      CREATED_DATE)
@@ -3199,6 +3200,7 @@ page 27 (
                                  :P27_PAY_MODE,
                                  'P',
                                  :P27_TRANSACTION_DATE,
+                                 :P27_PAYMENT_AMOUNT,
                                  :P27_PAYMENT_AMOUNT,
                                  'P',
                                  :APP_USER,

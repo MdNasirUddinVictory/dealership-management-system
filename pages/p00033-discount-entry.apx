@@ -106,7 +106,7 @@ page 33 (
             displayNullValue: false
         }
         layout {
-            sequence: 100
+            sequence: 110
             region: @product-entrey
             slot: regionBody
             alignment: left
@@ -129,12 +129,16 @@ page 33 (
             column: ACTIVE_FLAG
             dataType: number
         }
+        default {
+            type: static
+            staticValue: 1
+        }
     )
 
     pageItem P33_CATEGORY_NO (
         type: popupLov
         label {
-            label: Category No
+            label: Category Wise Discount
             alignment: left
         }
         lov {
@@ -209,7 +213,7 @@ page 33 (
     pageItem P33_CUSTOMER_NO (
         type: popupLov
         label {
-            label: Customer No
+            label: Customer Wise Discount
             alignment: left
         }
         settings {
@@ -225,7 +229,6 @@ page 33 (
             region: @product-entrey
             slot: regionBody
             alignment: left
-            startNewRow: false
         }
         appearance {
             template: @/optional-above
@@ -309,7 +312,6 @@ page 33 (
             region: @product-entrey
             slot: regionBody
             alignment: left
-            startNewRow: false
         }
         appearance {
             template: @/optional-above
@@ -368,7 +370,7 @@ page 33 (
             alignment: left
         }
         layout {
-            sequence: 70
+            sequence: 100
             region: @product-entrey
             slot: regionBody
             alignment: left
@@ -396,7 +398,7 @@ page 33 (
     pageItem P33_PRODUCT_NO (
         type: popupLov
         label {
-            label: Product No
+            label: Product Wise Discount
             alignment: left
         }
         settings {

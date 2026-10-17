@@ -106,211 +106,131 @@ page 207 (
         source {
             plsqlFunctionBody:
                 ```plsql
-                /* Formatted on 9/7/2026 3:56:48 PM (QP5 v5.388) */
                 DECLARE
                     v_html            CLOB := '';
                     v_invoice_count   NUMBER := 0;
                 BEGIN
                     FOR H
-                        IN (  SELECT I.INVOICE_NO,
-                                     I.INVOICE_CODE,
-                                     I.INVOICE_DATE,
-                                     O.ORDER_CODE,
-                                     C.CUSTOMER_NO,
-                                     C.CUSTOMER_CODE,
-                                     C.CUSTOMER_NAME,
-                                     C.MOBILE_NO,
-                                     C.EMAIL_ADDRESS,
-                                     C.ADDRESS,
-                                     NVL (I.TOTAL_AMOUNT, 0)        AS TOTAL_AMOUNT,
-                                     NVL (I.RECEIVED_AMOUNT, 0)     AS RECEIVED_AMOUNT,
-                                     NVL (I.DUE_AMOUNT, 0)          AS DUE_AMOUNT,
-                                     I.PAYMENT_STATUS,
-                                     I.DELIVERY_STATUS,
-                                     I.DELIVERY_BY,
-                                     I.DELIVERY_DATE,
-                                     I.CREATED_BY,
-                                     I.CREATED_DATE
-                               FROM TRN_SALES_INVOICE_MST I
-                                    LEFT JOIN MST_CUSTOMER C ON C.CUSTOMER_NO = I.CUSTOMER_NO
-                                    LEFT JOIN TRN_SALES_ORDER_MST O ON O.ORDER_NO = I.ORDER_NO
-                              --   WHERE     /* =========================
-                              --                FROM DATE
-                              --                ========================= */
+                        IN (  SELECT
+                    I.INVOICE_NO,
+                    I.INVOICE_CODE,
+                    I.INVOICE_DATE,
+                    O.ORDER_CODE,
+                    C.CUSTOMER_NO,
+                    C.CUSTOMER_CODE,
+                    C.CUSTOMER_NAME,
+                    C.MOBILE_NO,
+                    C.EMAIL_ADDRESS,
+                    C.ADDRESS,
+                    NVL(I.TOTAL_AMOUNT, 0) AS TOTAL_AMOUNT,
+                    NVL(I.RECEIVED_AMOUNT, 0) AS RECEIVED_AMOUNT,
                 
-                              --             (   :P207_FROM_DATE IS NULL
-                              --              OR I.INVOICE_DATE >=
-                              --                 TO_DATE ( :P207_FROM_DATE, 'MM/DD/YYYY'))
-                              /* =========================
-                                 TO DATE
-                                 ========================= */
+                    NVL((SELECT SUM(NVL(D.DISCOUNT_AMOUNT, 0))
+                          FROM TRN_SALES_INVOICE_DTL D
+                         WHERE D.INVOICE_NO = I.INVOICE_NO), 0) AS DISCOUNT_AMOUNT,
                 
-                              -- WHERE (   :P207_TO_DATE IS NULL
-                              --      OR I.INVOICE_DATE <
-                              --         TO_DATE ( :P207_TO_DATE, 'MM/DD/YYYY') + 1)
-                              /* =========================
-                                 CUSTOMER FILTER
-                                 ========================= */
+                    NVL(I.TOTAL_AMOUNT, 0)
+                    - NVL(I.RECEIVED_AMOUNT, 0)
+                    - NVL((SELECT SUM(NVL(D.DISCOUNT_AMOUNT, 0))
+                            FROM TRN_SALES_INVOICE_DTL D
+                           WHERE D.INVOICE_NO = I.INVOICE_NO), 0) AS DUE_AMOUNT,
                 
-                              WHERE (                     -- :P207_CUSTOMER_NO_PREVIEW IS NULL
-                                        --  OR
-                                        I.CUSTOMER_NO = :P207_CUSTOMER_NO_PREVIEW
-                                     OR I.INVOICE_NO = :P207_INVOICE_NO_PREVIEW)
-                           /* =========================
-                              INVOICE FILTER
-                              ========================= */
-                
-                           -- AND (  :P207_INVOICE_NO_PREVIEW IS NULL
-                           --      OR
-                           --       I.INVOICE_NO = :P207_INVOICE_NO_PREVIEW)
+                    I.PAYMENT_STATUS,
+                    I.DELIVERY_STATUS,
+                    I.DELIVERY_BY,
+                    I.DELIVERY_DATE,
+                    I.CREATED_BY,
+                    I.CREATED_DATE
+                FROM TRN_SALES_INVOICE_MST I
+                LEFT JOIN MST_CUSTOMER C
+                       ON C.CUSTOMER_NO = I.CUSTOMER_NO
+                LEFT JOIN TRN_SALES_ORDER_MST O
+                       ON O.ORDER_NO = I.ORDER_NO
+                              WHERE  I.INVOICE_NO = :P207_INVOICE_NO_PREVIEW
                            ORDER BY I.INVOICE_DATE DESC, I.INVOICE_NO DESC)
                     LOOP
                         v_invoice_count := v_invoice_count + 1;
-                
                         v_html := v_html || '<div class="inv-report-card">';
                         v_html := v_html || '<div class="invoice-print-btn">
-                
                                 <button
                                     type="button"
                                     onclick="printSingleInvoice(this)"
                                     title="Print Invoice">
-                
                                     <span class="fa fa-print"></span>
-                
                                 </button>
-                
                             </div>';
-                
                         v_html := v_html || '<div class="inv-header">
                                 <div class="inv-company">
-                
                                     <div class="inv-company-name">
-                
                                         <span class="fa fa-bolt"></span>
-                
                                         Dealer Inventory &amp; Sales
-                
                                     </div>
-                
                                     <div class="inv-company-sub">
                                         Sales Invoice
                                     </div>
-                
                                 </div>
                                 <div class="inv-title">
-                
                                     <div class="inv-title-main">
-                
                                         <span class="fa fa-file-text-o"></span>
-                
                                         INVOICE
-                
                                     </div>
-                
                                     <div class="inv-copy">
                                         Original for Customer
                                     </div>
-                
                                 </div>
-                
-                
                             </div>
-                
-                
                             <div class="inv-line"></div>';
                 
                         v_html :=
                                v_html
                             || '<div class="inv-info">
-                
-                
                                 <div class="inv-left">
-                
-                
                                     <div>
-                
                                         <span class="fa fa-hashtag"></span>
-                
                                         <b>Invoice No:</b>
-                
                                         '
                             || APEX_ESCAPE.HTML (H.INVOICE_CODE)
                             || '
-                
                                     </div>
                                     <div>
-                
                                         <span class="fa fa-calendar"></span>
-                
                                         <b>Invoice Date:</b>
-                
                                         '
                             || TO_CHAR (H.INVOICE_DATE, 'DD-MON-YYYY')
-                            || '
-                
-                                    </div>';
-                
-                
+                            || '</div>';
                         /* ORDER */
-                
                         IF H.ORDER_CODE IS NOT NULL
                         THEN
                             v_html := v_html || '<div>
-                
                                     <span class="fa fa-shopping-cart"></span>
-                
                                     <b>Order No:</b>
-                
                                     ' || APEX_ESCAPE.HTML (H.ORDER_CODE) || '
-                
                                 </div>';
                         END IF;
-                
-                
                         /* CUSTOMER */
-                
                         v_html :=
                                v_html
                             || '<div>
-                
                                 <span class="fa fa-user"></span>
-                
                                 <b>Customer:</b>
-                
                                 '
                             || APEX_ESCAPE.HTML (H.CUSTOMER_NAME)
                             || '
-                
                             </div>
-                
-                
                             <div>
-                
                                 <span class="fa fa-phone"></span>
-                
                                 <b>Mobile:</b>
-                
                                 '
                             || APEX_ESCAPE.HTML (H.MOBILE_NO)
                             || '
-                
                             </div>
-                
-                
                             </div>
-                
-                
                             <div class="inv-right">
-                
-                
                                 <!-- PAYMENT -->
-                
                                 <div>
-                
                                     <span class="fa fa-credit-card"></span>
                 
                                     <b>Payment:</b>';
-                
                 
                         /* =====================================================
                            PAYMENT STATUS
@@ -318,142 +238,85 @@ page 207 (
                            PP = PARTIAL PAID
                            UP  = UNPAID
                            ===================================================== */
-                
                         IF UPPER (NVL (H.PAYMENT_STATUS, 'UP')) = 'P'
                         THEN
                             v_html := v_html || '<span class="status-badge status-paid">
                 
                                     <span class="fa fa-check-circle"></span>
-                
                                     Paid
-                
                                 </span>';
                         ELSIF UPPER (NVL (H.PAYMENT_STATUS, 'UP')) = 'PP'
                         THEN
                             v_html := v_html || '<span class="status-badge status-partial">
                 
                                     <span class="fa fa-adjust"></span>
-                
                                     Partial Paid
-                
                                 </span>';
                         ELSE
                             v_html := v_html || '<span class="status-badge status-unpaid">
-                
                                     <span class="fa fa-exclamation-circle"></span>
-                
                                     Unpaid
-                
                                 </span>';
                         END IF;
-                
-                
                         v_html := v_html || '</div>
-                
-                
                             <!-- DELIVERY -->
-                
                             <div>
-                
                                 <span class="fa fa-truck"></span>
-                
                                 <b>Delivery:</b>';
-                
-                
                         /* =====================================================
                            DELIVERY STATUS
                            D = DELIVERED
                            P = PENDING
                            ===================================================== */
-                
                         IF UPPER (NVL (H.DELIVERY_STATUS, 'P')) = 'D'
                         THEN
                             v_html :=
                                 v_html || '<span class="status-badge status-delivered">
-                
                                     <span class="fa fa-check"></span>
-                
                                     Delivered
-                
                                 </span>';
                         ELSE
                             v_html := v_html || '<span class="status-badge status-pending">
                 
                                     <span class="fa fa-clock-o"></span>
-                
                                     Pending
-                
                                 </span>';
                         END IF;
-                
-                
                         v_html :=
                             v_html || '</div>
-                
-                
                             <!-- DUE -->
-                
                             <div>
-                
                                 <span class="fa fa-money"></span>
-                
                                 <b>Due:</b>
-                
                                 <span class="due-value">
-                
                                     ৳ ' || TO_CHAR (H.DUE_AMOUNT, 'FM9999999990.00') || '
                 
                                 </span>
-                
                             </div>
-                
-                
                             </div>
-                
-                
                             </div>';
-                
-                
                         /* =====================================================
                            PRODUCT TABLE
                            ===================================================== */
-                
                         v_html := v_html || '<table class="inv-table">
-                
-                
                                 <thead>
-                
                                     <tr>
-                
                                         <th class="sl">#</th>
-                
                                         <th>Product</th>
-                
                                         <th class="num">Qty</th>
-                
                                         <th class="num">Delivered</th>
-                
                                         <th class="num">Return</th>
-                
                                         <th class="num">Balance</th>
-                
                                         <th class="num">Rate</th>
-                                        <th class="num">Discount %</th>
-                
+                                        <th class="num">Discount</th>
                                         <th class="num">Amount</th>
-                
                                     </tr>
-                
                                 </thead>
-                
-                
                                 <tbody>';
-                
                 
                         /* =====================================================
                            PRODUCT DETAILS
                            ===================================================== */
-                
                         DECLARE
                             v_sl   NUMBER := 0;
                         BEGIN
@@ -474,9 +337,8 @@ page 207 (
                                                  AS TOTAL_AMOUNT,
                                              NVL (R.RETURN_QTY, 0)
                                                  AS RETURN_QTY,
-                                                   NVL (D.DISCOUNT_PERCENT, 0)
-                                                 AS DISCOUNT_PERCENT
-                                                 
+                                                   NVL (D.DISCOUNT_AMOUNT, 0)
+                                                 AS DISCOUNT_AMOUNT                                
                                        FROM TRN_SALES_INVOICE_DTL D
                                             LEFT JOIN MST_PRODUCT P
                                                 ON P.PRODUCT_NO = D.PRODUCT_NO
@@ -495,22 +357,14 @@ page 207 (
                                    ORDER BY D.INVOICE_DTL_NO)
                             LOOP
                                 v_sl := v_sl + 1;
-                
-                
                                 v_html :=
                                        v_html
                                     || '<tr>
-                
-                
                                         <td class="sl">
-                
                                             '
                                     || v_sl
                                     || '
-                
                                         </td>
-                
-                
                                         <td>
                 
                                             <div class="product-name">
@@ -518,23 +372,16 @@ page 207 (
                                                 '
                                     || APEX_ESCAPE.HTML (D.PRODUCT_NAME)
                                     || '
-                
                                             </div>
-                
-                
                                             <div class="product-code">
                 
                                                 '
                                     || APEX_ESCAPE.HTML (D.PRODUCT_CODE)
                                     || '
-                
                                             </div>
                 
                                         </td>
-                
-                
                                         <td class="num">
-                
                                             '
                                     || TO_CHAR (D.SALES_QTY, 'FM999999990.00')
                                     || '
@@ -547,84 +394,49 @@ page 207 (
                                             '
                                     || TO_CHAR (D.DELIVERED_QTY, 'FM999999990.00')
                                     || '
-                
                                         </td>
-                
-                
                                         <td class="num return-value">
                 
                                             '
                                     || TO_CHAR (D.RETURN_QTY, 'FM999999990.00')
                                     || '
-                
                                         </td>
-                
-                
                                         <td class="num">
-                
                                             '
                                     || TO_CHAR (D.BALANCE_QTY, 'FM999999990.00')
                                     || '
                 
                                         </td>
-                
-                
                                         <td class="num">
-                
                                             '
                                     || TO_CHAR (D.SALES_RATE, 'FM999999990.00')
                                     || '
-                
-                                        </td>
-                                        
+                                        </td>                      
                                           <td class="num">
-                
                                             '
-                                    || TO_CHAR (D.DISCOUNT_PERCENT, 'FM999999990.00')
+                                    || TO_CHAR (D.DISCOUNT_AMOUNT, 'FM999999990.00')
                                     || '
-                
                                         </td>
-                
-                
                                         <td class="num amount">
-                
                                             '
                                     || TO_CHAR (D.TOTAL_AMOUNT, 'FM9999999990.00')
                                     || '
-                
                                         </td>
-                
-                
                                     </tr>';
                             END LOOP;
                         END;
-                
-                
                         v_html := v_html || '</tbody>
-                
                             </table>';
-                
-                
                         /* =====================================================
                            TOTAL SECTION
                            ===================================================== */
-                
                         v_html := v_html || '<div class="inv-total-area">
-                
-                
                                 <div class="inv-total-left">
-                
                                     <div class="small-note">
-                
                                         <span class="fa fa-info-circle"></span>
-                
                                         Payment Status:
-                
                                         <b>';
-                
-                
                         /* PAYMENT TEXT */
-                
                         IF UPPER (NVL (H.PAYMENT_STATUS, 'UP')) = 'P'
                         THEN
                             v_html := v_html || 'Paid';
@@ -634,28 +446,16 @@ page 207 (
                         ELSE
                             v_html := v_html || 'Unpaid';
                         END IF;
-                
-                
                         v_html :=
                                v_html
                             || '</b>
-                
                                     </div>
-                
                                 </div>
-                
-                
                                 <div class="inv-total-right">
-                
-                
                                     <div class="total-row">
-                
                                         <span>
-                
                                             <span class="fa fa-calculator"></span>
-                
                                             Invoice Total
-                
                                         </span>
                 
                                         <b>
@@ -663,64 +463,48 @@ page 207 (
                                             ৳ '
                             || TO_CHAR (H.TOTAL_AMOUNT, 'FM9999999990.00')
                             || '
-                
                                         </b>
-                
                                     </div>
                 
-                
-                                    <div class="total-row received-row">
-                
+                                    <div class="total-row">
                                         <span>
-                
-                                            <span class="fa fa-check-circle"></span>
-                
-                                            Received
-                
+                                            <span class="fa fa-minus-circle"></span>
+                                            Discount
                                         </span>
-                
                                         <b>
-                
+                                            ৳ '
+                            || TO_CHAR (H.DISCOUNT_AMOUNT, 'FM9999999990.00')
+                            || '
+                                        </b>
+                                    </div>
+                                    <div class="total-row received-row">
+                                        <span>
+                                            <span class="fa fa-check-circle"></span>
+                                            Received
+                                        </span>
+                                        <b>
                                             ৳ '
                             || TO_CHAR (H.RECEIVED_AMOUNT, 'FM9999999990.00')
                             || '
-                
                                         </b>
-                
                                     </div>
-                
-                
                                     <div class="total-row due-row">
-                
                                         <span>
-                
                                             <span class="fa fa-exclamation-circle"></span>
-                
                                             Due
-                
                                         </span>
-                
                                         <b>
                 
                                             ৳ '
                             || TO_CHAR (H.DUE_AMOUNT, 'FM9999999990.00')
                             || '
-                
                                         </b>
-                
                                     </div>
-                
-                
                                 </div>
-                
-                
                             </div>';
-                
-                
                         /* =====================================================
                            PAID WATERMARK
                            ===================================================== */
-                
                         IF UPPER (NVL (H.PAYMENT_STATUS, 'UP')) = 'P'
                         THEN
                             v_html := v_html || '<div class="paid-watermark">
@@ -1585,7 +1369,6 @@ page 207 (
                         }
                     </style>' || v_html;
                 
-                
                     RETURN v_html;
                 END;
                 ```
@@ -1760,145 +1543,66 @@ page 207 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                SELECT I.INVOICE_NO,
-                       I.INVOICE_CODE,
-                
-                       TO_CHAR(I.INVOICE_DATE, 'DD-MON-YYYY')
-                           AS INVOICE_DATE,
-                
-                       O.ORDER_CODE,
-                
-                       C.CUSTOMER_CODE,
-                       C.CUSTOMER_NAME,
-                       C.MOBILE_NO,
-                       C.EMAIL_ADDRESS,
-                       C.ADDRESS,
-                
-                       D.INVOICE_DTL_NO,
-                
-                       P.PRODUCT_CODE,
-                       P.PRODUCT_NAME,
-                       PC.CATEGORY_NAME,
-                
-                       NVL(D.SALES_QTY, 0)
-                           AS SALES_QTY,
-                
-                       NVL(D.DELIVERED_QTY, 0)
-                           AS DELIVERED_QTY,
-                
-                       NVL(D.SALES_QTY, 0)
-                       - NVL(D.DELIVERED_QTY, 0)
-                           AS BALANCE_QTY,
-                
-                       NVL(D.SALES_RATE, 0)
-                           AS SALES_RATE,
-                
-                       ------------------------------------------------
-                       -- Discount Details
-                       ------------------------------------------------
-                
-                       NVL(D.DISCOUNT_PERCENT, 0)
-                           AS DISCOUNT_PERCENT,
-                
-                       NVL(D.SALES_QTY, 0)
-                       * NVL(D.SALES_RATE, 0)
-                           AS GROSS_AMOUNT,
-                
-                       NVL(D.DISCOUNT_AMOUNT, 0)
-                           AS DISCOUNT_AMOUNT,
-                
-                       NVL(D.TOTAL_AMOUNT, 0)
-                           AS NET_AMOUNT,
-                
-                       ------------------------------------------------
-                       -- Invoice Summary
-                       ------------------------------------------------
-                
-                       NVL(I.TOTAL_AMOUNT, 0)
-                           AS INVOICE_TOTAL_AMOUNT,
-                
-                       NVL(I.RECEIVED_AMOUNT, 0)
-                           AS RECEIVED_AMOUNT,
-                
-                       NVL(I.DUE_AMOUNT, 0)
-                           AS DUE_AMOUNT,
-                
-                       I.PAYMENT_STATUS,
-                       I.DELIVERY_STATUS,
-                       I.DELIVERY_BY,
-                
-                       TO_CHAR(I.DELIVERY_DATE, 'DD-MON-YYYY')
-                           AS DELIVERY_DATE,
-                
-                       I.CREATED_BY,
-                
-                       TO_CHAR(
-                           I.CREATED_DATE,
-                           'DD-MON-YYYY HH24:MI:SS'
-                       ) AS CREATED_DATE,
-                
-                       NVL(R.RETURN_QTY, 0)
-                           AS RETURN_QTY
-                
-                  FROM TRN_SALES_INVOICE_MST I
-                
-                       LEFT JOIN TRN_SALES_INVOICE_DTL D
-                         ON D.INVOICE_NO = I.INVOICE_NO
-                
-                       LEFT JOIN MST_CUSTOMER C
-                         ON C.CUSTOMER_NO = I.CUSTOMER_NO
-                
-                       LEFT JOIN MST_PRODUCT P
-                         ON P.PRODUCT_NO = D.PRODUCT_NO
-                
-                       LEFT JOIN MST_PRODUCT_CATEGORY PC
-                         ON PC.CATEGORY_NO = P.CATEGORY_NO
-                
-                       LEFT JOIN TRN_SALES_ORDER_MST O
-                         ON O.ORDER_NO = I.ORDER_NO
-                
-                       LEFT JOIN
-                       (
-                           SELECT D.INVOICE_DTL_NO,
-                                  SUM(NVL(D.RETURN_QTY, 0))
-                                      AS RETURN_QTY
-                
-                             FROM TRN_CUSTOMER_RETURN_DTL D
-                
-                                  JOIN TRN_CUSTOMER_RETURN_MST M
-                                    ON M.RETURN_NO = D.RETURN_NO
-                
-                            WHERE M.APPROVAL_STATUS = 'A'
-                
-                            GROUP BY D.INVOICE_DTL_NO
-                       ) R
-                         ON R.INVOICE_DTL_NO = D.INVOICE_DTL_NO
-                
-                 WHERE I.INVOICE_DATE >=
-                       NVL(
-                           TO_DATE(:P207_FROM_DATE, 'MM/DD/YYYY'),
-                           TRUNC(SYSDATE)
-                       )
-                
-                   AND I.INVOICE_DATE <
-                       NVL(
-                           TO_DATE(:P207_TO_DATE, 'MM/DD/YYYY'),
-                           TRUNC(SYSDATE)
-                       ) + 1
-                
-                   AND (
-                       :P207_CUSTOMER_NO IS NULL
-                       OR I.CUSTOMER_NO = :P207_CUSTOMER_NO
-                   )
-                
-                   AND (
-                       :P207_INVOICE_NO IS NULL
-                       OR I.INVOICE_NO = :P207_INVOICE_NO
-                   )
-                
-                 ORDER BY I.INVOICE_DATE DESC,
-                          I.INVOICE_NO DESC,
-                          D.INVOICE_DTL_NO
+                /* Formatted on 9/14/2026 1:47:13 PM (QP5 v5.388) */
+                  SELECT I.INVOICE_CODE                             AS "Invoice No",
+                         TO_CHAR (I.INVOICE_DATE, 'DD-MON-YYYY')    AS "Date",
+                         C.CUSTOMER_NAME                            AS "Customer",
+                         C.MOBILE_NO                                AS "Mobile No",
+                         /* Products */
+                          (SELECT LISTAGG (P.PRODUCT_NAME, ', ')
+                                      WITHIN GROUP (ORDER BY D2.INVOICE_DTL_NO)
+                           FROM TRN_SALES_INVOICE_DTL D2
+                                JOIN MST_PRODUCT P ON P.PRODUCT_NO = D2.PRODUCT_NO
+                          WHERE D2.INVOICE_NO = I.INVOICE_NO)       AS "Products",
+                         /* Quantity */
+                          (SELECT LISTAGG (TO_CHAR (NVL (D2.SALES_QTY, 0)), ', ')
+                                      WITHIN GROUP (ORDER BY D2.INVOICE_DTL_NO)
+                           FROM TRN_SALES_INVOICE_DTL D2
+                          WHERE D2.INVOICE_NO = I.INVOICE_NO)       AS "Qty",
+                         /* Gross */
+                          (SELECT NVL (SUM (NVL (D2.SALES_QTY, 0) * NVL (D2.SALES_RATE, 0)), 0)
+                             FROM TRN_SALES_INVOICE_DTL D2
+                            WHERE D2.INVOICE_NO = I.INVOICE_NO)     AS "Gross",
+                         /* Discount */
+                          (SELECT NVL (SUM (NVL (D2.DISCOUNT_AMOUNT, 0)), 0)
+                             FROM TRN_SALES_INVOICE_DTL D2
+                            WHERE D2.INVOICE_NO = I.INVOICE_NO)     AS "Discount",
+                         /* Net */
+                         NVL (I.TOTAL_AMOUNT, 0)                    AS "Net",
+                         /* Payment */
+                         NVL (I.RECEIVED_AMOUNT, 0)                 AS "Received",
+                         NVL (I.DUE_AMOUNT, 0)                      AS "Due",
+                         CASE I.PAYMENT_STATUS
+                             WHEN 'UP' THEN 'Unpaid'
+                             WHEN 'PP' THEN 'Partial'
+                             WHEN 'P' THEN 'Paid'
+                             ELSE I.PAYMENT_STATUS
+                         END                                        AS "Payment",
+                         /* Delivery */
+                         CASE I.DELIVERY_STATUS
+                             WHEN 'P' THEN 'Pending'
+                             WHEN 'D' THEN 'Delivered'
+                             ELSE I.DELIVERY_STATUS
+                         END                                        AS "Delivery",
+                         /* Return */
+                         NVL (
+                             (SELECT SUM (NVL (RD.RETURN_QTY, 0))
+                               FROM TRN_CUSTOMER_RETURN_DTL RD
+                                    JOIN TRN_CUSTOMER_RETURN_MST RM
+                                        ON RM.RETURN_NO = RD.RETURN_NO
+                                    JOIN TRN_SALES_INVOICE_DTL SD
+                                        ON SD.INVOICE_DTL_NO = RD.INVOICE_DTL_NO
+                              WHERE RM.APPROVAL_STATUS = 'A' AND SD.INVOICE_NO = I.INVOICE_NO),
+                             0)                                     AS "Return"
+                    FROM TRN_SALES_INVOICE_MST I
+                         LEFT JOIN MST_CUSTOMER C ON C.CUSTOMER_NO = I.CUSTOMER_NO
+                   WHERE     I.INVOICE_DATE >=
+                             NVL (TO_DATE ( :P207_FROM_DATE, 'MM/DD/YYYY'), TRUNC (SYSDATE))
+                         AND I.INVOICE_DATE <
+                             NVL (TO_DATE ( :P207_TO_DATE, 'MM/DD/YYYY'), TRUNC (SYSDATE)) + 1
+                         AND ( :P207_CUSTOMER_NO IS NULL OR I.CUSTOMER_NO = :P207_CUSTOMER_NO)
+                         AND ( :P207_INVOICE_NO IS NULL OR I.INVOICE_NO = :P207_INVOICE_NO)
+                ORDER BY I.INVOICE_DATE DESC, I.INVOICE_NO DESC;
                 ```
             pageItemsToSubmit: [
                 P207_FROM_DATE
@@ -1926,278 +1630,26 @@ page 207 (
             savedReportMappingIdentifier: 34684123865730297
         }
 
-        column ADDRESS (
+        column Customer (
             type: plainText
             heading {
-                heading: Address
+                heading: Customer
             }
             layout {
-                sequence: 90
+                sequence: 30
             }
             source {
                 dataType: STRING
             }
             advanced {
-                endUserAlias: I
+                endUserAlias: AT
             }
         )
 
-        column BALANCE_QTY (
+        column Date (
             type: plainText
             heading {
-                heading: Balance Qty
-                alignment: end
-            }
-            layout {
-                sequence: 160
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: P
-            }
-        )
-
-        column CATEGORY_NAME (
-            type: plainText
-            heading {
-                heading: Category Name
-            }
-            layout {
-                sequence: 340
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: AH
-            }
-        )
-
-        column CREATED_BY (
-            type: plainText
-            heading {
-                heading: Created By
-            }
-            layout {
-                sequence: 260
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: Z
-            }
-        )
-
-        column CREATED_DATE (
-            type: plainText
-            heading {
-                heading: Created Date
-            }
-            layout {
-                sequence: 330
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: AG
-            }
-        )
-
-        column CUSTOMER_CODE (
-            type: plainText
-            heading {
-                heading: Customer Code
-            }
-            layout {
-                sequence: 50
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: E
-            }
-        )
-
-        column CUSTOMER_NAME (
-            type: plainText
-            heading {
-                heading: Customer Name
-            }
-            layout {
-                sequence: 60
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: F
-            }
-        )
-
-        column DELIVERED_QTY (
-            type: plainText
-            heading {
-                heading: Delivered Qty
-                alignment: end
-            }
-            layout {
-                sequence: 150
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: O
-            }
-        )
-
-        column DELIVERY_BY (
-            type: plainText
-            heading {
-                heading: Delivery By
-            }
-            layout {
-                sequence: 240
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: X
-            }
-        )
-
-        column DELIVERY_DATE (
-            type: plainText
-            heading {
-                heading: Delivery Date
-            }
-            layout {
-                sequence: 320
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: AF
-            }
-        )
-
-        column DELIVERY_STATUS (
-            type: plainText
-            heading {
-                heading: Delivery Status
-            }
-            layout {
-                sequence: 230
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: W
-            }
-        )
-
-        column DISCOUNT_AMOUNT (
-            type: plainText
-            heading {
-                heading: Discount Amount
-                alignment: end
-            }
-            layout {
-                sequence: 370
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: AK
-            }
-        )
-
-        column DISCOUNT_PERCENT (
-            type: plainText
-            heading {
-                heading: Discount Percent
-                alignment: end
-            }
-            layout {
-                sequence: 350
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: AI
-            }
-        )
-
-        column DUE_AMOUNT (
-            type: plainText
-            heading {
-                heading: Due Amount
-                alignment: end
-            }
-            layout {
-                sequence: 210
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: U
-            }
-        )
-
-        column EMAIL_ADDRESS (
-            type: plainText
-            heading {
-                heading: Email Address
-            }
-            layout {
-                sequence: 80
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: H
-            }
-        )
-
-        column GROSS_AMOUNT (
-            type: plainText
-            heading {
-                heading: Gross Amount
-                alignment: end
-            }
-            layout {
-                sequence: 360
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: AJ
-            }
-        )
-
-        column INVOICE_CODE (
-            type: plainText
-            heading {
-                heading: Invoice Code
+                heading: Date
             }
             layout {
                 sequence: 20
@@ -2206,30 +1658,182 @@ page 207 (
                 dataType: STRING
             }
             advanced {
-                endUserAlias: B
+                endUserAlias: AS
             }
         )
 
-        column INVOICE_DATE (
+        column Delivery (
             type: plainText
             heading {
-                heading: Invoice Date
+                heading: Delivery
             }
             layout {
-                sequence: 310
+                sequence: 130
             }
             source {
                 dataType: STRING
             }
             advanced {
-                endUserAlias: AE
+                endUserAlias: BD
             }
         )
 
-        column INVOICE_DTL_NO (
+        column Discount (
             type: plainText
             heading {
-                heading: Invoice Dtl No
+                heading: Discount
+                alignment: end
+            }
+            layout {
+                sequence: 80
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AY
+            }
+        )
+
+        column Due (
+            type: plainText
+            heading {
+                heading: Due
+                alignment: end
+            }
+            layout {
+                sequence: 110
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: BB
+            }
+        )
+
+        column Gross (
+            type: plainText
+            heading {
+                heading: Gross
+                alignment: end
+            }
+            layout {
+                sequence: 70
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AX
+            }
+        )
+
+        column "Invoice No" (
+            type: plainText
+            heading {
+                heading: Invoice No
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: AR
+            }
+        )
+
+        column "Mobile No" (
+            type: plainText
+            heading {
+                heading: Mobile No
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: AU
+            }
+        )
+
+        column Net (
+            type: plainText
+            heading {
+                heading: Total Amonut
+                alignment: end
+            }
+            layout {
+                sequence: 90
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AZ
+            }
+        )
+
+        column Payment (
+            type: plainText
+            heading {
+                heading: Payment
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: BC
+            }
+        )
+
+        column Products (
+            type: plainText
+            heading {
+                heading: Products
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: AV
+            }
+        )
+
+        column Qty (
+            type: plainText
+            heading {
+                heading: Qty
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: AW
+            }
+        )
+
+        column Received (
+            type: plainText
+            heading {
+                heading: Received
                 alignment: end
             }
             layout {
@@ -2240,184 +1844,14 @@ page 207 (
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: J
+                endUserAlias: BA
             }
         )
 
-        column INVOICE_NO (
+        column Return (
             type: plainText
             heading {
-                heading: Invoice No
-                alignment: end
-            }
-            layout {
-                sequence: 10
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: A
-            }
-        )
-
-        column INVOICE_TOTAL_AMOUNT (
-            type: plainText
-            heading {
-                heading: Invoice Total Amount
-                alignment: end
-            }
-            layout {
-                sequence: 190
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: S
-            }
-        )
-
-        column MOBILE_NO (
-            type: plainText
-            heading {
-                heading: Mobile No
-            }
-            layout {
-                sequence: 70
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: G
-            }
-        )
-
-        column NET_AMOUNT (
-            type: plainText
-            heading {
-                heading: Net Amount
-                alignment: end
-            }
-            layout {
-                sequence: 380
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: AL
-            }
-        )
-
-        column ORDER_CODE (
-            type: plainText
-            heading {
-                heading: Order Code
-            }
-            layout {
-                sequence: 40
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: D
-            }
-        )
-
-        column PAYMENT_STATUS (
-            type: plainText
-            heading {
-                heading: Payment Status
-            }
-            layout {
-                sequence: 220
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: V
-            }
-        )
-
-        column PRODUCT_CODE (
-            type: plainText
-            heading {
-                heading: Product Code
-            }
-            layout {
-                sequence: 110
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: K
-            }
-        )
-
-        column PRODUCT_NAME (
-            type: plainText
-            heading {
-                heading: Product Name
-            }
-            layout {
-                sequence: 120
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: L
-            }
-        )
-
-        column RECEIVED_AMOUNT (
-            type: plainText
-            heading {
-                heading: Received Amount
-                alignment: end
-            }
-            layout {
-                sequence: 200
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: T
-            }
-        )
-
-        column RETURN_QTY (
-            type: plainText
-            heading {
-                heading: Return Qty
-                alignment: end
-            }
-            layout {
-                sequence: 300
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: AD
-            }
-        )
-
-        column SALES_QTY (
-            type: plainText
-            heading {
-                heading: Sales Qty
+                heading: Return
                 alignment: end
             }
             layout {
@@ -2428,25 +1862,7 @@ page 207 (
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: N
-            }
-        )
-
-        column SALES_RATE (
-            type: plainText
-            heading {
-                heading: Sales Rate
-                alignment: end
-            }
-            layout {
-                sequence: 170
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: Q
+                endUserAlias: BE
             }
         )
 
@@ -2461,56 +1877,44 @@ page 207 (
                 rowsPerPage: 50
             }
 
-            displayColumn CUSTOMER_NAME (
-                sequence: 3
-            )
-
-            displayColumn DELIVERED_QTY (
-                sequence: 9
-            )
-
-            displayColumn DISCOUNT_AMOUNT (
-                sequence: 8
-            )
-
-            displayColumn DISCOUNT_PERCENT (
-                sequence: 7
-            )
-
-            displayColumn DUE_AMOUNT (
-                sequence: 12
-            )
-
-            displayColumn GROSS_AMOUNT (
-                sequence: 6
-            )
-
-            displayColumn INVOICE_CODE (
-                sequence: 1
-            )
-
-            displayColumn INVOICE_DATE (
+            displayColumn "Customer" (
                 sequence: 2
             )
 
-            displayColumn INVOICE_TOTAL_AMOUNT (
-                sequence: 10
+            displayColumn "Date" (
+                sequence: 3
             )
 
-            displayColumn PRODUCT_NAME (
+            displayColumn "Delivery" (
+                sequence: 9
+            )
+
+            displayColumn "Discount" (
+                sequence: 5
+            )
+
+            displayColumn "Due" (
+                sequence: 7
+            )
+
+            displayColumn "Invoice No" (
+                sequence: 1
+            )
+
+            displayColumn "Net" (
                 sequence: 4
             )
 
-            displayColumn RECEIVED_AMOUNT (
-                sequence: 11
+            displayColumn "Payment" (
+                sequence: 10
             )
 
-            displayColumn RETURN_QTY (
-                sequence: 13
+            displayColumn "Received" (
+                sequence: 6
             )
 
-            displayColumn SALES_QTY (
-                sequence: 5
+            displayColumn "Return" (
+                sequence: 8
             )
 
         )
@@ -3046,6 +2450,7 @@ page 207 (
                   FROM MST_CUSTOMER
                  ORDER BY CUSTOMER_NAME
                 ```
+            displayExtraValues: false
             nullDisplayValue: --Select Customer--
         }
         layout {
@@ -3377,10 +2782,7 @@ page 207 (
         }
         when {
             selectionType: items
-            items: [
-                P207_CUSTOMER_NO_PREVIEW
-                P207_INVOICE_NO_PREVIEW
-            ]
+            items: P207_INVOICE_NO_PREVIEW
         }
 
         action native-refresh (

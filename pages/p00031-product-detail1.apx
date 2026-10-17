@@ -170,7 +170,7 @@ page 31 (
             offValue: 0
         }
         layout {
-            sequence: 100
+            sequence: 90
             region: @product-details
             slot: regionBody
             alignment: left
@@ -213,7 +213,7 @@ page 31 (
             nullDisplayValue: --Select--
         }
         layout {
-            sequence: 120
+            sequence: 110
             region: @product-details
             slot: regionBody
             alignment: left
@@ -260,7 +260,7 @@ page 31 (
             nullDisplayValue: --Select--
         }
         layout {
-            sequence: 60
+            sequence: 30
             region: @product-details
             slot: regionBody
             alignment: left
@@ -291,7 +291,7 @@ page 31 (
             valueProtected: false
         }
         layout {
-            sequence: 170
+            sequence: 150
             region: @product-details
             slot: regionBody
         }
@@ -308,7 +308,7 @@ page 31 (
             valueProtected: false
         }
         layout {
-            sequence: 180
+            sequence: 160
             region: @product-details
             slot: regionBody
         }
@@ -326,7 +326,7 @@ page 31 (
             alignment: left
         }
         layout {
-            sequence: 130
+            sequence: 120
             region: @product-details
             slot: regionBody
             alignment: left
@@ -358,7 +358,7 @@ page 31 (
             valueProtected: false
         }
         layout {
-            sequence: 210
+            sequence: 190
             region: @product-details
             slot: regionBody
         }
@@ -404,7 +404,7 @@ page 31 (
             valueProtected: false
         }
         layout {
-            sequence: 160
+            sequence: 140
             region: @product-details
             slot: regionBody
         }
@@ -422,7 +422,7 @@ page 31 (
             alignment: left
         }
         layout {
-            sequence: 90
+            sequence: 80
             region: @product-details
             slot: regionBody
             alignment: left
@@ -488,7 +488,7 @@ page 31 (
             maxFileSize: 100
         }
         layout {
-            sequence: 150
+            sequence: 130
             region: @product-details
             slot: regionBody
             alignment: left
@@ -517,7 +517,7 @@ page 31 (
             alignment: left
         }
         layout {
-            sequence: 50
+            sequence: 40
             region: @product-details
             slot: regionBody
             alignment: left
@@ -568,7 +568,7 @@ page 31 (
             alignment: left
         }
         layout {
-            sequence: 70
+            sequence: 60
             region: @product-details
             slot: regionBody
             alignment: left
@@ -597,7 +597,7 @@ page 31 (
             alignment: left
         }
         layout {
-            sequence: 80
+            sequence: 70
             region: @product-details
             slot: regionBody
             alignment: left
@@ -639,7 +639,7 @@ page 31 (
                 ```
         }
         layout {
-            sequence: 110
+            sequence: 100
             region: @product-details
             slot: regionBody
             alignment: left
@@ -667,7 +667,7 @@ page 31 (
             valueProtected: false
         }
         layout {
-            sequence: 190
+            sequence: 170
             region: @product-details
             slot: regionBody
         }
@@ -684,7 +684,7 @@ page 31 (
             valueProtected: false
         }
         layout {
-            sequence: 200
+            sequence: 180
             region: @product-details
             slot: regionBody
         }

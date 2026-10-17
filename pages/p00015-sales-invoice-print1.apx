@@ -13,6 +13,63 @@ page 15 (
     navigation {
         cursorFocus: doNotFocusCursor
     }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            function printSingleInvoice(btn) {
+            
+                var invoice = btn.closest(".inv-report-card");
+            
+                if (!invoice) return;
+            
+                var printWindow = window.open("", "_blank", "width=950,height=750");
+            
+                if (!printWindow) {
+                    apex.message.alert("Please allow pop-ups for this site.");
+                    return;
+                }
+            
+                var styles = "";
+            
+                document.querySelectorAll("link[rel='stylesheet'], style")
+                    .forEach(function(el) {
+                        styles += el.outerHTML;
+                    });
+            
+                printWindow.document.write(`
+                    <html>
+                    <head>
+                        <title>Invoice</title>
+            
+                        ${styles}
+            
+                        <style>
+                            @page {
+                                size: A4;
+                                margin: 10mm;
+                            }
+            
+                            .invoice-print-btn {
+                                display: none !important;
+                            }
+                        </style>
+                    </head>
+            
+                    <body>
+                        ${invoice.outerHTML}
+                    </body>
+                    </html>
+                `);
+            
+                printWindow.document.close();
+            
+                setTimeout(function () {
+                    printWindow.print();
+                    printWindow.close();
+                }, 700);
+            }
+            ```
+    }
     security {
         formAutoComplete: false
     }
@@ -49,208 +106,132 @@ page 15 (
         source {
             plsqlFunctionBody:
                 ```plsql
-                /* Formatted on 9/7/2026 3:56:48 PM (QP5 v5.388) */
+                
                 DECLARE
                     v_html            CLOB := '';
                     v_invoice_count   NUMBER := 0;
                 BEGIN
                     FOR H
-                        IN (  SELECT I.INVOICE_NO,
-                                     I.INVOICE_CODE,
-                                     I.INVOICE_DATE,
-                                     O.ORDER_CODE,
-                                     C.CUSTOMER_NO,
-                                     C.CUSTOMER_CODE,
-                                     C.CUSTOMER_NAME,
-                                     C.MOBILE_NO,
-                                     C.EMAIL_ADDRESS,
-                                     C.ADDRESS,
-                                     NVL (I.TOTAL_AMOUNT, 0)        AS TOTAL_AMOUNT,
-                                     NVL (I.RECEIVED_AMOUNT, 0)     AS RECEIVED_AMOUNT,
-                                     NVL (I.DUE_AMOUNT, 0)          AS DUE_AMOUNT,
-                                     I.PAYMENT_STATUS,
-                                     I.DELIVERY_STATUS,
-                                     I.DELIVERY_BY,
-                                     I.DELIVERY_DATE,
-                                     I.CREATED_BY,
-                                     I.CREATED_DATE
-                               FROM TRN_SALES_INVOICE_MST I
-                                    LEFT JOIN MST_CUSTOMER C ON C.CUSTOMER_NO = I.CUSTOMER_NO
-                                    LEFT JOIN TRN_SALES_ORDER_MST O ON O.ORDER_NO = I.ORDER_NO
-                              --   WHERE     /* =========================
-                              --                FROM DATE
-                              --                ========================= */
+                        IN (  SELECT
+                    I.INVOICE_NO,
+                    I.INVOICE_CODE,
+                    I.INVOICE_DATE,
+                    O.ORDER_CODE,
+                    C.CUSTOMER_NO,
+                    C.CUSTOMER_CODE,
+                    C.CUSTOMER_NAME,
+                    C.MOBILE_NO,
+                    C.EMAIL_ADDRESS,
+                    C.ADDRESS,
+                    NVL(I.TOTAL_AMOUNT, 0) AS TOTAL_AMOUNT,
+                    NVL(I.RECEIVED_AMOUNT, 0) AS RECEIVED_AMOUNT,
                 
-                              --             (   :P207_FROM_DATE IS NULL
-                              --              OR I.INVOICE_DATE >=
-                              --                 TO_DATE ( :P207_FROM_DATE, 'MM/DD/YYYY'))
-                              /* =========================
-                                 TO DATE
-                                 ========================= */
+                    NVL((SELECT SUM(NVL(D.DISCOUNT_AMOUNT, 0))
+                          FROM TRN_SALES_INVOICE_DTL D
+                         WHERE D.INVOICE_NO = I.INVOICE_NO), 0) AS DISCOUNT_AMOUNT,
                 
-                              -- WHERE (   :P207_TO_DATE IS NULL
-                              --      OR I.INVOICE_DATE <
-                              --         TO_DATE ( :P207_TO_DATE, 'MM/DD/YYYY') + 1)
-                              /* =========================
-                                 CUSTOMER FILTER
-                                 ========================= */
+                    NVL(I.TOTAL_AMOUNT, 0)
+                    - NVL(I.RECEIVED_AMOUNT, 0)
+                    - NVL((SELECT SUM(NVL(D.DISCOUNT_AMOUNT, 0))
+                            FROM TRN_SALES_INVOICE_DTL D
+                           WHERE D.INVOICE_NO = I.INVOICE_NO), 0) AS DUE_AMOUNT,
                 
-                              WHERE I.INVOICE_NO = :P15_INVOICE_NO
-                           /* =========================
-                              INVOICE FILTER
-                              ========================= */
-                
-                           -- AND (  :P207_INVOICE_NO_PREVIEW IS NULL
-                           --      OR
-                           --       I.INVOICE_NO = :P207_INVOICE_NO_PREVIEW)
-                           ORDER BY I.INVOICE_DATE DESC, I.INVOICE_NO DESC)
+                    I.PAYMENT_STATUS,
+                    I.DELIVERY_STATUS,
+                    I.DELIVERY_BY,
+                    I.DELIVERY_DATE,
+                    I.CREATED_BY,
+                    I.CREATED_DATE
+                FROM TRN_SALES_INVOICE_MST I
+                LEFT JOIN MST_CUSTOMER C
+                       ON C.CUSTOMER_NO = I.CUSTOMER_NO
+                LEFT JOIN TRN_SALES_ORDER_MST O
+                       ON O.ORDER_NO = I.ORDER_NO
+                WHERE I.INVOICE_NO = :P15_INVOICE_NO
+                ORDER BY I.INVOICE_DATE DESC, I.INVOICE_NO DESC)
                     LOOP
                         v_invoice_count := v_invoice_count + 1;
-                
                         v_html := v_html || '<div class="inv-report-card">';
                         v_html := v_html || '<div class="invoice-print-btn">
-                
                                 <button
                                     type="button"
                                     onclick="printSingleInvoice(this)"
                                     title="Print Invoice">
-                
                                     <span class="fa fa-print"></span>
-                
                                 </button>
-                
                             </div>';
-                
                         v_html := v_html || '<div class="inv-header">
                                 <div class="inv-company">
-                
                                     <div class="inv-company-name">
-                
                                         <span class="fa fa-bolt"></span>
-                
                                         Dealer Inventory &amp; Sales
-                
                                     </div>
-                
                                     <div class="inv-company-sub">
                                         Sales Invoice
                                     </div>
-                
                                 </div>
                                 <div class="inv-title">
-                
                                     <div class="inv-title-main">
-                
                                         <span class="fa fa-file-text-o"></span>
-                
                                         INVOICE
-                
                                     </div>
-                
                                     <div class="inv-copy">
                                         Original for Customer
                                     </div>
-                
                                 </div>
-                
-                
                             </div>
-                
-                
                             <div class="inv-line"></div>';
                 
                         v_html :=
                                v_html
                             || '<div class="inv-info">
-                
-                
                                 <div class="inv-left">
-                
-                
                                     <div>
-                
                                         <span class="fa fa-hashtag"></span>
-                
                                         <b>Invoice No:</b>
-                
                                         '
                             || APEX_ESCAPE.HTML (H.INVOICE_CODE)
                             || '
-                
                                     </div>
                                     <div>
-                
                                         <span class="fa fa-calendar"></span>
-                
                                         <b>Invoice Date:</b>
-                
                                         '
                             || TO_CHAR (H.INVOICE_DATE, 'DD-MON-YYYY')
-                            || '
-                
-                                    </div>';
-                
-                
+                            || '</div>';
                         /* ORDER */
-                
                         IF H.ORDER_CODE IS NOT NULL
                         THEN
                             v_html := v_html || '<div>
-                
                                     <span class="fa fa-shopping-cart"></span>
-                
                                     <b>Order No:</b>
-                
                                     ' || APEX_ESCAPE.HTML (H.ORDER_CODE) || '
-                
                                 </div>';
                         END IF;
-                
-                
                         /* CUSTOMER */
-                
                         v_html :=
                                v_html
                             || '<div>
-                
                                 <span class="fa fa-user"></span>
-                
                                 <b>Customer:</b>
-                
                                 '
                             || APEX_ESCAPE.HTML (H.CUSTOMER_NAME)
                             || '
-                
                             </div>
-                
-                
                             <div>
-                
                                 <span class="fa fa-phone"></span>
-                
                                 <b>Mobile:</b>
-                
                                 '
                             || APEX_ESCAPE.HTML (H.MOBILE_NO)
                             || '
-                
                             </div>
-                
-                
                             </div>
-                
-                
                             <div class="inv-right">
-                
-                
                                 <!-- PAYMENT -->
-                
                                 <div>
-                
                                     <span class="fa fa-credit-card"></span>
                 
                                     <b>Payment:</b>';
-                
                 
                         /* =====================================================
                            PAYMENT STATUS
@@ -258,142 +239,85 @@ page 15 (
                            PP = PARTIAL PAID
                            UP  = UNPAID
                            ===================================================== */
-                
                         IF UPPER (NVL (H.PAYMENT_STATUS, 'UP')) = 'P'
                         THEN
                             v_html := v_html || '<span class="status-badge status-paid">
                 
                                     <span class="fa fa-check-circle"></span>
-                
                                     Paid
-                
                                 </span>';
                         ELSIF UPPER (NVL (H.PAYMENT_STATUS, 'UP')) = 'PP'
                         THEN
                             v_html := v_html || '<span class="status-badge status-partial">
                 
                                     <span class="fa fa-adjust"></span>
-                
                                     Partial Paid
-                
                                 </span>';
                         ELSE
                             v_html := v_html || '<span class="status-badge status-unpaid">
-                
                                     <span class="fa fa-exclamation-circle"></span>
-                
                                     Unpaid
-                
                                 </span>';
                         END IF;
-                
-                
                         v_html := v_html || '</div>
-                
-                
                             <!-- DELIVERY -->
-                
                             <div>
-                
                                 <span class="fa fa-truck"></span>
-                
                                 <b>Delivery:</b>';
-                
-                
                         /* =====================================================
                            DELIVERY STATUS
                            D = DELIVERED
                            P = PENDING
                            ===================================================== */
-                
                         IF UPPER (NVL (H.DELIVERY_STATUS, 'P')) = 'D'
                         THEN
                             v_html :=
                                 v_html || '<span class="status-badge status-delivered">
-                
                                     <span class="fa fa-check"></span>
-                
                                     Delivered
-                
                                 </span>';
                         ELSE
                             v_html := v_html || '<span class="status-badge status-pending">
                 
                                     <span class="fa fa-clock-o"></span>
-                
                                     Pending
-                
                                 </span>';
                         END IF;
-                
-                
                         v_html :=
                             v_html || '</div>
-                
-                
                             <!-- DUE -->
-                
                             <div>
-                
                                 <span class="fa fa-money"></span>
-                
                                 <b>Due:</b>
-                
                                 <span class="due-value">
-                
                                     ৳ ' || TO_CHAR (H.DUE_AMOUNT, 'FM9999999990.00') || '
                 
                                 </span>
-                
                             </div>
-                
-                
                             </div>
-                
-                
                             </div>';
-                
-                
                         /* =====================================================
                            PRODUCT TABLE
                            ===================================================== */
-                
                         v_html := v_html || '<table class="inv-table">
-                
-                
                                 <thead>
-                
                                     <tr>
-                
                                         <th class="sl">#</th>
-                
                                         <th>Product</th>
-                
                                         <th class="num">Qty</th>
-                
                                         <th class="num">Delivered</th>
-                
                                         <th class="num">Return</th>
-                
                                         <th class="num">Balance</th>
-                
                                         <th class="num">Rate</th>
-                                        <th class="num">Discount %</th>
-                
+                                        <th class="num">Discount</th>
                                         <th class="num">Amount</th>
-                
                                     </tr>
-                
                                 </thead>
-                
-                
                                 <tbody>';
-                
                 
                         /* =====================================================
                            PRODUCT DETAILS
                            ===================================================== */
-                
                         DECLARE
                             v_sl   NUMBER := 0;
                         BEGIN
@@ -414,9 +338,8 @@ page 15 (
                                                  AS TOTAL_AMOUNT,
                                              NVL (R.RETURN_QTY, 0)
                                                  AS RETURN_QTY,
-                                                   NVL (D.DISCOUNT_PERCENT, 0)
-                                                 AS DISCOUNT_PERCENT
-                                                 
+                                                   NVL (D.DISCOUNT_AMOUNT, 0)
+                                                 AS DISCOUNT_AMOUNT                                
                                        FROM TRN_SALES_INVOICE_DTL D
                                             LEFT JOIN MST_PRODUCT P
                                                 ON P.PRODUCT_NO = D.PRODUCT_NO
@@ -435,22 +358,14 @@ page 15 (
                                    ORDER BY D.INVOICE_DTL_NO)
                             LOOP
                                 v_sl := v_sl + 1;
-                
-                
                                 v_html :=
                                        v_html
                                     || '<tr>
-                
-                
                                         <td class="sl">
-                
                                             '
                                     || v_sl
                                     || '
-                
                                         </td>
-                
-                
                                         <td>
                 
                                             <div class="product-name">
@@ -458,23 +373,16 @@ page 15 (
                                                 '
                                     || APEX_ESCAPE.HTML (D.PRODUCT_NAME)
                                     || '
-                
                                             </div>
-                
-                
                                             <div class="product-code">
                 
                                                 '
                                     || APEX_ESCAPE.HTML (D.PRODUCT_CODE)
                                     || '
-                
                                             </div>
                 
                                         </td>
-                
-                
                                         <td class="num">
-                
                                             '
                                     || TO_CHAR (D.SALES_QTY, 'FM999999990.00')
                                     || '
@@ -487,84 +395,49 @@ page 15 (
                                             '
                                     || TO_CHAR (D.DELIVERED_QTY, 'FM999999990.00')
                                     || '
-                
                                         </td>
-                
-                
                                         <td class="num return-value">
                 
                                             '
                                     || TO_CHAR (D.RETURN_QTY, 'FM999999990.00')
                                     || '
-                
                                         </td>
-                
-                
                                         <td class="num">
-                
                                             '
                                     || TO_CHAR (D.BALANCE_QTY, 'FM999999990.00')
                                     || '
                 
                                         </td>
-                
-                
                                         <td class="num">
-                
                                             '
                                     || TO_CHAR (D.SALES_RATE, 'FM999999990.00')
                                     || '
-                
-                                        </td>
-                                        
+                                        </td>                      
                                           <td class="num">
-                
                                             '
-                                    || TO_CHAR (D.DISCOUNT_PERCENT, 'FM999999990.00')
+                                    || TO_CHAR (D.DISCOUNT_AMOUNT, 'FM999999990.00')
                                     || '
-                
                                         </td>
-                
-                
                                         <td class="num amount">
-                
                                             '
                                     || TO_CHAR (D.TOTAL_AMOUNT, 'FM9999999990.00')
                                     || '
-                
                                         </td>
-                
-                
                                     </tr>';
                             END LOOP;
                         END;
-                
-                
                         v_html := v_html || '</tbody>
-                
                             </table>';
-                
-                
                         /* =====================================================
                            TOTAL SECTION
                            ===================================================== */
-                
                         v_html := v_html || '<div class="inv-total-area">
-                
-                
                                 <div class="inv-total-left">
-                
                                     <div class="small-note">
-                
                                         <span class="fa fa-info-circle"></span>
-                
                                         Payment Status:
-                
                                         <b>';
-                
-                
                         /* PAYMENT TEXT */
-                
                         IF UPPER (NVL (H.PAYMENT_STATUS, 'UP')) = 'P'
                         THEN
                             v_html := v_html || 'Paid';
@@ -574,28 +447,16 @@ page 15 (
                         ELSE
                             v_html := v_html || 'Unpaid';
                         END IF;
-                
-                
                         v_html :=
                                v_html
                             || '</b>
-                
                                     </div>
-                
                                 </div>
-                
-                
                                 <div class="inv-total-right">
-                
-                
                                     <div class="total-row">
-                
                                         <span>
-                
                                             <span class="fa fa-calculator"></span>
-                
                                             Invoice Total
-                
                                         </span>
                 
                                         <b>
@@ -603,64 +464,48 @@ page 15 (
                                             ৳ '
                             || TO_CHAR (H.TOTAL_AMOUNT, 'FM9999999990.00')
                             || '
-                
                                         </b>
-                
                                     </div>
                 
-                
-                                    <div class="total-row received-row">
-                
+                                    <div class="total-row">
                                         <span>
-                
-                                            <span class="fa fa-check-circle"></span>
-                
-                                            Received
-                
+                                            <span class="fa fa-minus-circle"></span>
+                                            Discount
                                         </span>
-                
                                         <b>
-                
+                                            ৳ '
+                            || TO_CHAR (H.DISCOUNT_AMOUNT, 'FM9999999990.00')
+                            || '
+                                        </b>
+                                    </div>
+                                    <div class="total-row received-row">
+                                        <span>
+                                            <span class="fa fa-check-circle"></span>
+                                            Received
+                                        </span>
+                                        <b>
                                             ৳ '
                             || TO_CHAR (H.RECEIVED_AMOUNT, 'FM9999999990.00')
                             || '
-                
                                         </b>
-                
                                     </div>
-                
-                
                                     <div class="total-row due-row">
-                
                                         <span>
-                
                                             <span class="fa fa-exclamation-circle"></span>
-                
                                             Due
-                
                                         </span>
-                
                                         <b>
                 
                                             ৳ '
                             || TO_CHAR (H.DUE_AMOUNT, 'FM9999999990.00')
                             || '
-                
                                         </b>
-                
                                     </div>
-                
-                
                                 </div>
-                
-                
                             </div>';
-                
-                
                         /* =====================================================
                            PAID WATERMARK
                            ===================================================== */
-                
                         IF UPPER (NVL (H.PAYMENT_STATUS, 'UP')) = 'P'
                         THEN
                             v_html := v_html || '<div class="paid-watermark">

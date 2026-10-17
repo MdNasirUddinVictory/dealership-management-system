@@ -164,37 +164,29 @@ page 106 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                SELECT *
-                FROM (
-                    SELECT
-                        ROW_NUMBER() OVER (
-                            ORDER BY D.DELIVERY_DTL_NO
-                        ) SL,
-                
-                        P.PRODUCT_CODE,
-                        P.PRODUCT_NAME,
-                
-                        D.PACK_QTY,
-                        D.BASE_QTY,
-                
-                        D.INVOICE_QTY,
-                        D.PREVIOUS_DELIVERY_QTY,
-                        D.DELIVERY_QTY,
-                        D.BALANCE_QTY,
-                
-                        D.SALES_RATE,
-                        D.TOTAL_AMOUNT,
-                
-                        D.REMARKS
-                
-                    FROM TRN_DELIVERY_DTL D
-                
-                    JOIN MST_PRODUCT P
-                      ON P.PRODUCT_NO = D.PRODUCT_NO
-                
-                    WHERE D.DELIVERY_NO = :P106_DELIVERY_NO
-                )
-                ORDER BY SL;
+                SELECT ROW_NUMBER() OVER (
+                           ORDER BY D.DELIVERY_DTL_NO
+                       ) AS SL,
+                       P.PRODUCT_CODE,
+                       P.PRODUCT_NAME,
+                       D.PACK_QTY,
+                       D.BASE_QTY,
+                       D.INVOICE_QTY,
+                       D.PREVIOUS_DELIVERY_QTY,
+                       D.DELIVERY_QTY,
+                       D.BALANCE_QTY,
+                       D.SALES_RATE,
+                       NVL(ID.DISCOUNT_PERCENT, 0) AS DISCOUNT_PERCENT,
+                       D.TOTAL_AMOUNT,
+                       D.NET_AMOUNT,
+                       D.REMARKS
+                FROM TRN_DELIVERY_DTL D
+                JOIN MST_PRODUCT P
+                  ON P.PRODUCT_NO = D.PRODUCT_NO
+                LEFT JOIN TRN_SALES_INVOICE_DTL ID
+                  ON ID.INVOICE_DTL_NO = D.INVOICE_DTL_NO
+                WHERE D.DELIVERY_NO = :P106_DELIVERY_NO
+                ORDER BY D.DELIVERY_DTL_NO;
                 ```
             pageItemsToSubmit: P106_DELIVERY_NO
         }
@@ -274,6 +266,24 @@ page 106 (
             }
         )
 
+        column DISCOUNT_PERCENT (
+            type: plainText
+            heading {
+                heading: Discount Percent
+                alignment: end
+            }
+            layout {
+                sequence: 130
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: M
+            }
+        )
+
         column INVOICE_QTY (
             type: plainText
             heading {
@@ -289,6 +299,24 @@ page 106 (
             }
             advanced {
                 endUserAlias: D
+            }
+        )
+
+        column NET_AMOUNT (
+            type: plainText
+            heading {
+                heading: Net Amount
+                alignment: end
+            }
+            layout {
+                sequence: 140
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: N
             }
         )
 
@@ -453,6 +481,10 @@ page 106 (
                 sequence: 4
             )
 
+            displayColumn NET_AMOUNT (
+                sequence: 10
+            )
+
             displayColumn PREVIOUS_DELIVERY_QTY (
                 sequence: 5
             )
@@ -463,6 +495,10 @@ page 106 (
 
             displayColumn PRODUCT_NAME (
                 sequence: 3
+            )
+
+            displayColumn REMARKS (
+                sequence: 11
             )
 
             displayColumn SALES_RATE (
@@ -489,7 +525,7 @@ page 106 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                /* Formatted on 9/7/2026 3:29:07 PM (QP5 v5.388) */
+                /* Formatted on 9/10/2026 5:02:45 PM (QP5 v5.388) */
                   SELECT M.DELIVERY_NO,
                          M.DELIVERY_CODE,
                          M.DELIVERY_DATE,
@@ -502,35 +538,20 @@ page 106 (
                          NVL (X.TOTAL_QTY, 0)                AS TOTAL_QTY,
                          NVL (X.GROSS_AMOUNT, 0)             AS GROSS_AMOUNT,
                          NVL (X.TOTAL_DISCOUNT_AMOUNT, 0)    AS TOTAL_DISCOUNT_AMOUNT,
-                         NVL (X.TOTAL_AMOUNT, 0)             AS TOTAL_AMOUNT,
+                         NVL (M.TOTAL_AMOUNT, 0)             AS TOTAL_AMOUNT,
+                         NVL (M.NET_AMOUNT, 0)               AS NET_AMOUNT,
                          CASE M.APPROVAL_STATUS
-                             WHEN 'P' THEN '<span style="
-                                    background:#f59e0b;
-                                    color:white;
-                                    padding:3px 8px;
-                                    border-radius:12px;
-                                    font-size:11px;
-                                    font-weight:600;">
-                                    Pending
-                                </span>'
-                             WHEN 'A' THEN '<span style="
-                                    background:#22c55e;
-                                    color:white;
-                                    padding:3px 8px;
-                                    border-radius:12px;
-                                    font-size:11px;
-                                    font-weight:600;">
-                                    Approved
-                                </span>'
-                             WHEN 'R' THEN '<span style="
-                                    background:#ef4444;
-                                    color:white;
-                                    padding:3px 8px;
-                                    border-radius:12px;
-                                    font-size:11px;
-                                    font-weight:600;">
-                                    Rejected
-                                </span>'
+                             WHEN 'P'
+                             THEN
+                                 '<span class="t-Badge t-Badge--warning">Pending</span>'
+                             WHEN 'A'
+                             THEN
+                                 '<span class="t-Badge t-Badge--success">Approved</span>'
+                             WHEN 'R'
+                             THEN
+                                 '<span class="t-Badge t-Badge--danger">Rejected</span>'
+                             ELSE
+                                 '<span class="t-Badge">Unknown</span>'
                          END                                 AS APPROVAL_STATUS,
                          NULL                                AS DETAILS,
                          M.CREATED_BY,
@@ -549,16 +570,14 @@ page 106 (
                                        * NVL (D.SALES_RATE, 0)
                                        * NVL (ID.DISCOUNT_PERCENT, 0)
                                        / 100)
-                                       AS TOTAL_DISCOUNT_AMOUNT,
-                                   SUM (NVL (D.TOTAL_AMOUNT, 0))
-                                       AS TOTAL_AMOUNT
+                                       AS TOTAL_DISCOUNT_AMOUNT
                               FROM TRN_DELIVERY_DTL D
                                    LEFT JOIN TRN_SALES_INVOICE_DTL ID
                                        ON ID.INVOICE_DTL_NO = D.INVOICE_DTL_NO
                           GROUP BY D.DELIVERY_NO) X
                              ON X.DELIVERY_NO = M.DELIVERY_NO
                    WHERE M.APPROVAL_STATUS = 'P'
-                ORDER BY M.DELIVERY_NO DESC
+                ORDER BY M.DELIVERY_NO DESC;
                 ```
         }
         layout {
@@ -738,7 +757,7 @@ page 106 (
                     type: url
                     url: javascript:f_openModal('#DELIVERY_NO#');
                 }
-                linkText: <span class="t-Button-label">Details</span>
+                linkText: <span class="t-Button-label">Approved</span>
                 linkAttributes: class="t-Button t-Button--hot t-Button--small t-Button--primary t-Button--stretch"
             }
             source {
@@ -750,14 +769,12 @@ page 106 (
         )
 
         column GROSS_AMOUNT (
-            type: plainText
+            type: hidden
             heading {
                 heading: Gross Amount
-                alignment: end
             }
             layout {
                 sequence: 190
-                columnAlignment: end
             }
             source {
                 dataType: NUMBER
@@ -815,6 +832,24 @@ page 106 (
             }
         )
 
+        column NET_AMOUNT (
+            type: plainText
+            heading {
+                heading: Net Amount
+                alignment: end
+            }
+            layout {
+                sequence: 210
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: U
+            }
+        )
+
         column TOTAL_AMOUNT (
             type: plainText
             heading {
@@ -836,7 +871,7 @@ page 106 (
         column TOTAL_DISCOUNT_AMOUNT (
             type: plainText
             heading {
-                heading: Total Discount Amount
+                heading: Discount
                 alignment: end
             }
             layout {
@@ -917,7 +952,7 @@ page 106 (
             )
 
             displayColumn DETAILS (
-                sequence: 14
+                sequence: 15
             )
 
             displayColumn GROSS_AMOUNT (
@@ -934,6 +969,10 @@ page 106 (
 
             displayColumn MOBILE_NO (
                 sequence: 6
+            )
+
+            displayColumn NET_AMOUNT (
+                sequence: 14
             )
 
             displayColumn TOTAL_AMOUNT (

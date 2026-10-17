@@ -1,6 +1,19 @@
 breadcrumb breadcrumb (
     name: Breadcrumb
 
+    entry Purchase (
+        name: Purchase Entry
+        pageNumber: 12
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 12
+            }
+        }
+    )
+
     entry balance-sheet (
         name: Balance Sheet
         pageNumber: 306
@@ -413,7 +426,7 @@ breadcrumb breadcrumb (
     )
 
     entry product-entry (
-        name: Product Entry
+        name: UOM Conversion
         pageNumber: 24
         execution {
             sequence: 10
@@ -473,19 +486,6 @@ breadcrumb breadcrumb (
         link {
             target: {
                 page: 16
-            }
-        }
-    )
-
-    entry purchase-entry (
-        name: Purchase Entry
-        pageNumber: 12
-        execution {
-            sequence: 10
-        }
-        link {
-            target: {
-                page: 12
             }
         }
     )
@@ -759,6 +759,19 @@ breadcrumb breadcrumb (
         link {
             target: {
                 page: 27
+            }
+        }
+    )
+
+    entry uom-conversion (
+        name: "UOM Conversion "
+        pageNumber: 36
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 36
             }
         }
     )

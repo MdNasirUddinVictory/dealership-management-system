@@ -268,21 +268,21 @@ page 305 (
                 column: @REF_TYPE
                 layout {
                     width: 75
-                    sequence: 5
+                    sequence: 9
                 }
             )
 
             displayColumn (
                 column: @REF_NO
                 layout {
-                    sequence: 6
+                    sequence: 5
                 }
             )
 
             displayColumn (
                 column: @DOC_NO
                 layout {
-                    sequence: 7
+                    sequence: 6
                 }
             )
 
@@ -290,7 +290,7 @@ page 305 (
                 column: @DOC_CODE
                 layout {
                     width: 87
-                    sequence: 8
+                    sequence: 7
                 }
             )
 
@@ -298,7 +298,7 @@ page 305 (
                 column: @DOC_DATE
                 layout {
                     width: 78
-                    sequence: 9
+                    sequence: 8
                 }
             )
 
@@ -768,65 +768,61 @@ page 305 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                SELECT * FROM (SELECT
-                       T.TRANSACTION_NO,
+                SELECT T.TRANSACTION_NO,
                        T.TRANSACTION_CODE,
                        T.TRANSACTION_DATE,
-                       TRANSACTION_TYPE,
-                
-                       CASE
-                            WHEN T.TRANSACTION_TYPE='R' THEN 'Receive'
-                            WHEN T.TRANSACTION_TYPE='P' THEN 'Payment'
-                       END TRAN_TYPE,
-                
+                       T.TRANSACTION_TYPE,
+                       CASE T.TRANSACTION_TYPE
+                           WHEN 'R' THEN 'Receive'
+                           WHEN 'P' THEN 'Payment'
+                           ELSE 'Unknown'
+                       END AS TRAN_TYPE,
                        T.PARTY_NO,
-                
-                       CASE
-                            WHEN T.TRANSACTION_TYPE='R'
-                                 THEN C.CUSTOMER_NAME
-                            WHEN T.TRANSACTION_TYPE='P'
-                                 THEN S.SUPPLIER_NAME
-                       END PARTY_NAME,
-                
-                        CASE
-                            WHEN T.PAY_MODE='C' THEN 'Cash'
-                            WHEN T.PAY_MODE='B' THEN 'Bank'
-                       END PAYMENT_MODE,
-                
-                       T.TOTAL_AMOUNT,
-                
-                       T.APPROVAL_STATUS,
-                
-                       CASE
-                            WHEN T.APPROVAL_STATUS='P' THEN 'Pending'
-                            WHEN T.APPROVAL_STATUS='A' THEN 'Approved'
-                       END STATUS_NAME,
-                
+                       CASE T.TRANSACTION_TYPE
+                           WHEN 'R' THEN C.CUSTOMER_NAME
+                           WHEN 'P' THEN S.SUPPLIER_NAME
+                           ELSE NULL
+                       END AS PARTY_NAME,
+                       CASE T.PAY_MODE
+                           WHEN 'C' THEN 'Cash'
+                           WHEN 'B' THEN 'Bank'
+                           ELSE 'Other'
+                       END AS PAYMENT_MODE,
+                       NVL(T.TOTAL_AMOUNT, 0) AS TOTAL_AMOUNT,
+                       NVL(T.NET_AMOUNT, 0) AS NET_AMOUNT,
+                       CASE T.APPROVAL_STATUS
+                           WHEN 'P' THEN
+                               '<span class="t-Badge t-Badge--warning">Pending</span>'
+                           WHEN 'A' THEN
+                               '<span class="t-Badge t-Badge--success">Approved</span>'
+                           WHEN 'R' THEN
+                               '<span class="t-Badge t-Badge--danger">Rejected</span>'
+                           ELSE
+                               '<span class="t-Badge">Unknown</span>'
+                       END AS APPROVAL_STATUS,
+                       CASE T.APPROVAL_STATUS
+                           WHEN 'P' THEN 'Pending'
+                           WHEN 'A' THEN 'Approved'
+                           WHEN 'R' THEN 'Rejected'
+                           ELSE 'Unknown'
+                       END AS STATUS_NAME,
                        T.VOUCHER_NO,
-                
                        V.VOUCHER_CODE,
-                
                        T.CREATED_BY,
                        T.CREATED_DATE,
-                
                        T.APPROVED_BY,
                        T.APPROVED_DATE,
-                       NULL DETAILS
-                
+                       NULL AS DETAILS
                 FROM TRN_TRANSACTION_MST T
-                
                 LEFT JOIN MST_CUSTOMER C
-                       ON C.CUSTOMER_NO=T.PARTY_NO
-                      AND T.TRANSACTION_TYPE='R'
-                
+                  ON C.CUSTOMER_NO = T.PARTY_NO
+                 AND T.TRANSACTION_TYPE = 'R'
                 LEFT JOIN MST_SUPPLIER S
-                       ON S.SUPPLIER_NO=T.PARTY_NO
-                      AND T.TRANSACTION_TYPE='P'
-                
+                  ON S.SUPPLIER_NO = T.PARTY_NO
+                 AND T.TRANSACTION_TYPE = 'P'
                 LEFT JOIN ACC_VOUCHER_MST V
-                       ON V.VOUCHER_NO=T.VOUCHER_NO
-                
-                ORDER BY T.TRANSACTION_NO DESC);
+                  ON V.VOUCHER_NO = T.VOUCHER_NO
+                ORDER BY T.TRANSACTION_NO DESC;
                 ```
         }
         layout {
@@ -954,6 +950,24 @@ page 305 (
             }
             advanced {
                 endUserAlias: R
+            }
+        )
+
+        column NET_AMOUNT (
+            type: plainText
+            heading {
+                heading: Net Amount
+                alignment: end
+            }
+            layout {
+                sequence: 240
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: T
             }
         )
 
@@ -1173,15 +1187,19 @@ page 305 (
             }
 
             displayColumn APPROVED_BY (
-                sequence: 9
-            )
-
-            displayColumn APPROVED_DATE (
                 sequence: 10
             )
 
-            displayColumn DETAILS (
+            displayColumn APPROVED_DATE (
                 sequence: 11
+            )
+
+            displayColumn DETAILS (
+                sequence: 12
+            )
+
+            displayColumn NET_AMOUNT (
+                sequence: 9
             )
 
             displayColumn PARTY_NAME (

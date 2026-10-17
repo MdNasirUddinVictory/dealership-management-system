@@ -555,7 +555,7 @@
 }
 :root {
   --ut-body-background-color: #f2f2f2;
-  --ut-body-text-color: #66367f;
+  --ut-body-text-color: #000000;
 }
 :root {
   --ut-body-actions-background-color: #913232;
@@ -564,12 +564,12 @@
   --ut-body-actionstoggle-hover-background-color: #b73f3f;
 }
 :root {
-  --ut-body-title-background-color: #6baef1;
+  --ut-body-title-background-color: #4a9df0;
   --ut-body-title-text-color: #000000;
   --ut-breadcrumb-item-text-color: rgba(0, 0, 0, 0.65);
 }
 :root {
-  --ut-body-sidebar-background-color: #d67272;
+  --ut-body-sidebar-background-color: #e9c4c4;
   --ut-body-sidebar-text-color: #66367f;
 }
 :root {

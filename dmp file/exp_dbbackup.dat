@@ -1,0 +1,4 @@
+FILE="D:\POS DB\New folder\dbbackup.DMP"
+LOG="D:\POS DB\New folder\exp_dbbackup.log"
+OWNER=('WKSP_WSPOS')
+FEEDBACK=1000

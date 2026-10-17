@@ -185,7 +185,8 @@ page 30 (
                        D.BASE_QTY,
                        D.SALES_RATE,
                        D.BASE_RATE,
-                       D.TOTAL_AMOUNT
+                       D.TOTAL_AMOUNT,
+                       D.NET_AMOUNT
                 FROM TRN_SALES_INVOICE_DTL D
                 JOIN MST_PRODUCT P
                   ON P.PRODUCT_NO = D.PRODUCT_NO
@@ -244,7 +245,7 @@ page 30 (
                 layout {
                     show: false
                     width: 63
-                    sequence: 5
+                    sequence: 6
                 }
             )
 
@@ -253,7 +254,7 @@ page 30 (
                 layout {
                     show: false
                     width: 73
-                    sequence: 6
+                    sequence: 7
                 }
             )
 
@@ -261,14 +262,15 @@ page 30 (
                 column: @PACK_QTY
                 layout {
                     width: 72
-                    sequence: 7
+                    sequence: 9
                 }
             )
 
             displayColumn (
                 column: @ORDER_QTY
                 layout {
-                    sequence: 8
+                    width: 86
+                    sequence: 10
                 }
             )
 
@@ -276,7 +278,7 @@ page 30 (
                 column: @SALES_QTY
                 layout {
                     width: 70
-                    sequence: 9
+                    sequence: 11
                 }
             )
 
@@ -284,23 +286,32 @@ page 30 (
                 column: @BASE_QTY
                 layout {
                     width: 71
-                    sequence: 10
+                    sequence: 12
                 }
             )
 
             displayColumn (
                 column: @SALES_RATE
                 layout {
-                    width: 64
-                    sequence: 11
+                    width: 91
+                    sequence: 4
                 }
             )
 
             displayColumn (
                 column: @BASE_RATE
                 layout {
-                    width: 83
+                    show: false
+                    width: 81
                     sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @NET_AMOUNT
+                layout {
+                    width: 96
+                    sequence: 8
                 }
             )
 
@@ -323,8 +334,8 @@ page 30 (
             displayColumn (
                 column: @TOTAL_AMOUNT
                 layout {
-                    width: 70
-                    sequence: 4
+                    width: 105
+                    sequence: 5
                 }
             )
 
@@ -383,6 +394,25 @@ page 30 (
             }
             source {
                 databaseColumn: INVOICE_DTL_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column NET_AMOUNT (
+            type: numberField
+            heading {
+                heading: Net Amount
+                alignment: end
+            }
+            layout {
+                sequence: 130
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: NET_AMOUNT
                 dataType: number
             }
             columnFilter {
@@ -574,33 +604,26 @@ page 30 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                SELECT * FROM (SELECT M.INVOICE_NO,
-                       M.INVOICE_CODE,
-                       M.INVOICE_DATE,
-                       C.CUSTOMER_NAME,
-                       NVL(
-                           (SELECT SUM(D.TOTAL_AMOUNT)
-                              FROM TRN_SALES_INVOICE_DTL D
-                             WHERE D.INVOICE_NO = M.INVOICE_NO),
-                           0
-                       ) AS TOTAL_AMOUNT,
-                
-                       CASE M.APPROVAL_STATUS
-                            WHEN 'P' THEN 'Pending'
-                            WHEN 'A' THEN 'Approved'
-                            WHEN 'R' THEN 'Rejected'
-                       END AS APPROVAL_STATUS,
-                
-                       M.CREATED_BY,
-                       M.CREATED_DATE
-                
-                FROM TRN_SALES_INVOICE_MST M
-                
-                JOIN MST_CUSTOMER C
-                  ON C.CUSTOMER_NO = M.CUSTOMER_NO
-                
-                WHERE M.APPROVAL_STATUS = 'P'
-                
+                SELECT * FROM (/* Formatted on 9/10/2026 4:31:24 PM (QP5 v5.388) */
+                  SELECT M.INVOICE_NO,
+                         M.INVOICE_CODE,
+                         M.INVOICE_DATE,
+                         C.CUSTOMER_NAME,
+                         NVL (D.TOTAL_AMOUNT, 0)     AS TOTAL_AMOUNT,
+                         NVL (D.NET_AMOUNT, 0)       AS NET_AMOUNT,
+                         'Pending'                   AS APPROVAL_STATUS,
+                         M.CREATED_BY,
+                         M.CREATED_DATE
+                    FROM TRN_SALES_INVOICE_MST M
+                         JOIN MST_CUSTOMER C ON C.CUSTOMER_NO = M.CUSTOMER_NO
+                         LEFT JOIN
+                         (  SELECT INVOICE_NO,
+                                   SUM (TOTAL_AMOUNT)     AS TOTAL_AMOUNT,
+                                   SUM (NET_AMOUNT)       AS NET_AMOUNT
+                              FROM TRN_SALES_INVOICE_DTL
+                          GROUP BY INVOICE_NO) D
+                             ON D.INVOICE_NO = M.INVOICE_NO
+                   WHERE M.APPROVAL_STATUS = 'P'
                 ORDER BY M.INVOICE_NO DESC);
                 ```
         }
@@ -681,6 +704,13 @@ page 30 (
             )
 
             displayColumn (
+                column: @NET_AMOUNT
+                layout {
+                    sequence: 9
+                }
+            )
+
+            displayColumn (
                 column: @TOTAL_AMOUNT
                 layout {
                     sequence: 8
@@ -697,7 +727,7 @@ page 30 (
             displayColumn (
                 column: @APPROVE
                 layout {
-                    sequence: 9
+                    sequence: 10
                 }
             )
 
@@ -887,6 +917,25 @@ page 30 (
             }
             source {
                 databaseColumn: INVOICE_NO
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
+            }
+        )
+
+        column NET_AMOUNT (
+            type: numberField
+            heading {
+                heading: Net Amount
+                alignment: end
+            }
+            layout {
+                sequence: 190
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: NET_AMOUNT
                 dataType: number
             }
             columnFilter {

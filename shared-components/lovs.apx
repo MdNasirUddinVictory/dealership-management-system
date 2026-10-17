@@ -353,12 +353,68 @@ lov lov-12-product (
     name: LOV_12_PRODUCT
     source {
         type: sqlQuery
-        sqlQuery: SELECT P.PRODUCT_NO, P.PRODUCT_CODE || ' - ' ||P.PRODUCT_NAME PRODUCT_NAME, p.DESCRIPTION, P.UOM_NO, U.UOM_NAME, P.PURCHASE_RATE, P.SALES_RATE FROM MST_PRODUCT P LEFT JOIN MST_UOM U ON U.UOM_NO = P.UOM_NO WHERE P.ACTIVE_FLAG = 1 ORDER BY P.PRODUCT_NAME
+        sqlQuery:
+            ```sql
+              SELECT P.PRODUCT_NO,
+                     P.PRODUCT_CODE || ' - ' || P.PRODUCT_NAME     PRODUCT_NAME,
+                     P.DESCRIPTION,
+                     P.UOM_NO,
+                     U.UOM_NAME,
+                     C.CONVERT_UOM_NO,
+                     CU.UOM_NAME                                   AS CONVERT_UOM_NAME,
+                     C.CONVERSION_FACTOR,
+                     P.PURCHASE_RATE,
+                     P.SALES_RATE
+                FROM MST_PRODUCT P
+                     LEFT JOIN MST_UOM U ON U.UOM_NO = P.UOM_NO
+                     LEFT JOIN MST_UOM_CONVERSION C
+                         ON C.PRODUCT_NO = P.PRODUCT_NO AND C.ACTIVE_FLAG = '1'
+                     LEFT JOIN MST_UOM CU ON CU.UOM_NO = C.CONVERT_UOM_NO
+               WHERE P.ACTIVE_FLAG = 1
+            ORDER BY P.PRODUCT_NAME
+            ```
     }
     columnMapping {
         return: PRODUCT_NO
         display: PRODUCT_NAME
     }
+
+    column CONVERSION_FACTOR (
+        show: false
+        heading {
+            heading: Conversion Factor
+        }
+        layout {
+            sequence: 30
+        }
+        source {
+            dataType: number
+        }
+    )
+
+    column CONVERT_UOM_NAME (
+        heading {
+            heading: Convert Uom Name
+        }
+        layout {
+            sequence: 20
+        }
+        source {
+            dataType: varchar2
+        }
+    )
+
+    column CONVERT_UOM_NO (
+        heading {
+            heading: Convert Uom No
+        }
+        layout {
+            sequence: 10
+        }
+        source {
+            dataType: number
+        }
+    )
 
     column DESCRIPTION (
         show: false
@@ -410,8 +466,19 @@ lov lov-12-product (
         }
     )
 
+    column SALES_RATE (
+        heading {
+            heading: Sales Rate
+        }
+        layout {
+            sequence: 40
+        }
+        source {
+            dataType: number
+        }
+    )
+
     column UOM_NAME (
-        show: false
         heading {
             heading: Uom Name
         }
@@ -616,40 +683,26 @@ lov lov-17-product (
         type: sqlQuery
         sqlQuery:
             ```sql
-            /* Formatted on 9/8/2026 1:00:42 PM (QP5 v5.388) */
-            WITH
-                CURRENT_PRICE
-                AS
-                    (SELECT PRODUCT_NO,
-                            UOM_NO,
-                            SALES_RATE,
-                            ROW_NUMBER ()
-                                OVER (PARTITION BY PRODUCT_NO, UOM_NO
-                                      ORDER BY EFFECTIVE_DATE DESC, SALES_PRICE_NO DESC)    AS RN
-                       FROM MST_SALES_PRICE
-                      WHERE ACTIVE_FLAG = '1' AND EFFECTIVE_DATE <= SYSDATE)
-              SELECT P.PRODUCT_NO,
-                     P.PRODUCT_CODE || ' - ' || P.PRODUCT_NAME     AS PRODUCT_NAME,
-                     P.DESCRIPTION,
-                     P.UOM_NO,
-                     U.UOM_NAME,
-                     P.PURCHASE_RATE,
-                     NVL (CP.SALES_RATE, 0)                        AS SALES_RATE,
-                     NVL (S.STOCK_QTY, 0)                          AS STOCK_QTY
-                FROM MST_PRODUCT P
-                     JOIN MST_UOM U ON U.UOM_NO = P.UOM_NO AND U.ACTIVE_FLAG = '1'
-                     LEFT JOIN CURRENT_PRICE CP
-                         ON     CP.PRODUCT_NO = P.PRODUCT_NO
-                            AND CP.UOM_NO = P.UOM_NO
-                            AND CP.RN = 1
-                     LEFT JOIN
-                     (  SELECT PRODUCT_NO,
-                               SUM (NVL (QTY_IN, 0)) - SUM (NVL (QTY_OUT, 0))    AS STOCK_QTY
-                          FROM TRN_STOCK_LEDGER
-                      GROUP BY PRODUCT_NO) S
-                         ON S.PRODUCT_NO = P.PRODUCT_NO
-               WHERE P.ACTIVE_FLAG = 1
-            ORDER BY P.PRODUCT_NAME;
+            SELECT P.PRODUCT_NO,
+                   P.PRODUCT_NAME,
+                   P.DESCRIPTION,
+                   TO_CHAR(NVL(S.STOCK_QTY,0),'FM999G999G990D000')
+                   || ' ' || U.UOM_NAME AS STOCK
+              FROM MST_PRODUCT P
+              JOIN MST_UOM U
+                ON U.UOM_NO = P.UOM_NO
+               AND U.ACTIVE_FLAG = '1'
+              LEFT JOIN
+              (
+                  SELECT PRODUCT_NO,
+                         SUM(NVL(QTY_IN,0)) -
+                         SUM(NVL(QTY_OUT,0)) AS STOCK_QTY
+                    FROM TRN_STOCK_LEDGER
+                   GROUP BY PRODUCT_NO
+              ) S
+                ON S.PRODUCT_NO = P.PRODUCT_NO
+             WHERE P.ACTIVE_FLAG = 1
+             ORDER BY P.PRODUCT_NAME;
             ```
     }
     columnMapping {
@@ -689,71 +742,17 @@ lov lov-17-product (
         source {
             dataType: number
         }
-        advanced {
-            searchable: false
-        }
     )
 
-    column PURCHASE_RATE (
-        show: false
-        heading {
-            heading: Purchase Rate
-        }
-        layout {
-            sequence: 60
-        }
-        source {
-            dataType: number
-        }
-    )
-
-    column SALES_RATE (
-        heading {
-            heading: Sales Rate
-        }
-        layout {
-            sequence: 70
-        }
-        source {
-            dataType: number
-        }
-    )
-
-    column STOCK_QTY (
+    column STOCK (
         heading {
             heading: Stock Qty
-        }
-        layout {
-            sequence: 80
-        }
-        source {
-            dataType: number
-        }
-    )
-
-    column UOM_NAME (
-        show: false
-        heading {
-            heading: Uom Name
-        }
-        layout {
-            sequence: 50
-        }
-        source {
-            dataType: varchar2
-        }
-    )
-
-    column UOM_NO (
-        show: false
-        heading {
-            heading: Uom No
         }
         layout {
             sequence: 40
         }
         source {
-            dataType: number
+            dataType: varchar2
         }
     )
 
@@ -1177,13 +1176,14 @@ lov lov-304-invoice-list (
               SELECT M.INVOICE_NO                                AS INVOICE_NO,
                      M.INVOICE_CODE                              AS DOC_CODE,
                      TO_CHAR (M.INVOICE_DATE, 'DD-MON-YYYY')     AS DOC_DATE,
-                     M.TOTAL_AMOUNT                              AS INVOICE_AMOUNT,
-                     NVL (M.DUE_AMOUNT, 0)                       AS DUE_AMOUNT,
-                     NVL (M.DUE_AMOUNT, 0)                       AS PAYMENT_AMOUNT,
-                     M.RECEIVED_AMOUNT                           AS RECEIVED_AMOUNT
+                     NVL (M.TOTAL_AMOUNT, 0)                     AS INVOICE_AMOUNT,
+                     NVL (M.RECEIVED_AMOUNT, 0)                  AS RECEIVED_AMOUNT,
+                     NVL (M.DUE_AMOUNT, 0)                         AS DUE_AMOUNT,
+                     NVL (M.DUE_AMOUNT, 0)    AS PAYMENT_AMOUNT
                 FROM TRN_SALES_INVOICE_MST M
                WHERE M.CUSTOMER_NO = :P304_PARTY_NO AND NVL (M.DUE_AMOUNT, 0) > 0
-            ORDER BY M.INVOICE_DATE DESC
+            
+            ORDER BY M.INVOICE_DATE DESC;
             ```
     }
     columnMapping {

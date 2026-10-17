@@ -12,7 +12,6 @@ page 21 (
     javaScript {
         functionAndGlobalVariableDeclaration:
             ```javascript-browser
-            
             function generateInvoice(orderNo) {
             
                 if (confirm('Generate Invoice?')) {
@@ -123,6 +122,11 @@ page 21 (
                                         rec,
                                         "TOTAL_AMOUNT",
                                         json[key].TOTAL_AMOUNT.toString()
+                                    );
+                                       model.setRecordValue(
+                                        rec,
+                                        "NET_AMOUNT",
+                                        json[key].NET_AMOUNT.toString()
                                     );
                                     model.setRecordValue(
                 rec,
@@ -286,6 +290,8 @@ page 21 (
                 
                        D.TOTAL_AMOUNT,
                 
+                       D.NET_AMOUNT,
+                
                        D.REMARKS,
                               D.DISCOUNT_PERCENT,
                        D.DISCOUNT_AMOUNT
@@ -425,7 +431,7 @@ page 21 (
                 column: @SALES_QTY
                 layout {
                     width: 88
-                    sequence: 13
+                    sequence: 15
                 }
             )
 
@@ -441,7 +447,7 @@ page 21 (
                 column: @TOTAL_AMOUNT
                 layout {
                     width: 94.6667
-                    sequence: 18
+                    sequence: 9
                 }
             )
 
@@ -456,7 +462,7 @@ page 21 (
             displayColumn (
                 column: @ORDER_DTL_NO
                 layout {
-                    sequence: 14
+                    sequence: 16
                 }
             )
 
@@ -488,7 +494,7 @@ page 21 (
                 column: @PREVIOUS_INVOICE_QTY
                 layout {
                     width: 144
-                    sequence: 12
+                    sequence: 14
                 }
             )
 
@@ -496,7 +502,7 @@ page 21 (
                 column: @BALANCE_QTY
                 layout {
                     width: 91
-                    sequence: 11
+                    sequence: 13
                 }
             )
 
@@ -504,7 +510,7 @@ page 21 (
                 column: @REMARKS
                 layout {
                     width: 120
-                    sequence: 19
+                    sequence: 20
                 }
             )
 
@@ -522,7 +528,7 @@ page 21 (
                 layout {
                     show: false
                     width: 71
-                    sequence: 20
+                    sequence: 21
                 }
             )
 
@@ -531,7 +537,7 @@ page 21 (
                 layout {
                     show: false
                     width: 85
-                    sequence: 21
+                    sequence: 22
                 }
             )
 
@@ -540,7 +546,7 @@ page 21 (
                 layout {
                     show: false
                     width: 93
-                    sequence: 22
+                    sequence: 23
                 }
             )
 
@@ -549,7 +555,7 @@ page 21 (
                 layout {
                     show: false
                     width: 70
-                    sequence: 17
+                    sequence: 19
                 }
             )
 
@@ -557,7 +563,7 @@ page 21 (
                 column: @BASE_QTY
                 layout {
                     width: 70
-                    sequence: 15
+                    sequence: 17
                 }
             )
 
@@ -565,7 +571,7 @@ page 21 (
                 column: @BASE_RATE
                 layout {
                     width: 78
-                    sequence: 16
+                    sequence: 18
                 }
             )
 
@@ -573,7 +579,7 @@ page 21 (
                 column: @DISCOUNT_PERCENT
                 layout {
                     width: 88
-                    sequence: 9
+                    sequence: 11
                 }
             )
 
@@ -581,6 +587,14 @@ page 21 (
                 column: @DISCOUNT_AMOUNT
                 layout {
                     width: 117
+                    sequence: 12
+                }
+            )
+
+            displayColumn (
+                column: @NET_AMOUNT
+                layout {
+                    width: 100
                     sequence: 10
                 }
             )
@@ -780,6 +794,25 @@ page 21 (
             }
             exportPrinting {
                 includeInExportPrint: false
+            }
+        )
+
+        column NET_AMOUNT (
+            type: numberField
+            heading {
+                heading: Net Amount
+                alignment: end
+            }
+            layout {
+                sequence: 250
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: NET_AMOUNT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
             }
         )
 
@@ -2064,6 +2097,7 @@ page 21 (
                                                            SALES_RATE,
                                                            BASE_RATE,
                                                            TOTAL_AMOUNT,
+                                                           NET_AMOUNT,
                                                            DISCOUNT_PERCENT,
                                                            DISCOUNT_AMOUNT,
                                                            CREATED_BY,
@@ -2079,9 +2113,10 @@ page 21 (
                                      :BASE_QTY,
                                      :SALES_RATE,
                                      :BASE_RATE,
-                                     V_NET_AMOUNT,
+                                     :TOTAL_AMOUNT,
+                                     :NET_AMOUNT,--V_NET_AMOUNT,
                                      NVL ( :DISCOUNT_PERCENT, 0),
-                                     V_DISCOUNT_AMOUNT,
+                                     NVL(:DISCOUNT_AMOUNT,0),
                                      :APP_USER,
                                      SYSDATE);
                     ------------------------------------------------
@@ -2119,15 +2154,16 @@ page 21 (
                     -- Update Invoice Total
                     ------------------------------------------------
                 
-                    SELECT NVL (SUM (D.TOTAL_AMOUNT), 0)
-                      INTO V_INVOICE_TOTAL
+                    SELECT NVL (SUM (D.TOTAL_AMOUNT), 0),NVL (SUM (D.NET_AMOUNT), 0)
+                      INTO V_INVOICE_TOTAL,V_NET_AMOUNT
                       FROM TRN_SALES_INVOICE_DTL D
                      WHERE D.INVOICE_NO = :P21_INVOICE_NO;
                 
                 
                     UPDATE TRN_SALES_INVOICE_MST I
                        SET TOTAL_AMOUNT = V_INVOICE_TOTAL,
-                           DUE_AMOUNT = V_INVOICE_TOTAL - NVL (I.RECEIVED_AMOUNT, 0),
+                           NET_AMOUNT   = V_NET_AMOUNT,
+                           DUE_AMOUNT = V_NET_AMOUNT - NVL (I.RECEIVED_AMOUNT, 0),
                            UPDATED_BY = :APP_USER,
                            UPDATED_DATE = SYSDATE
                      WHERE I.INVOICE_NO = :P21_INVOICE_NO;
@@ -2231,7 +2267,10 @@ page 21 (
                                    NVL(D.DISCOUNT_AMOUNT, 0),
                 
                                'TOTAL_AMOUNT' VALUE
-                                   NVL(D.TOTAL_AMOUNT, 0)
+                                   NVL(D.TOTAL_AMOUNT, 0),
+                                   
+                                   'NET_AMOUNT' VALUE
+                                   NVL(D.NET_AMOUNT, 0)
                 
                              RETURNING CLOB)
                            RETURNING CLOB

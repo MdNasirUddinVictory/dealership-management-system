@@ -196,6 +196,14 @@ page 105 (
                                         );
                                     }
             
+                                      if (json[key].TOTAL_AMOUNT) {
+                                        model.setRecordValue(
+                                            rec,
+                                            "NET_AMOUNT",
+                                            json[key].NET_AMOUNT.toString()
+                                        );
+                                    }
+            
                                     if (json[key].DESCRIPTION) {
                                         model.setRecordValue(
                                             rec,
@@ -378,6 +386,7 @@ page 105 (
                            AS DISCOUNT_AMOUNT,
                 
                        D.TOTAL_AMOUNT,
+                       D.NET_AMOUNT,
                        D.REMARKS
                 
                   FROM TRN_DELIVERY_DTL D
@@ -507,6 +516,14 @@ page 105 (
             }
 
             displayColumn (
+                column: @NET_AMOUNT
+                layout {
+                    width: 97
+                    sequence: 10
+                }
+            )
+
+            displayColumn (
                 column: @PRODUCT_NAME
                 layout {
                     width: 134
@@ -526,7 +543,7 @@ page 105 (
                 column: @BALANCE_QTY
                 layout {
                     width: 88
-                    sequence: 13
+                    sequence: 15
                 }
             )
 
@@ -542,7 +559,7 @@ page 105 (
                 column: @REMARKS
                 layout {
                     width: 120
-                    sequence: 18
+                    sequence: 19
                 }
             )
 
@@ -573,7 +590,7 @@ page 105 (
                 column: @PREVIOUS_DELIVERY_QTY
                 layout {
                     width: 147
-                    sequence: 12
+                    sequence: 14
                 }
             )
 
@@ -581,21 +598,21 @@ page 105 (
                 column: @DELIVERY_QTY
                 layout {
                     width: 97
-                    sequence: 11
+                    sequence: 13
                 }
             )
 
             displayColumn (
                 column: @INVOICE_DTL_NO
                 layout {
-                    sequence: 19
+                    sequence: 20
                 }
             )
 
             displayColumn (
                 column: @ORDER_DTL_NO
                 layout {
-                    sequence: 20
+                    sequence: 21
                 }
             )
 
@@ -604,7 +621,7 @@ page 105 (
                 layout {
                     show: false
                     width: 92
-                    sequence: 21
+                    sequence: 22
                 }
             )
 
@@ -613,7 +630,7 @@ page 105 (
                 layout {
                     show: false
                     width: 75
-                    sequence: 22
+                    sequence: 23
                 }
             )
 
@@ -622,7 +639,7 @@ page 105 (
                 layout {
                     show: false
                     width: 98
-                    sequence: 23
+                    sequence: 24
                 }
             )
 
@@ -631,7 +648,7 @@ page 105 (
                 layout {
                     show: false
                     width: 100
-                    sequence: 24
+                    sequence: 25
                 }
             )
 
@@ -639,7 +656,7 @@ page 105 (
                 column: @PACK_QTY
                 layout {
                     width: 87
-                    sequence: 17
+                    sequence: 18
                 }
             )
 
@@ -647,7 +664,7 @@ page 105 (
                 column: @BASE_QTY
                 layout {
                     width: 73
-                    sequence: 15
+                    sequence: 16
                 }
             )
 
@@ -655,7 +672,7 @@ page 105 (
                 column: @BASE_RATE
                 layout {
                     width: 81
-                    sequence: 16
+                    sequence: 17
                 }
             )
 
@@ -671,7 +688,7 @@ page 105 (
                 column: @TOTAL_AMOUNT
                 layout {
                     width: 99
-                    sequence: 14
+                    sequence: 9
                 }
             )
 
@@ -687,7 +704,7 @@ page 105 (
                 column: @DISCOUNT_PERCENT
                 layout {
                     width: 114
-                    sequence: 9
+                    sequence: 11
                 }
             )
 
@@ -695,7 +712,7 @@ page 105 (
                 column: @DISCOUNT_AMOUNT
                 layout {
                     width: 116
-                    sequence: 10
+                    sequence: 12
                 }
             )
 
@@ -956,6 +973,25 @@ page 105 (
             }
             advanced {
                 customAttributes: readonly
+            }
+        )
+
+        column NET_AMOUNT (
+            type: numberField
+            heading {
+                heading: Net Amount
+                alignment: end
+            }
+            layout {
+                sequence: 330
+                columnAlignment: end
+            }
+            source {
+                databaseColumn: NET_AMOUNT
+                dataType: number
+            }
+            columnFilter {
+                lovType: none
             }
         )
 
@@ -2472,23 +2508,12 @@ page 105 (
                                    --------------------------------------------------
                 
                                    'DISCOUNT_PERCENT' VALUE NVL (D.DISCOUNT_PERCENT, 0),
-                                   'DISCOUNT_AMOUNT' VALUE
-                                       ROUND (
-                                             (D.SALES_QTY - NVL (D.DELIVERED_QTY, 0))
-                                           * NVL (D.SALES_RATE, 0)
-                                           * NVL (D.DISCOUNT_PERCENT, 0)
-                                           / 100,
-                                           2),
+                                   'DISCOUNT_AMOUNT' VALUE D.DISCOUNT_AMOUNT,
                                    --------------------------------------------------
                                    -- Net Amount
                                    --------------------------------------------------
-                
-                                   'TOTAL_AMOUNT' VALUE
-                                       ROUND (
-                                             (D.SALES_QTY - NVL (D.DELIVERED_QTY, 0))
-                                           * NVL (D.SALES_RATE, 0)
-                                           * (1 - NVL (D.DISCOUNT_PERCENT, 0) / 100),
-                                           2)
+                                    'NET_AMOUNT' VALUE D.NET_AMOUNT,
+                                   'TOTAL_AMOUNT' VALUE D.TOTAL_AMOUNT
                                    RETURNING CLOB)
                                RETURNING CLOB)
                       INTO V_DATA
@@ -2526,7 +2551,7 @@ page 105 (
         source {
             plsqlCode:
                 ```plsql
-                /* Formatted on 9/7/2026 3:26:55 PM (QP5 v5.388) */
+                /* Formatted on 9/10/2026 4:56:19 PM (QP5 v5.388) */
                 DECLARE
                     V_DISCOUNT_PERCENT   NUMBER := 0;
                     V_GROSS_AMOUNT       NUMBER := 0;
@@ -2535,17 +2560,14 @@ page 105 (
                     ------------------------------------------------
                     -- Header Validation
                     ------------------------------------------------
-                
                     IF :P105_INVOICE_NO IS NULL
                     THEN
                         RAISE_APPLICATION_ERROR (-20001, 'Please select invoice.');
                     END IF;
                 
-                
                     ------------------------------------------------
                     -- Quantity Validation
                     ------------------------------------------------
-                
                     IF :APEX$ROW_STATUS IN ('C', 'U') AND NVL ( :DELIVERY_QTY, 0) <= 0
                     THEN
                         RAISE_APPLICATION_ERROR (
@@ -2553,11 +2575,9 @@ page 105 (
                             'Delivery quantity must be greater than zero.');
                     END IF;
                 
-                
                     ------------------------------------------------
                     -- Balance Validation
                     ------------------------------------------------
-                
                     IF     :APEX$ROW_STATUS IN ('C', 'U')
                        AND NVL ( :DELIVERY_QTY, 0) > NVL ( :BALANCE_QTY, 0)
                     THEN
@@ -2566,11 +2586,9 @@ page 105 (
                             'Delivery quantity exceeds balance quantity.');
                     END IF;
                 
-                
                     ------------------------------------------------
                     -- Get Discount From Invoice Detail
                     ------------------------------------------------
-                
                     IF :APEX$ROW_STATUS IN ('C', 'U')
                     THEN
                         SELECT NVL (DISCOUNT_PERCENT, 0)
@@ -2578,12 +2596,9 @@ page 105 (
                           FROM TRN_SALES_INVOICE_DTL
                          WHERE INVOICE_DTL_NO = :INVOICE_DTL_NO;
                 
-                
                         V_GROSS_AMOUNT := NVL ( :DELIVERY_QTY, 0) * NVL ( :SALES_RATE, 0);
                 
-                
                         V_NET_AMOUNT := V_GROSS_AMOUNT * (1 - V_DISCOUNT_PERCENT / 100);
-                
                 
                         IF V_NET_AMOUNT < 0
                         THEN
@@ -2593,11 +2608,9 @@ page 105 (
                         END IF;
                     END IF;
                 
-                
                     ------------------------------------------------
                     -- INSERT
                     ------------------------------------------------
-                
                     IF :APEX$ROW_STATUS = 'C'
                     THEN
                         INSERT INTO TRN_DELIVERY_DTL (DELIVERY_DTL_NO,
@@ -2616,6 +2629,7 @@ page 105 (
                                                       SALES_RATE,
                                                       BASE_RATE,
                                                       TOTAL_AMOUNT,
+                                                      NET_AMOUNT,
                                                       REMARKS,
                                                       CREATED_BY,
                                                       CREATED_DATE)
@@ -2634,7 +2648,8 @@ page 105 (
                                      :BASE_QTY,
                                      :SALES_RATE,
                                      :BASE_RATE,
-                                     V_NET_AMOUNT,
+                                     :TOTAL_AMOUNT,
+                                     :NET_AMOUNT,
                                      :REMARKS,
                                      :APP_USER,
                                      SYSDATE)
@@ -2643,7 +2658,6 @@ page 105 (
                     ------------------------------------------------
                     -- UPDATE
                     ------------------------------------------------
-                
                     ELSIF :APEX$ROW_STATUS = 'U'
                     THEN
                         UPDATE TRN_DELIVERY_DTL
@@ -2656,7 +2670,8 @@ page 105 (
                                BASE_QTY = :BASE_QTY,
                                SALES_RATE = :SALES_RATE,
                                BASE_RATE = :BASE_RATE,
-                               TOTAL_AMOUNT = V_NET_AMOUNT,
+                               TOTAL_AMOUNT = :TOTAL_AMOUNT,
+                               NET_AMOUNT = :NET_AMOUNT,
                                REMARKS = :REMARKS,
                                UPDATED_BY = :APP_USER,
                                UPDATED_DATE = SYSDATE
@@ -2664,7 +2679,6 @@ page 105 (
                     ------------------------------------------------
                     -- DELETE
                     ------------------------------------------------
-                
                     ELSIF :APEX$ROW_STATUS = 'D'
                     THEN
                         IF :P105_APPROVAL_STATUS = 'A'
@@ -2677,8 +2691,28 @@ page 105 (
                               WHERE DELIVERY_DTL_NO = :DELIVERY_DTL_NO;
                     END IF;
                 
+                    ------------------------------------------------
+                    -- Update Delivery Master Amount
+                    ------------------------------------------------
+                    UPDATE TRN_DELIVERY_MST M
+                       SET M.TOTAL_AMOUNT =
+                               NVL ( (SELECT SUM (NVL (D.TOTAL_AMOUNT, 0))
+                                        FROM TRN_DELIVERY_DTL D
+                                       WHERE D.DELIVERY_NO = M.DELIVERY_NO),
+                                    0),
+                           M.NET_AMOUNT =
+                               NVL ( (SELECT SUM (NVL (D.NET_AMOUNT, 0))
+                                        FROM TRN_DELIVERY_DTL D
+                                       WHERE D.DELIVERY_NO = M.DELIVERY_NO),
+                                    0),
+                           M.UPDATED_BY = :APP_USER,
+                           M.UPDATED_DATE = SYSDATE
+                     WHERE M.DELIVERY_NO = :P105_DELIVERY_NO;
                 
-                    APEX_APPLICATION.g_print_success_message :=
+                    ------------------------------------------------
+                    -- Success Message
+                    ------------------------------------------------
+                    APEX_APPLICATION.G_PRINT_SUCCESS_MESSAGE :=
                         'Delivery details saved successfully.';
                 EXCEPTION
                     WHEN NO_DATA_FOUND

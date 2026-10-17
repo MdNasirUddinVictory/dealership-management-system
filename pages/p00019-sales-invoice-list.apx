@@ -99,226 +99,81 @@ page 19 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                SELECT
-                       ROWNUM SL,
-                
-                       I.INVOICE_NO,
-                       I.INVOICE_CODE,
-                       I.INVOICE_DATE,
-                
-                       O.ORDER_CODE,
-                
-                       C.CUSTOMER_NAME,
-                       C.MOBILE_NO,
-                
-                       --------------------------------------------------
-                       -- Invoice Qty
-                       --------------------------------------------------
-                       NVL(
-                           (
-                               SELECT SUM(D.SALES_QTY)
-                                 FROM TRN_SALES_INVOICE_DTL D
-                                WHERE D.INVOICE_NO = I.INVOICE_NO
-                           ),
-                           0
-                       ) TOTAL_INVOICE_QTY,
-                
-                       --------------------------------------------------
-                       -- Delivered Qty
-                       --------------------------------------------------
-                       NVL(
-                           (
-                               SELECT SUM(D.DELIVERY_QTY)
-                                 FROM TRN_DELIVERY_DTL D
-                                 JOIN TRN_DELIVERY_MST M
-                                   ON M.DELIVERY_NO = D.DELIVERY_NO
-                                WHERE M.INVOICE_NO = I.INVOICE_NO
-                                  AND M.APPROVAL_STATUS = 'A'
-                           ),
-                           0
-                       ) TOTAL_DELIVERY_QTY,
-                
-                       --------------------------------------------------
-                       -- Delivery Balance
-                       --------------------------------------------------
-                       NVL(
-                           (
-                               SELECT SUM(D.SALES_QTY)
-                                 FROM TRN_SALES_INVOICE_DTL D
-                                WHERE D.INVOICE_NO = I.INVOICE_NO
-                           ),
-                           0
-                       )
-                       -
-                       NVL(
-                           (
-                               SELECT SUM(D.DELIVERY_QTY)
-                                 FROM TRN_DELIVERY_DTL D
-                                 JOIN TRN_DELIVERY_MST M
-                                   ON M.DELIVERY_NO = D.DELIVERY_NO
-                                WHERE M.INVOICE_NO = I.INVOICE_NO
-                                  AND M.APPROVAL_STATUS = 'A'
-                           ),
-                           0
-                       ) DELIVERY_BALANCE_QTY,
-                
-                       --------------------------------------------------
-                       -- Delivery Challan Count
-                       --------------------------------------------------
-                       (
-                           SELECT COUNT(*)
-                             FROM TRN_DELIVERY_MST D
-                            WHERE D.INVOICE_NO = I.INVOICE_NO
-                       ) DELIVERY_COUNT,
-                
-                       I.TOTAL_AMOUNT,
-                
-                       --------------------------------------------------
-                       -- Delivery Status
-                       --------------------------------------------------
-                       CASE
-                
-                           WHEN
-                               NVL(
-                                   (
-                                       SELECT SUM(D.DELIVERY_QTY)
-                                         FROM TRN_DELIVERY_DTL D
-                                         JOIN TRN_DELIVERY_MST M
-                                           ON M.DELIVERY_NO = D.DELIVERY_NO
-                                        WHERE M.INVOICE_NO = I.INVOICE_NO
-                                          AND M.APPROVAL_STATUS='A'
-                                   ),
-                                   0
-                               ) = 0
-                
-                           THEN
-                
-                               '<span class="t-Badge t-Badge--warning">
-                               Waiting Delivery
-                               </span>'
-                
-                           WHEN
-                
-                               NVL(
-                                   (
-                                       SELECT SUM(D.DELIVERY_QTY)
-                                         FROM TRN_DELIVERY_DTL D
-                                         JOIN TRN_DELIVERY_MST M
-                                           ON M.DELIVERY_NO = D.DELIVERY_NO
-                                        WHERE M.INVOICE_NO = I.INVOICE_NO
-                                          AND M.APPROVAL_STATUS='A'
-                                   ),
-                                   0
-                               )
-                
-                               <
-                
-                               NVL(
-                                   (
-                                       SELECT SUM(D.SALES_QTY)
-                                         FROM TRN_SALES_INVOICE_DTL D
-                                        WHERE D.INVOICE_NO = I.INVOICE_NO
-                                   ),
-                                   0
-                               )
-                
-                           THEN
-                
-                               '<span class="t-Badge t-Badge--primary">
-                               Partial Delivery
-                               </span>'
-                
-                           ELSE
-                
-                               '<span class="t-Badge t-Badge--success">
-                               Delivered
-                               </span>'
-                
-                       END DELIVERY_STATUS,
-                
-                       --------------------------------------------------
-                       -- Invoice Print
-                       --------------------------------------------------
-                    --    '<button class="t-Button t-Button--primary t-Button--tiny"
-                    --        onclick="printInvoice('||I.INVOICE_NO||')">
-                    --        Invoice
-                    --    </button>' 
-                    NULL
-                       PRINT_BTN,
-                
-                       --------------------------------------------------
-                       -- Create Delivery
-                       --------------------------------------------------
-                       CASE
-                
-                           WHEN
-                               NVL(
-                                   (
-                                       SELECT SUM(D.DELIVERY_QTY)
-                                         FROM TRN_DELIVERY_DTL D
-                                         JOIN TRN_DELIVERY_MST M
-                                           ON M.DELIVERY_NO=D.DELIVERY_NO
-                                        WHERE M.INVOICE_NO=I.INVOICE_NO
-                                          AND M.APPROVAL_STATUS='A'
-                                   ),
-                                   0
-                               )
-                
-                               <
-                
-                               NVL(
-                                   (
-                                       SELECT SUM(D.SALES_QTY)
-                                         FROM TRN_SALES_INVOICE_DTL D
-                                        WHERE D.INVOICE_NO=I.INVOICE_NO
-                                   ),
-                                   0
-                               )
-                
-                           THEN
-                
-                            --    '<a href="f?p=&APP_ID.:105:&SESSION.::NO::P105_INVOICE_NO:'
-                            --    ||I.INVOICE_NO||
-                            --    '" class="t-Button t-Button--success t-Button--tiny">
-                            --    Delivery
-                            --    </a>' 
-                            NULL
-                
-                       END DELIVERY_BTN,
-                
-                       --------------------------------------------------
-                       -- View Delivery
-                       --------------------------------------------------
-                       CASE
-                
-                           WHEN EXISTS
-                           (
-                               SELECT 1
-                                 FROM TRN_DELIVERY_MST D
-                                WHERE D.INVOICE_NO=I.INVOICE_NO
-                           )
-                
-                           THEN
-                
-                               '<a href="f?p=&APP_ID.:106:&SESSION.::NO::P106_INVOICE_NO:'
-                               ||I.INVOICE_NO||
-                               '" class="t-Button t-Button--info t-Button--tiny">
-                               View Delivery
-                               </a>'
-                
-                       END DELIVERY_VIEW_BTN,
-                
-                       I.CREATED_BY,
-                       I.CREATED_DATE
-                
-                FROM TRN_SALES_INVOICE_MST I
-                
-                JOIN MST_CUSTOMER C
-                  ON C.CUSTOMER_NO = I.CUSTOMER_NO
-                
-                JOIN TRN_SALES_ORDER_MST O
-                  ON O.ORDER_NO = I.ORDER_NO
-                
+                /* Formatted on 9/10/2026 4:44:04 PM (QP5 v5.388) */
+                  SELECT ROWNUM
+                             AS SL,
+                         I.INVOICE_NO,
+                         I.INVOICE_CODE,
+                         I.INVOICE_DATE,
+                         O.ORDER_CODE,
+                         C.CUSTOMER_NAME,
+                         C.MOBILE_NO,
+                         NVL (IDT.INVOICE_QTY, 0)
+                             AS TOTAL_INVOICE_QTY,
+                         NVL (DLV.DELIVERY_QTY, 0)
+                             AS TOTAL_DELIVERY_QTY,
+                         GREATEST (NVL (IDT.INVOICE_QTY, 0) - NVL (DLV.DELIVERY_QTY, 0), 0)
+                             AS DELIVERY_BALANCE_QTY,
+                         NVL (DC.DELIVERY_COUNT, 0)
+                             AS DELIVERY_COUNT,
+                         I.TOTAL_AMOUNT,
+                         I.NET_AMOUNT,
+                         CASE
+                             WHEN NVL (IDT.INVOICE_QTY, 0) = 0
+                             THEN
+                                 '<span class="t-Badge t-Badge--danger">No Quantity</span>'
+                             WHEN NVL (DLV.DELIVERY_QTY, 0) = 0
+                             THEN
+                                 '<span class="t-Badge t-Badge--warning">Waiting Delivery</span>'
+                             WHEN NVL (DLV.DELIVERY_QTY, 0) < NVL (IDT.INVOICE_QTY, 0)
+                             THEN
+                                 '<span class="t-Badge t-Badge--primary">Partial Delivery</span>'
+                             ELSE
+                                 '<span class="t-Badge t-Badge--success">Delivered</span>'
+                         END
+                             AS DELIVERY_STATUS,
+                         NULL
+                             AS PRINT_BTN,
+                         CASE
+                             WHEN NVL (DLV.DELIVERY_QTY, 0) < NVL (IDT.INVOICE_QTY, 0)
+                             THEN
+                                 NULL
+                         END
+                             AS DELIVERY_BTN,
+                         CASE
+                             WHEN NVL (DC.DELIVERY_COUNT, 0) > 0
+                             THEN
+                                    '<a href="f?p=&APP_ID.:106:&SESSION.::NO::P106_INVOICE_NO:'
+                                 || I.INVOICE_NO
+                                 || '" class="t-Button t-Button--info t-Button--tiny">'
+                                 || '<span class="fa fa-truck"></span>&nbsp; View Delivery'
+                                 || '</a>'
+                         END
+                             AS DELIVERY_VIEW_BTN,
+                         I.CREATED_BY,
+                         I.CREATED_DATE
+                    FROM TRN_SALES_INVOICE_MST I
+                         JOIN MST_CUSTOMER C ON C.CUSTOMER_NO = I.CUSTOMER_NO
+                         JOIN TRN_SALES_ORDER_MST O ON O.ORDER_NO = I.ORDER_NO
+                         /* Invoice Quantity */
+                         LEFT JOIN (  SELECT INVOICE_NO, SUM (SALES_QTY) AS INVOICE_QTY
+                                        FROM TRN_SALES_INVOICE_DTL
+                                    GROUP BY INVOICE_NO) IDT
+                             ON IDT.INVOICE_NO = I.INVOICE_NO
+                         /* Approved Delivery Quantity */
+                         LEFT JOIN
+                         (  SELECT M.INVOICE_NO, SUM (D.DELIVERY_QTY) AS DELIVERY_QTY
+                              FROM TRN_DELIVERY_MST M
+                                   JOIN TRN_DELIVERY_DTL D ON D.DELIVERY_NO = M.DELIVERY_NO
+                             WHERE M.APPROVAL_STATUS = 'A'
+                          GROUP BY M.INVOICE_NO) DLV
+                             ON DLV.INVOICE_NO = I.INVOICE_NO
+                         /* Delivery Challan Count */
+                         LEFT JOIN (  SELECT INVOICE_NO, COUNT (*) AS DELIVERY_COUNT
+                                        FROM TRN_DELIVERY_MST
+                                    GROUP BY INVOICE_NO) DC
+                             ON DC.INVOICE_NO = I.INVOICE_NO
+                   WHERE I.APPROVAL_STATUS = 'A'
                 ORDER BY I.INVOICE_NO DESC;
                 ```
             pageItemsToSubmit: P19_STATUS
@@ -576,6 +431,24 @@ page 19 (
             }
         )
 
+        column NET_AMOUNT (
+            type: plainText
+            heading {
+                heading: Net Amount
+                alignment: end
+            }
+            layout {
+                sequence: 240
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: AI
+            }
+        )
+
         column ORDER_CODE (
             type: plainText
             heading {
@@ -709,11 +582,11 @@ page 19 (
             )
 
             displayColumn DELIVERY_BTN (
-                sequence: 10
+                sequence: 11
             )
 
             displayColumn DELIVERY_STATUS (
-                sequence: 9
+                sequence: 10
             )
 
             displayColumn INVOICE_CODE (
@@ -728,12 +601,16 @@ page 19 (
                 sequence: 6
             )
 
+            displayColumn NET_AMOUNT (
+                sequence: 8
+            )
+
             displayColumn ORDER_CODE (
                 sequence: 4
             )
 
             displayColumn PRINT_BTN (
-                sequence: 8
+                sequence: 9
             )
 
             displayColumn SL (

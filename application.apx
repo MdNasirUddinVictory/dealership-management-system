@@ -1,7 +1,8 @@
 app DEALER-INVENTORY-SALES-MANAGEMENT-SYSTEM (
     name: Dealer Inventory & Sales Management System
     logo {
-        type: text
+        type: imageAndText
+        imageUrl: #APP_FILES#POS_LOGO-removebg-preview.png
         text: Dealer Inventory & Sales Management System
     }
     navigation {
@@ -30,7 +31,9 @@ app DEALER-INVENTORY-SALES-MANAGEMENT-SYSTEM (
     userInterface {
         currentTheme: @universal-theme
         globalPage: 0
+        usersCanChooseThemeStyle: true
         addBuiltWithApexToFooter: false
+        autoDismissSuccessMessages: true
     }
     appFormatMasks {
         date: DS

@@ -58,142 +58,220 @@ page 10 (
                            P.PRODUCT_NO,
                            P.PRODUCT_CODE,
                            P.PRODUCT_NAME,
-                
                            C.CATEGORY_NAME,
                 
-                           P.PURCHASE_RATE,
-                           P.SALES_RATE,
+                           /* Product / Base UOM */
+                           BASE_UOM.UOM_NAME AS BASE_UOM,
                 
-                           NVL(P.MIN_STOCK_QTY,0) MIN_STOCK_QTY,
+                           /* Stock UOM */
+                           NVL(
+                               STOCK_UOM.UOM_NAME,
+                               BASE_UOM.UOM_NAME
+                           ) AS STOCK_UOM,
                 
-                           NVL(SUM(NVL(L.QTY_IN,0)),0) STOCK_IN,
+                           /* Conversion */
+                           CASE
+                               WHEN UC.CONVERSION_FACTOR IS NOT NULL
+                               THEN
+                                   '1 ' ||
+                                   BASE_UOM.UOM_NAME ||
+                                   ' = ' ||
+                                   TO_CHAR(UC.CONVERSION_FACTOR) ||
+                                   ' ' ||
+                                   STOCK_UOM.UOM_NAME
+                               ELSE
+                                   '1 ' ||
+                                   BASE_UOM.UOM_NAME ||
+                                   ' = 1 ' ||
+                                   BASE_UOM.UOM_NAME
+                           END AS UOM_CONVERSION,
                 
-                           NVL(SUM(NVL(L.QTY_OUT,0)),0) STOCK_OUT,
+                           /* Purchase Rate per Base UOM */
+                           NVL(P.PURCHASE_RATE,0) AS PURCHASE_RATE,
                 
+                           /* Purchase Rate per Stock UOM */
+                           ROUND(
+                               NVL(P.PURCHASE_RATE,0)
+                               /
+                               NULLIF(
+                                   NVL(UC.CONVERSION_FACTOR,1),
+                                   0
+                               ),
+                               2
+                           ) AS STOCK_RATE,
+                
+                           /* Existing Product Sales Rate */
+                           NVL(P.SALES_RATE,0) AS SALES_RATE,
+                
+                           /* Minimum Stock */
+                           NVL(P.MIN_STOCK_QTY,0) AS MIN_STOCK_QTY,
+                
+                           /* Stock In */
+                           NVL(
+                               SUM(NVL(L.QTY_IN,0)),
+                               0
+                           ) AS STOCK_IN,
+                
+                           /* Stock Out */
+                           NVL(
+                               SUM(NVL(L.QTY_OUT,0)),
+                               0
+                           ) AS STOCK_OUT,
+                
+                           /* Current Stock */
                            NVL(
                                SUM(NVL(L.QTY_IN,0))
                                -
                                SUM(NVL(L.QTY_OUT,0)),
                                0
-                           ) CURRENT_STOCK,
+                           ) AS CURRENT_STOCK,
                 
+                           /* Stock Value */
                            ROUND(
                                NVL(
                                    SUM(NVL(L.QTY_IN,0))
                                    -
                                    SUM(NVL(L.QTY_OUT,0)),
                                    0
-                               ) * NVL(P.PURCHASE_RATE,0),
+                               )
+                               *
+                               (
+                                   NVL(P.PURCHASE_RATE,0)
+                                   /
+                                   NULLIF(
+                                       NVL(UC.CONVERSION_FACTOR,1),
+                                       0
+                                   )
+                               ),
                                2
-                           ) STOCK_VALUE,
+                           ) AS STOCK_VALUE,
                 
-                          CASE
-                    WHEN NVL(
-                             SUM(NVL(L.QTY_IN,0))
-                             -
-                             SUM(NVL(L.QTY_OUT,0)),
-                             0
-                         ) <= 0
-                    THEN
-                        '<span style="
-                            display:inline-block;
-                            background:#fee2e2;
-                            color:#b91c1c;
-                            border:1px solid #fecaca;
-                            padding:2px 8px;
-                            border-radius:12px;
-                            font-size:11px;
-                            font-weight:600;
-                            white-space:nowrap;">
-                            Out of Stock
-                         </span>'
-                
-                    WHEN NVL(
-                             SUM(NVL(L.QTY_IN,0))
-                             -
-                             SUM(NVL(L.QTY_OUT,0)),
-                             0
-                         ) < NVL(P.MIN_STOCK_QTY,0)
-                    THEN
-                        '<span style="
-                            display:inline-block;
-                            background:#fef3c7;
-                            color:#b45309;
-                            border:1px solid #fde68a;
-                            padding:2px 8px;
-                            border-radius:12px;
-                            font-size:11px;
-                            font-weight:600;
-                            white-space:nowrap;">
-                            Low Stock
-                         </span>'
-                
-                    ELSE
-                        '<span style="
-                            display:inline-block;
-                            background:#dcfce7;
-                            color:#15803d;
-                            border:1px solid #bbf7d0;
-                            padding:2px 8px;
-                            border-radius:12px;
-                            font-size:11px;
-                            font-weight:600;
-                            white-space:nowrap;">
-                            Available
-                         </span>'
-                END STOCK_STATUS,
-                
+                           /* Stock Status */
                            CASE
-                    WHEN NVL(
-                             SUM(NVL(L.QTY_IN,0))
-                             -
-                             SUM(NVL(L.QTY_OUT,0)),
-                             0
-                         ) <= 0
-                    THEN
-                        '<span class="fa fa-times-circle"
-                               style="
-                                   color:#dc2626;
-                                   font-size:13px;
-                                   vertical-align:middle;
-                                   line-height:1;"
-                               title="Out of Stock">
-                         </span>'
+                               WHEN NVL(
+                                        SUM(NVL(L.QTY_IN,0))
+                                        -
+                                        SUM(NVL(L.QTY_OUT,0)),
+                                        0
+                                    ) <= 0
+                               THEN
+                                   '<span style="
+                                       display:inline-block;
+                                       background:#fee2e2;
+                                       color:#b91c1c;
+                                       border:1px solid #fecaca;
+                                       padding:2px 8px;
+                                       border-radius:12px;
+                                       font-size:11px;
+                                       font-weight:600;
+                                       white-space:nowrap;">
+                                       Out of Stock
+                                    </span>'
                 
-                    WHEN NVL(
-                             SUM(NVL(L.QTY_IN,0))
-                             -
-                             SUM(NVL(L.QTY_OUT,0)),
-                             0
-                         ) < NVL(P.MIN_STOCK_QTY,0)
-                    THEN
-                        '<span class="fa fa-exclamation-triangle"
-                               style="
-                                   color:#f59e0b;
-                                   font-size:13px;
-                                   vertical-align:middle;
-                                   line-height:1;"
-                               title="Low Stock">
-                         </span>'
+                               WHEN NVL(
+                                        SUM(NVL(L.QTY_IN,0))
+                                        -
+                                        SUM(NVL(L.QTY_OUT,0)),
+                                        0
+                                    ) < NVL(P.MIN_STOCK_QTY,0)
+                               THEN
+                                   '<span style="
+                                       display:inline-block;
+                                       background:#fef3c7;
+                                       color:#b45309;
+                                       border:1px solid #fde68a;
+                                       padding:2px 8px;
+                                       border-radius:12px;
+                                       font-size:11px;
+                                       font-weight:600;
+                                       white-space:nowrap;">
+                                       Low Stock
+                                    </span>'
                 
-                    ELSE
-                        '<span class="fa fa-check-circle"
-                               style="
-                                   color:#16a34a;
-                                   font-size:13px;
-                                   vertical-align:middle;
-                                   line-height:1;"
-                               title="Available">
-                         </span>'
-                END STATUS_ICON
+                               ELSE
+                                   '<span style="
+                                       display:inline-block;
+                                       background:#dcfce7;
+                                       color:#15803d;
+                                       border:1px solid #bbf7d0;
+                                       padding:2px 8px;
+                                       border-radius:12px;
+                                       font-size:11px;
+                                       font-weight:600;
+                                       white-space:nowrap;">
+                                       Available
+                                    </span>'
+                           END AS STOCK_STATUS,
+                
+                           /* Status Icon */
+                           CASE
+                               WHEN NVL(
+                                        SUM(NVL(L.QTY_IN,0))
+                                        -
+                                        SUM(NVL(L.QTY_OUT,0)),
+                                        0
+                                    ) <= 0
+                               THEN
+                                   '<span class="fa fa-times-circle"
+                                          style="
+                                              color:#dc2626;
+                                              font-size:13px;
+                                              vertical-align:middle;
+                                              line-height:1;"
+                                          title="Out of Stock">
+                                    </span>'
+                
+                               WHEN NVL(
+                                        SUM(NVL(L.QTY_IN,0))
+                                        -
+                                        SUM(NVL(L.QTY_OUT,0)),
+                                        0
+                                    ) < NVL(P.MIN_STOCK_QTY,0)
+                               THEN
+                                   '<span class="fa fa-exclamation-triangle"
+                                          style="
+                                              color:#f59e0b;
+                                              font-size:13px;
+                                              vertical-align:middle;
+                                              line-height:1;"
+                                          title="Low Stock">
+                                    </span>'
+                
+                               ELSE
+                                   '<span class="fa fa-check-circle"
+                                          style="
+                                              color:#16a34a;
+                                              font-size:13px;
+                                              vertical-align:middle;
+                                              line-height:1;"
+                                          title="Available">
+                                    </span>'
+                           END AS STATUS_ICON
                 
                     FROM MST_PRODUCT P
                 
+                    /* Category */
                     LEFT JOIN MST_PRODUCT_CATEGORY C
                            ON C.CATEGORY_NO = P.CATEGORY_NO
                 
+                    /* Stock Ledger */
                     LEFT JOIN TRN_STOCK_LEDGER L
                            ON L.PRODUCT_NO = P.PRODUCT_NO
+                
+                    /* UOM Conversion */
+                    LEFT JOIN MST_UOM_CONVERSION UC
+                           ON UC.PRODUCT_NO = P.PRODUCT_NO
+                          AND UC.BASE_UOM_NO = P.UOM_NO
+                          AND UC.ACTIVE_FLAG = '1'
+                          AND UC.CONVERSION_FACTOR > 0
+                
+                    /* Base UOM */
+                    LEFT JOIN MST_UOM BASE_UOM
+                           ON BASE_UOM.UOM_NO = P.UOM_NO
+                
+                    /* Stock / Convert UOM */
+                    LEFT JOIN MST_UOM STOCK_UOM
+                           ON STOCK_UOM.UOM_NO = UC.CONVERT_UOM_NO
                 
                     WHERE (:P10_CATEGORY_NO IS NULL
                            OR P.CATEGORY_NO = :P10_CATEGORY_NO)
@@ -206,25 +284,33 @@ page 10 (
                            P.PRODUCT_CODE,
                            P.PRODUCT_NAME,
                            C.CATEGORY_NAME,
+                           BASE_UOM.UOM_NAME,
+                           STOCK_UOM.UOM_NAME,
+                           UC.CONVERSION_FACTOR,
                            P.PURCHASE_RATE,
                            P.SALES_RATE,
                            P.MIN_STOCK_QTY
                 )
                 WHERE
                 (
-                      :P10_STATUS IS NULL
+                       :P10_STATUS IS NULL
                 
-                   OR (:P10_STATUS = 'A'
-                       AND CURRENT_STOCK >= MIN_STOCK_QTY)
+                    OR (
+                        :P10_STATUS = 'A'
+                        AND CURRENT_STOCK >= MIN_STOCK_QTY
+                    )
                 
-                   OR (:P10_STATUS = 'L'
-                       AND CURRENT_STOCK > 0
-                       AND CURRENT_STOCK < MIN_STOCK_QTY)
+                    OR (
+                        :P10_STATUS = 'L'
+                        AND CURRENT_STOCK > 0
+                        AND CURRENT_STOCK < MIN_STOCK_QTY
+                    )
                 
-                   OR (:P10_STATUS = 'O'
-                       AND CURRENT_STOCK <= 0)
+                    OR (
+                        :P10_STATUS = 'O'
+                        AND CURRENT_STOCK <= 0
+                    )
                 )
-                
                 ORDER BY PRODUCT_NAME;
                 ```
             pageItemsToSubmit: [
@@ -253,6 +339,22 @@ page 10 (
         advanced {
             savedReportMappingIdentifier: 10853910344867970226
         }
+
+        column BASE_UOM (
+            type: plainText
+            heading {
+                heading: Base Uom
+            }
+            layout {
+                sequence: 140
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: N
+            }
+        )
 
         column CATEGORY_NAME (
             type: plainText
@@ -447,6 +549,24 @@ page 10 (
             }
         )
 
+        column STOCK_RATE (
+            type: plainText
+            heading {
+                heading: Stock Rate
+                alignment: end
+            }
+            layout {
+                sequence: 180
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: R
+            }
+        )
+
         column STOCK_STATUS (
             type: plainText
             heading {
@@ -463,6 +583,22 @@ page 10 (
             }
             security {
                 escapeSpecialChars: false
+            }
+        )
+
+        column STOCK_UOM (
+            type: plainText
+            heading {
+                heading: Stock Uom
+            }
+            layout {
+                sequence: 170
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: Q
             }
         )
 
@@ -484,6 +620,22 @@ page 10 (
             }
         )
 
+        column UOM_CONVERSION (
+            type: plainText
+            heading {
+                heading: Uom Conversion
+            }
+            layout {
+                sequence: 160
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: P
+            }
+        )
+
         page {
             borderWidth: 0.5
             borderColor: #666666
@@ -495,12 +647,16 @@ page 10 (
                 rowsPerPage: 50
             }
 
+            displayColumn BASE_UOM (
+                sequence: 7
+            )
+
             displayColumn CATEGORY_NAME (
                 sequence: 3
             )
 
             displayColumn CURRENT_STOCK (
-                sequence: 9
+                sequence: 11
             )
 
             displayColumn MIN_STOCK_QTY (
@@ -524,23 +680,35 @@ page 10 (
             )
 
             displayColumn STATUS_ICON (
-                sequence: 12
+                sequence: 16
             )
 
             displayColumn STOCK_IN (
-                sequence: 7
+                sequence: 9
             )
 
             displayColumn STOCK_OUT (
-                sequence: 8
+                sequence: 10
+            )
+
+            displayColumn STOCK_RATE (
+                sequence: 13
             )
 
             displayColumn STOCK_STATUS (
-                sequence: 11
+                sequence: 15
+            )
+
+            displayColumn STOCK_UOM (
+                sequence: 8
             )
 
             displayColumn STOCK_VALUE (
-                sequence: 10
+                sequence: 14
+            )
+
+            displayColumn UOM_CONVERSION (
+                sequence: 12
             )
 
         )
@@ -567,112 +735,151 @@ page 10 (
                 
                 BEGIN
                 
-                    SELECT
-                        COUNT(*),
-                        NVL(SUM(STOCK_IN),0),
-                        NVL(SUM(STOCK_OUT),0),
-                        NVL(SUM(CURRENT_STOCK),0),
+                   SELECT 
+                        COUNT(*), 
+                        NVL(SUM(STOCK_IN),0), 
+                        NVL(SUM(STOCK_OUT),0), 
+                        NVL(SUM(CURRENT_STOCK),0), 
                 
                         NVL(SUM(
-                            CASE
-                                WHEN CURRENT_STOCK > 0
-                                 AND CURRENT_STOCK < MIN_STOCK_QTY
-                                THEN 1
-                                ELSE 0
+                            CASE 
+                                WHEN CURRENT_STOCK > 0 
+                                 AND CURRENT_STOCK < MIN_STOCK_QTY 
+                                THEN 1 
+                                ELSE 0 
                             END
-                        ),0),
+                        ),0), 
                 
                         NVL(SUM(
-                            CASE
-                                WHEN CURRENT_STOCK <= 0
-                                THEN 1
-                                ELSE 0
+                            CASE 
+                                WHEN CURRENT_STOCK <= 0 
+                                THEN 1 
+                                ELSE 0 
                             END
-                        ),0),
+                        ),0), 
                 
-                        NVL(SUM(STOCK_VALUE),0),
-                        NVL(SUM(SALES_VALUE),0)
+                        NVL(SUM(STOCK_VALUE),0), 
+                        NVL(SUM(SALES_VALUE),0) 
                 
-                    INTO
-                        V_TOTAL_PRODUCTS,
-                        V_STOCK_IN,
-                        V_STOCK_OUT,
-                        V_CURRENT_STOCK,
-                        V_LOW_STOCK,
-                        V_OUT_OF_STOCK,
-                        V_STOCK_VALUE,
-                        V_SALES_VALUE
+                INTO 
+                        V_TOTAL_PRODUCTS, 
+                        V_STOCK_IN, 
+                        V_STOCK_OUT, 
+                        V_CURRENT_STOCK, 
+                        V_LOW_STOCK, 
+                        V_OUT_OF_STOCK, 
+                        V_STOCK_VALUE, 
+                        V_SALES_VALUE 
                 
-                    FROM
-                    (
-                        SELECT
-                            P.PRODUCT_NO,
-                            P.PURCHASE_RATE,
-                            P.SALES_RATE,
+                FROM 
+                (
+                    SELECT 
+                        P.PRODUCT_NO, 
+                        P.PURCHASE_RATE, 
+                        P.SALES_RATE, 
                 
-                            NVL(P.MIN_STOCK_QTY,0) MIN_STOCK_QTY,
+                        NVL(P.MIN_STOCK_QTY,0) MIN_STOCK_QTY, 
                 
-                            NVL(SUM(NVL(L.QTY_IN,0)),0) STOCK_IN,
+                        NVL(SUM(NVL(L.QTY_IN,0)),0) STOCK_IN, 
                 
-                            NVL(SUM(NVL(L.QTY_OUT,0)),0) STOCK_OUT,
+                        NVL(SUM(NVL(L.QTY_OUT,0)),0) STOCK_OUT, 
                 
+                        NVL(
+                            SUM(NVL(L.QTY_IN,0)) 
+                            -
+                            SUM(NVL(L.QTY_OUT,0)), 
+                            0
+                        ) CURRENT_STOCK, 
+                
+                        /* =========================
+                           STOCK VALUE
+                           =========================
+                           Purchase Rate = Bag Rate
+                           Stock = KG
+                           Conversion = KG per Bag
+                        */
+                        ROUND(
                             NVL(
-                                SUM(NVL(L.QTY_IN,0))
+                                SUM(NVL(L.QTY_IN,0)) 
                                 -
-                                SUM(NVL(L.QTY_OUT,0)),
+                                SUM(NVL(L.QTY_OUT,0)), 
                                 0
-                            ) CURRENT_STOCK,
-                
-                            ROUND(
-                                NVL(
-                                    SUM(NVL(L.QTY_IN,0))
-                                    -
-                                    SUM(NVL(L.QTY_OUT,0)),
+                            )
+                            *
+                            (
+                                NVL(P.PURCHASE_RATE,0)
+                                /
+                                NULLIF(
+                                    NVL(UC.CONVERSION_FACTOR,1),
                                     0
-                                ) * NVL(P.PURCHASE_RATE,0),
-                                2
-                            ) STOCK_VALUE,
+                                )
+                            ),
+                            2
+                        ) STOCK_VALUE, 
                 
-                            ROUND(
-                                NVL(
-                                    SUM(NVL(L.QTY_IN,0))
-                                    -
-                                    SUM(NVL(L.QTY_OUT,0)),
+                        /* =========================
+                           SALES VALUE
+                           =========================
+                           Sales Rate = Bag Rate
+                           Stock = KG
+                           Conversion = KG per Bag
+                        */
+                        ROUND(
+                            NVL(
+                                SUM(NVL(L.QTY_IN,0)) 
+                                -
+                                SUM(NVL(L.QTY_OUT,0)), 
+                                0
+                            )
+                            *
+                            (
+                                NVL(P.SALES_RATE,0)
+                                /
+                                NULLIF(
+                                    NVL(UC.CONVERSION_FACTOR,1),
                                     0
-                                ) * NVL(P.SALES_RATE,0),
-                                2
-                            ) SALES_VALUE
+                                )
+                            ),
+                            2
+                        ) SALES_VALUE 
                 
-                        FROM MST_PRODUCT P
+                    FROM MST_PRODUCT P 
                 
-                        LEFT JOIN TRN_STOCK_LEDGER L
-                               ON L.PRODUCT_NO = P.PRODUCT_NO
+                    LEFT JOIN TRN_STOCK_LEDGER L 
+                           ON L.PRODUCT_NO = P.PRODUCT_NO 
                 
-                        WHERE
-                            (:P10_CATEGORY_NO IS NULL
-                             OR P.CATEGORY_NO = :P10_CATEGORY_NO)
+                    LEFT JOIN MST_UOM_CONVERSION UC
+                           ON UC.PRODUCT_NO = P.PRODUCT_NO
+                          AND UC.BASE_UOM_NO = P.UOM_NO
+                          AND UC.ACTIVE_FLAG = '1'
                 
-                        AND (:P10_PRODUCT_NO IS NULL
-                             OR P.PRODUCT_NO = :P10_PRODUCT_NO)
+                    WHERE 
+                        (:P10_CATEGORY_NO IS NULL 
+                         OR P.CATEGORY_NO = :P10_CATEGORY_NO) 
                 
-                        GROUP BY
-                            P.PRODUCT_NO,
-                            P.PURCHASE_RATE,
-                            P.SALES_RATE,
-                            P.MIN_STOCK_QTY
-                    )
-                    WHERE
-                          :P10_STATUS IS NULL
+                      AND (:P10_PRODUCT_NO IS NULL 
+                           OR P.PRODUCT_NO = :P10_PRODUCT_NO) 
                 
-                       OR (:P10_STATUS = 'A'
-                           AND CURRENT_STOCK >= MIN_STOCK_QTY)
+                    GROUP BY 
+                        P.PRODUCT_NO, 
+                        P.PURCHASE_RATE, 
+                        P.SALES_RATE, 
+                        P.MIN_STOCK_QTY,
+                        UC.CONVERSION_FACTOR
+                ) 
                 
-                       OR (:P10_STATUS = 'L'
-                           AND CURRENT_STOCK > 0
-                           AND CURRENT_STOCK < MIN_STOCK_QTY)
+                WHERE 
+                       :P10_STATUS IS NULL 
                 
-                       OR (:P10_STATUS = 'O'
-                           AND CURRENT_STOCK <= 0);
+                    OR (:P10_STATUS = 'A' 
+                        AND CURRENT_STOCK >= MIN_STOCK_QTY) 
+                
+                    OR (:P10_STATUS = 'L' 
+                        AND CURRENT_STOCK > 0 
+                        AND CURRENT_STOCK < MIN_STOCK_QTY) 
+                
+                    OR (:P10_STATUS = 'O' 
+                        AND CURRENT_STOCK <= 0);
                 
                 
                     L_HTML :=

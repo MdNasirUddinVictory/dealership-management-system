@@ -82,6 +82,26 @@ list database-menu-access (
             ORDER SIBLINGS BY SL_NO;
             ```
     }
+
+    entry t (
+        label: t
+        icon {
+            imageIconCssClasses: fa-file-o
+        }
+        layout {
+            sequence: 10
+        }
+        isCurrent {
+            type: pages
+            pages: 12
+        }
+        link {
+            target: {
+                page: 12
+            }
+        }
+    )
+
 )
 
 list navigation-bar (

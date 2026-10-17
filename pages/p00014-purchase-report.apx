@@ -51,53 +51,50 @@ page 14 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                /* Formatted on 9/6/2026 12:44:23 PM (QP5 v5.388) */
-                  SELECT M.PURCHASE_NO              AS "Purchase No",
-                         M.PURCHASE_CODE            AS "Purchase Code",
-                         M.PURCHASE_DATE            AS "Purchase Date",
-                         M.SUPPLIER_NO              AS "Supplier No",
-                         S.SUPPLIER_NAME            AS "Supplier Name",
-                         S.MOBILE_NO                AS "Mobile No",
-                         P.PRODUCT_CODE             AS "Product Code",
-                         P.PRODUCT_NAME             AS "Product Name",
-                         PC.CATEGORY_NAME           AS "Category",
-                         D.PURCHASE_QTY             AS "Purchase Quantity",
-                         D.RECEIVED_QTY             AS "Received Quantity",
-                         D.BALANCE_QTY              AS "Remaining Quantity",
-                         D.PURCHASE_RATE            AS "Purchase Rate",
-                         NVL (D.TOTAL_AMOUNT, 0)    AS "Item Total",
-                         NVL (M.TOTAL_AMOUNT, 0)    AS "Purchase Total",
-                         NVL (M.PAID_AMOUNT, 0)     AS "Paid Amount",
-                         NVL (M.DUE_AMOUNT, 0)      AS "Due Amount",
-                         CASE M.PAYMENT_STATUS
-                             WHEN 'UP' THEN 'Unpaid'
-                             WHEN 'PP' THEN 'Partially Paid'
-                             WHEN 'P' THEN 'Paid'
-                         END                        AS "Payment Status",
-                         CASE M.APPROVAL_STATUS
-                             WHEN 'P' THEN 'Pending'
-                             WHEN 'A' THEN 'Approved'
-                             WHEN 'R' THEN 'Rejected'
-                         END                        AS "Approval Status",
-                         M.REMARKS                  AS "Remarks",
-                         M.CREATED_BY               AS "Created By",
-                         M.CREATED_DATE             AS "Created Date",
-                         M.APPROVED_BY              AS "Approved By",
-                         M.APPROVED_DATE            AS "Approved Date"
-                    FROM TRN_PURCHASE_MST M
-                         JOIN MST_SUPPLIER S ON S.SUPPLIER_NO = M.SUPPLIER_NO
-                         JOIN TRN_PURCHASE_DTL D ON D.PURCHASE_NO = M.PURCHASE_NO
-                         JOIN MST_PRODUCT P ON P.PRODUCT_NO = D.PRODUCT_NO
-                         LEFT JOIN MST_PRODUCT_CATEGORY PC ON PC.CATEGORY_NO = P.CATEGORY_NO
-                   WHERE     M.APPROVAL_STATUS = 'A'
-                         AND (   :P14_FROM_DATE IS NULL
-                              OR M.PURCHASE_DATE >= TO_DATE ( :P14_FROM_DATE, 'MM/DD/YYYY'))
-                         AND (   :P14_TO_DATE IS NULL
-                              OR M.PURCHASE_DATE < TO_DATE ( :P14_TO_DATE, 'MM/DD/YYYY') + 1)
-                         AND ( :P14_SUPPLIER_NO IS NULL OR M.SUPPLIER_NO = :P14_SUPPLIER_NO)
-                         AND ( :P14_PRODUCT_NO IS NULL OR D.PRODUCT_NO = :P14_PRODUCT_NO)
-                         AND ( :P14_CATEGORY_NO IS NULL OR P.CATEGORY_NO = :P14_CATEGORY_NO)
-                ORDER BY M.PURCHASE_DATE DESC, M.PURCHASE_NO DESC, D.PURCHASE_DTL_NO;
+                SELECT M.PURCHASE_CODE AS "Purchase No",
+                       M.PURCHASE_DATE AS "Date",
+                       S.SUPPLIER_NAME AS "Supplier",
+                       S.MOBILE_NO AS "Mobile No",
+                       P.PRODUCT_NAME AS "Product",
+                       U.UOM_NAME AS "UOM",
+                       D.PURCHASE_QTY AS "Qty",
+                       D.PURCHASE_RATE AS "Rate",
+                       NVL(D.TOTAL_AMOUNT,0) AS "Purchase Amount",
+                       NVL(M.PAID_AMOUNT,0) AS "Paid",
+                       NVL(M.DUE_AMOUNT,0) AS "Due",
+                       CASE M.PAYMENT_STATUS
+                           WHEN 'UP' THEN 'Unpaid'
+                           WHEN 'PP' THEN 'Partial'
+                           WHEN 'P'  THEN 'Paid'
+                       END AS "Payment",
+                       CASE M.APPROVAL_STATUS
+                           WHEN 'P' THEN 'Pending'
+                           WHEN 'A' THEN 'Approved'
+                           WHEN 'R' THEN 'Rejected'
+                       END AS "Status"
+                  FROM TRN_PURCHASE_MST M
+                       JOIN MST_SUPPLIER S
+                         ON S.SUPPLIER_NO = M.SUPPLIER_NO
+                       JOIN TRN_PURCHASE_DTL D
+                         ON D.PURCHASE_NO = M.PURCHASE_NO
+                       JOIN MST_PRODUCT P
+                         ON P.PRODUCT_NO = D.PRODUCT_NO
+                       LEFT JOIN MST_UOM U
+                         ON U.UOM_NO = D.UOM_NO
+                 WHERE M.APPROVAL_STATUS = 'A'
+                   AND (:P14_FROM_DATE IS NULL
+                        OR M.PURCHASE_DATE >= TO_DATE(:P14_FROM_DATE,'MM/DD/YYYY'))
+                   AND (:P14_TO_DATE IS NULL
+                        OR M.PURCHASE_DATE < TO_DATE(:P14_TO_DATE,'MM/DD/YYYY') + 1)
+                   AND (:P14_SUPPLIER_NO IS NULL
+                        OR M.SUPPLIER_NO = :P14_SUPPLIER_NO)
+                   AND (:P14_PRODUCT_NO IS NULL
+                        OR D.PRODUCT_NO = :P14_PRODUCT_NO)
+                   AND (:P14_CATEGORY_NO IS NULL
+                        OR P.CATEGORY_NO = :P14_CATEGORY_NO)
+                ORDER BY M.PURCHASE_DATE DESC,
+                         M.PURCHASE_NO DESC,
+                         D.PURCHASE_DTL_NO;
                 ```
             pageItemsToSubmit: [
                 P14_CATEGORY_NO
@@ -126,135 +123,37 @@ page 14 (
             savedReportMappingIdentifier: 87014365061519423
         }
 
-        column "Approval Status" (
+        column Date (
             type: plainText
             heading {
-                heading: Approval Status
+                heading: Date
             }
             layout {
-                sequence: 380
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: DG
-            }
-        )
-
-        column "Approved By" (
-            type: plainText
-            heading {
-                heading: Approved By
-            }
-            layout {
-                sequence: 400
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: DI
-            }
-        )
-
-        column "Approved Date" (
-            type: plainText
-            heading {
-                heading: Approved Date
-            }
-            layout {
-                sequence: 410
+                sequence: 140
             }
             source {
                 dataType: DATE
             }
             advanced {
-                endUserAlias: DJ
+                endUserAlias: DP
             }
         )
 
-        column Category (
+        column Due (
             type: plainText
             heading {
-                heading: Category
-            }
-            layout {
-                sequence: 30
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: BQ
-            }
-        )
-
-        column "Created By" (
-            type: plainText
-            heading {
-                heading: Created By
-            }
-            layout {
-                sequence: 250
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: CS
-            }
-        )
-
-        column "Created Date" (
-            type: plainText
-            heading {
-                heading: Created Date
-            }
-            layout {
-                sequence: 260
-            }
-            source {
-                dataType: DATE
-            }
-            advanced {
-                endUserAlias: CT
-            }
-        )
-
-        column "Due Amount" (
-            type: plainText
-            heading {
-                heading: Due Amount
+                heading: Due
                 alignment: end
             }
             layout {
-                sequence: 190
+                sequence: 220
                 columnAlignment: end
             }
             source {
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: CM
-            }
-        )
-
-        column "Item Total" (
-            type: plainText
-            heading {
-                heading: Item Total
-                alignment: end
-            }
-            layout {
-                sequence: 350
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: DD
+                endUserAlias: DX
             }
         )
 
@@ -274,101 +173,71 @@ page 14 (
             }
         )
 
-        column "Paid Amount" (
+        column Paid (
             type: plainText
             heading {
-                heading: Paid Amount
+                heading: Paid
                 alignment: end
             }
             layout {
-                sequence: 370
+                sequence: 210
                 columnAlignment: end
             }
             source {
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: DF
+                endUserAlias: DW
             }
         )
 
-        column "Payment Status" (
+        column Payment (
             type: plainText
             heading {
-                heading: Payment Status
+                heading: Payment
+            }
+            layout {
+                sequence: 230
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: DY
+            }
+        )
+
+        column Product (
+            type: plainText
+            heading {
+                heading: Product
+            }
+            layout {
+                sequence: 160
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: DR
+            }
+        )
+
+        column "Purchase Amount" (
+            type: plainText
+            heading {
+                heading: Purchase Amount
+                alignment: end
             }
             layout {
                 sequence: 200
+                columnAlignment: end
             }
             source {
-                dataType: STRING
+                dataType: NUMBER
             }
             advanced {
-                endUserAlias: CN
-            }
-        )
-
-        column "Product Code" (
-            type: plainText
-            heading {
-                heading: Product Code
-            }
-            layout {
-                sequence: 10
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: BO
-            }
-        )
-
-        column "Product Name" (
-            type: plainText
-            heading {
-                heading: Product Name
-            }
-            layout {
-                sequence: 20
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: BP
-            }
-        )
-
-        column "Purchase Code" (
-            type: plainText
-            heading {
-                heading: Purchase Code
-            }
-            layout {
-                sequence: 280
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: CW
-            }
-        )
-
-        column "Purchase Date" (
-            type: plainText
-            heading {
-                heading: Purchase Date
-            }
-            layout {
-                sequence: 290
-            }
-            source {
-                dataType: DATE
-            }
-            advanced {
-                endUserAlias: CX
+                endUserAlias: DV
             }
         )
 
@@ -376,157 +245,99 @@ page 14 (
             type: plainText
             heading {
                 heading: Purchase No
+            }
+            layout {
+                sequence: 130
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: DO
+            }
+        )
+
+        column Qty (
+            type: plainText
+            heading {
+                heading: Qty
                 alignment: end
             }
             layout {
-                sequence: 270
+                sequence: 180
                 columnAlignment: end
             }
             source {
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: CV
+                endUserAlias: DT
             }
         )
 
-        column "Purchase Quantity" (
+        column Rate (
             type: plainText
             heading {
-                heading: Purchase Quantity
+                heading: Rate
                 alignment: end
             }
             layout {
-                sequence: 320
+                sequence: 190
                 columnAlignment: end
             }
             source {
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: DA
+                endUserAlias: DU
             }
         )
 
-        column "Purchase Rate" (
+        column Status (
             type: plainText
             heading {
-                heading: Purchase Rate
-                alignment: end
+                heading: Status
             }
             layout {
-                sequence: 340
-                columnAlignment: end
+                sequence: 240
             }
             source {
-                dataType: NUMBER
+                dataType: STRING
             }
             advanced {
-                endUserAlias: DC
+                endUserAlias: DZ
             }
         )
 
-        column "Purchase Total" (
+        column Supplier (
             type: plainText
             heading {
-                heading: Purchase Total
-                alignment: end
-            }
-            layout {
-                sequence: 360
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: DE
-            }
-        )
-
-        column "Received Quantity" (
-            type: plainText
-            heading {
-                heading: Received Quantity
-                alignment: end
-            }
-            layout {
-                sequence: 330
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: DB
-            }
-        )
-
-        column "Remaining Quantity" (
-            type: plainText
-            heading {
-                heading: Remaining Quantity
-                alignment: end
+                heading: Supplier
             }
             layout {
                 sequence: 150
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: CI
-            }
-        )
-
-        column Remarks (
-            type: plainText
-            heading {
-                heading: Remarks
-            }
-            layout {
-                sequence: 390
             }
             source {
                 dataType: STRING
             }
             advanced {
-                endUserAlias: DH
+                endUserAlias: DQ
             }
         )
 
-        column "Supplier Name" (
+        column UOM (
             type: plainText
             heading {
-                heading: Supplier Name
+                heading: Uom
             }
             layout {
-                sequence: 310
+                sequence: 170
             }
             source {
                 dataType: STRING
             }
             advanced {
-                endUserAlias: CZ
-            }
-        )
-
-        column "Supplier No" (
-            type: plainText
-            heading {
-                heading: Supplier No
-                alignment: end
-            }
-            layout {
-                sequence: 300
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: CY
+                endUserAlias: DS
             }
         )
 
@@ -541,68 +352,48 @@ page 14 (
                 rowsPerPage: 50
             }
 
-            displayColumn "Approval Status" (
-                sequence: 14
-            )
-
-            displayColumn "Category" (
+            displayColumn "Date" (
                 sequence: 5
             )
 
-            displayColumn "Due Amount" (
+            displayColumn "Due" (
                 sequence: 10
             )
 
-            displayColumn "Item Total" (
-                sequence: 8
-            )
-
-            displayColumn "Paid Amount" (
-                sequence: 12
-            )
-
-            displayColumn "Payment Status" (
-                sequence: 15
-            )
-
-            displayColumn "Product Name" (
-                sequence: 4
-            )
-
-            displayColumn "Purchase Code" (
-                sequence: 1
-            )
-
-            displayColumn "Purchase Date" (
-                sequence: 2
-            )
-
-            displayColumn "Purchase Quantity" (
-                sequence: 6
-            )
-
-            displayColumn "Purchase Rate" (
-                sequence: 7
-            )
-
-            displayColumn "Purchase Total" (
+            displayColumn "Paid" (
                 sequence: 9
             )
 
-            displayColumn "Received Quantity" (
-                sequence: 13
-            )
-
-            displayColumn "Remaining Quantity" (
+            displayColumn "Payment" (
                 sequence: 11
             )
 
-            displayColumn "Remarks" (
-                sequence: 16
+            displayColumn "Product" (
+                sequence: 3
             )
 
-            displayColumn "Supplier Name" (
-                sequence: 3
+            displayColumn "Purchase Amount" (
+                sequence: 8
+            )
+
+            displayColumn "Purchase No" (
+                sequence: 1
+            )
+
+            displayColumn "Qty" (
+                sequence: 6
+            )
+
+            displayColumn "Rate" (
+                sequence: 7
+            )
+
+            displayColumn "Supplier" (
+                sequence: 2
+            )
+
+            displayColumn UOM (
+                sequence: 4
             )
 
         )

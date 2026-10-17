@@ -503,5 +503,30 @@ page 34 (
         }
     )
 
+    dynamicAction new (
+        name: New
+        execution {
+            sequence: 10
+        }
+        when {
+            event: apexafterclosecanceldialog
+            selectionType: jsExpression
+            javaScriptExpression: window
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @register
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
 )
 

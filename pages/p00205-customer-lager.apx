@@ -51,74 +51,82 @@ page 205 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                WITH
-                    LEDGER_ENTRIES
-                    AS
-                        (/* Sales Invoice = Debit */
-                         SELECT I.INVOICE_DATE              AS TXN_DATE,
-                                I.INVOICE_NO                AS DOCUMENT_NO,
-                                I.INVOICE_CODE              AS DOCUMENT_CODE,
-                                I.CUSTOMER_NO,
-                                C.CUSTOMER_NAME,
-                                'INVOICE'                   AS TRANSACTION_TYPE,
-                                NVL (I.TOTAL_AMOUNT, 0)     AS DEBIT_AMOUNT,
-                                0                           AS CREDIT_AMOUNT
-                           FROM TRN_SALES_INVOICE_MST  I
-                                JOIN MST_CUSTOMER C ON C.CUSTOMER_NO = I.CUSTOMER_NO
-                          WHERE     I.APPROVAL_STATUS = 'A'
-                                AND (   :P205_CUSTOMER IS NULL
-                                     OR I.CUSTOMER_NO = :P205_CUSTOMER)
-                         UNION ALL
-                           /* Customer Receipt = Credit */
-                           SELECT T.TRANSACTION_DATE                   AS TXN_DATE,
-                                  T.TRANSACTION_NO                     AS DOCUMENT_NO,
-                                  T.TRANSACTION_CODE                   AS DOCUMENT_CODE,
-                                  T.PARTY_NO                           AS CUSTOMER_NO,
-                                  C.CUSTOMER_NAME,
-                                  'RECEIPT'                            AS TRANSACTION_TYPE,
-                                  0                                    AS DEBIT_AMOUNT,
-                                  NVL (SUM (D.ALLOCATE_AMOUNT), 0)     AS CREDIT_AMOUNT
-                             FROM TRN_TRANSACTION_MST T
-                                  JOIN TRN_TRANSACTION_DTL D
-                                      ON D.TRANSACTION_NO = T.TRANSACTION_NO
-                                  JOIN MST_CUSTOMER C ON C.CUSTOMER_NO = T.PARTY_NO
-                            WHERE     T.TRANSACTION_TYPE = 'R'
-                                  AND T.APPROVAL_STATUS = 'A'
-                                  AND ( :P205_CUSTOMER IS NULL OR T.PARTY_NO = :P205_CUSTOMER)
-                         GROUP BY T.TRANSACTION_DATE,
-                                  T.TRANSACTION_NO,
-                                  T.TRANSACTION_CODE,
-                                  T.PARTY_NO,
-                                  C.CUSTOMER_NAME),
-                    OPENING_BALANCE
-                    AS
-                        (  SELECT CUSTOMER_NO,
-                                  SUM (DEBIT_AMOUNT) - SUM (CREDIT_AMOUNT)    AS OPENING_BALANCE
-                             FROM LEDGER_ENTRIES
-                            WHERE TXN_DATE < TO_DATE(:P205_FROM_DATE,'MM/DD/YYYY')
-                         GROUP BY CUSTOMER_NO),
-                    PERIOD_ENTRIES
-                    AS
-                        (SELECT *
-                           FROM LEDGER_ENTRIES
-                          WHERE TXN_DATE >= TO_DATE(:P205_FROM_DATE,'MM/DD/YYYY') AND TXN_DATE < TO_DATE (:P205_T0_DATE,'MM/DD/YYYY') + 1)
-                  SELECT P.TXN_DATE,
-                         P.DOCUMENT_NO,
-                         P.DOCUMENT_CODE,
-                         P.CUSTOMER_NO,
-                         P.CUSTOMER_NAME,
-                         P.TRANSACTION_TYPE,
-                         NVL (O.OPENING_BALANCE, 0)                                       AS OPENING_BALANCE,
-                         P.DEBIT_AMOUNT,
-                         P.CREDIT_AMOUNT,
-                           NVL (O.OPENING_BALANCE, 0)
-                         + SUM (P.DEBIT_AMOUNT - P.CREDIT_AMOUNT)
-                               OVER (PARTITION BY P.CUSTOMER_NO
-                                     ORDER BY P.TXN_DATE, P.DOCUMENT_NO
-                                     ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)    AS RUNNING_BALANCE
-                    FROM PERIOD_ENTRIES P
-                         LEFT JOIN OPENING_BALANCE O ON O.CUSTOMER_NO = P.CUSTOMER_NO
-                ORDER BY P.CUSTOMER_NO, P.TXN_DATE, P.DOCUMENT_NO;
+                WITH LEDGER_ENTRIES AS (
+                    /* Sales Invoice = Debit */
+                    SELECT I.INVOICE_DATE AS TXN_DATE,
+                           I.INVOICE_NO AS DOCUMENT_NO,
+                           I.INVOICE_CODE AS DOCUMENT_CODE,
+                           I.CUSTOMER_NO,
+                           C.CUSTOMER_NAME,
+                           'INVOICE' AS TRANSACTION_TYPE,
+                           NVL(I.NET_AMOUNT,0) AS DEBIT_AMOUNT,
+                           0 AS CREDIT_AMOUNT
+                      FROM TRN_SALES_INVOICE_MST I
+                      JOIN MST_CUSTOMER C
+                        ON C.CUSTOMER_NO=I.CUSTOMER_NO
+                     WHERE I.APPROVAL_STATUS='A'
+                       AND (:P205_CUSTOMER IS NULL OR I.CUSTOMER_NO=:P205_CUSTOMER)
+                
+                    UNION ALL
+                
+                    /* Customer Receipt = Credit */
+                    SELECT T.TRANSACTION_DATE AS TXN_DATE,
+                           T.TRANSACTION_NO AS DOCUMENT_NO,
+                           T.TRANSACTION_CODE AS DOCUMENT_CODE,
+                           T.PARTY_NO AS CUSTOMER_NO,
+                           C.CUSTOMER_NAME,
+                           'RECEIPT' AS TRANSACTION_TYPE,
+                           0 AS DEBIT_AMOUNT,
+                           NVL(SUM(D.ALLOCATE_AMOUNT),0) AS CREDIT_AMOUNT
+                      FROM TRN_TRANSACTION_MST T
+                      JOIN TRN_TRANSACTION_DTL D
+                        ON D.TRANSACTION_NO=T.TRANSACTION_NO
+                      JOIN MST_CUSTOMER C
+                        ON C.CUSTOMER_NO=T.PARTY_NO
+                     WHERE T.TRANSACTION_TYPE='R'
+                       AND T.APPROVAL_STATUS='A'
+                       AND (:P205_CUSTOMER IS NULL OR T.PARTY_NO=:P205_CUSTOMER)
+                     GROUP BY T.TRANSACTION_DATE,
+                              T.TRANSACTION_NO,
+                              T.TRANSACTION_CODE,
+                              T.PARTY_NO,
+                              C.CUSTOMER_NAME
+                ),
+                OPENING_BALANCE AS (
+                    SELECT CUSTOMER_NO,
+                           SUM(DEBIT_AMOUNT)-SUM(CREDIT_AMOUNT) AS OPENING_BALANCE
+                      FROM LEDGER_ENTRIES
+                     WHERE TXN_DATE<TO_DATE(:P205_FROM_DATE,'MM/DD/YYYY')
+                     GROUP BY CUSTOMER_NO
+                ),
+                PERIOD_ENTRIES AS (
+                    SELECT *
+                      FROM LEDGER_ENTRIES
+                     WHERE TXN_DATE>=TO_DATE(:P205_FROM_DATE,'MM/DD/YYYY')
+                       AND TXN_DATE<TO_DATE(:P205_T0_DATE,'MM/DD/YYYY')+1
+                )
+                SELECT P.TXN_DATE,
+                       P.DOCUMENT_NO,
+                       P.DOCUMENT_CODE,
+                       P.CUSTOMER_NO,
+                       P.CUSTOMER_NAME,
+                       P.TRANSACTION_TYPE,
+                       NVL(O.OPENING_BALANCE,0) AS OPENING_BALANCE,
+                       P.DEBIT_AMOUNT,
+                       P.CREDIT_AMOUNT,
+                       NVL(O.OPENING_BALANCE,0)
+                       + SUM(P.DEBIT_AMOUNT-P.CREDIT_AMOUNT)
+                         OVER(
+                             PARTITION BY P.CUSTOMER_NO
+                             ORDER BY P.TXN_DATE,P.DOCUMENT_NO
+                             ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                         ) AS RUNNING_BALANCE
+                  FROM PERIOD_ENTRIES P
+                  LEFT JOIN OPENING_BALANCE O
+                    ON O.CUSTOMER_NO=P.CUSTOMER_NO
+                 ORDER BY P.CUSTOMER_NO,
+                          P.TXN_DATE,
+                          P.DOCUMENT_NO;
                 ```
             pageItemsToSubmit: [
                 P205_FROM_DATE
@@ -413,6 +421,10 @@ page 205 (
             ]
             width: 30
         }
+        default {
+            type: expression
+            plsqlExpression: sysdate -30
+        }
     )
 
     pageItem P205_T0_DATE (
@@ -436,6 +448,10 @@ page 205 (
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
+        }
+        default {
+            type: expression
+            plsqlExpression: sysdate
         }
     )
 

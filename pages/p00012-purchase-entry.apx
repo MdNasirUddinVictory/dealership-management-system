@@ -791,7 +791,7 @@ page 12 (
                 fetchOnSearch: true
                 title: Product List
                 popupWidth: 700
-                additionalOutputs: UOM_NO:UOM_NO,DESCRIPTION:DESCRIPTION,UOM_NAME:UOM_NAME,PURCHASE_RATE:PURCHASE_RATE
+                additionalOutputs: CONVERT_UOM_NO:UOM_NO,DESCRIPTION:DESCRIPTION,UOM_NAME:UOM_NAME,PURCHASE_RATE:PURCHASE_RATE
             }
             lov {
                 type: sharedComponent
@@ -1012,7 +1012,7 @@ page 12 (
         column UOM_NO (
             type: selectList
             heading {
-                heading: Market UOM
+                heading: Purchase UOM
             }
             lov {
                 type: sqlQuery
@@ -1043,7 +1043,7 @@ page 12 (
                          WHERE C.PRODUCT_NO = :PRODUCT_NO
                            AND C.ACTIVE_FLAG = '1'
                     )
-                    ORDER BY ORD, D;
+                    ORDER BY ORD desc;
                     ```
                 displayExtraValues: false
                 displayNullValue: false
@@ -1051,7 +1051,6 @@ page 12 (
             cascadingLov {
                 parentColumns: PRODUCT_NO
                 itemsToSubmit: PRODUCT_NO
-                parentRequired: false
             }
             layout {
                 sequence: 150

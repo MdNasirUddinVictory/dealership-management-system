@@ -51,95 +51,92 @@ page 100 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                SELECT
-                       i.invoice_no AS "Invoice No",
-                       i.invoice_code AS "Invoice Code",
-                       i.invoice_date AS "Invoice Date",
-                
-                       o.order_code AS "Order No",
-                
-                       c.customer_code AS "Customer Code",
-                       c.customer_name AS "Customer Name",
-                       c.mobile_no AS "Mobile No",
-                
-                       p.product_code AS "Product Code",
-                       p.product_name AS "Product Name",
-                       pc.category_name AS "Category",
-                
-                       d.sales_qty AS "Sales Quantity",
-                       d.delivered_qty AS "Delivered Quantity",
-                       NVL(d.sales_qty, 0)
-                       - NVL(d.delivered_qty, 0) AS "Remaining Quantity",
-                
-                       d.sales_rate AS "Sales Rate",
-                       NVL(d.total_amount, 0) AS "Item-wise Total",
-                
-                       NVL(i.total_amount, 0) AS "Invoice Amount",
-                       NVL(i.received_amount, 0) AS "Received Amount",
-                       NVL(i.due_amount, 0) AS "Due Amount",
-                
-                       CASE i.payment_status
+                WITH PRODUCT_COST AS (
+                    SELECT PRODUCT_NO,
+                           NVL(
+                               SUM(NVL(BASE_QTY,0) * NVL(BASE_RATE,0))
+                               / NULLIF(SUM(NVL(BASE_QTY,0)),0),
+                               0
+                           ) AS BASE_COST
+                      FROM TRN_PURCHASE_DTL
+                     WHERE NVL(BASE_QTY,0) > 0
+                       AND NVL(BASE_RATE,0) > 0
+                     GROUP BY PRODUCT_NO
+                ),
+                RETURN_QTY AS (
+                    SELECT D.INVOICE_DTL_NO,
+                           SUM(NVL(D.RETURN_QTY,0)) AS RETURN_QTY
+                      FROM TRN_CUSTOMER_RETURN_DTL D
+                           JOIN TRN_CUSTOMER_RETURN_MST M
+                             ON M.RETURN_NO = D.RETURN_NO
+                     WHERE M.APPROVAL_STATUS = 'A'
+                     GROUP BY D.INVOICE_DTL_NO
+                )
+                SELECT I.INVOICE_CODE AS "Invoice No",
+                       I.INVOICE_DATE AS "Date",
+                       C.CUSTOMER_NAME AS "Customer",
+                       C.MOBILE_NO AS "Mobile No",
+                       P.PRODUCT_NAME AS "Product",
+                       D.SALES_QTY AS "Qty",
+                       D.SALES_RATE AS "Rate",
+                       NVL(D.TOTAL_AMOUNT,0) AS "Sales Amount",
+                       ROUND(
+                           NVL(D.BASE_QTY,0) * NVL(PCST.BASE_COST,0),
+                           2
+                       ) AS "Cost Amount",
+                       ROUND(
+                           NVL(D.TOTAL_AMOUNT,0)
+                           - (NVL(D.BASE_QTY,0) * NVL(PCST.BASE_COST,0)),
+                           2
+                       ) AS "Profit",
+                       CASE
+                           WHEN NVL(D.TOTAL_AMOUNT,0) > 0 THEN
+                               ROUND(
+                                   (
+                                       NVL(D.TOTAL_AMOUNT,0)
+                                       - (NVL(D.BASE_QTY,0) * NVL(PCST.BASE_COST,0))
+                                   )
+                                   / NVL(D.TOTAL_AMOUNT,0) * 100,
+                                   2
+                               )
+                           ELSE 0
+                       END AS "Profit %",
+                       NVL(R.RETURN_QTY,0) AS "Return Qty",
+                       NVL(I.RECEIVED_AMOUNT,0) AS "Received",
+                       NVL(I.DUE_AMOUNT,0) AS "Due",
+                       CASE I.PAYMENT_STATUS
                            WHEN 'UP' THEN 'Unpaid'
-                           WHEN 'PP' THEN 'Partially Paid'
+                           WHEN 'PP' THEN 'Partial'
                            WHEN 'P'  THEN 'Paid'
-                       END AS "Payment Status",
-                
-                       CASE i.delivery_status
+                       END AS "Payment",
+                       CASE I.DELIVERY_STATUS
                            WHEN 'P' THEN 'Pending'
                            WHEN 'D' THEN 'Delivered'
-                       END AS "Delivery Status",
-                
-                       NVL(r.return_qty, 0) AS "Returned Quantity",
-                
-                       i.delivery_by AS "Delivery By",
-                       i.delivery_date AS "Delivery Date",
-                       i.created_by AS "Created By",
-                       i.created_date AS "Created Date"
-                
-                FROM trn_sales_invoice_mst i
-                
-                LEFT JOIN trn_sales_invoice_dtl d
-                  ON d.invoice_no = i.invoice_no
-                
-                LEFT JOIN mst_customer c
-                  ON c.customer_no = i.customer_no
-                
-                LEFT JOIN mst_product p
-                  ON p.product_no = d.product_no
-                
-                LEFT JOIN mst_product_category pc
-                  ON pc.category_no = p.category_no
-                
-                LEFT JOIN trn_sales_order_mst o
-                  ON o.order_no = i.order_no
-                
-                LEFT JOIN (
-                    SELECT
-                           d.invoice_dtl_no,
-                           SUM(NVL(d.return_qty, 0)) AS return_qty
-                    FROM trn_customer_return_dtl d
-                    JOIN trn_customer_return_mst m
-                      ON m.return_no = d.return_no
-                    WHERE m.approval_status = 'A'
-                    GROUP BY d.invoice_dtl_no
-                ) r
-                  ON r.invoice_dtl_no = d.invoice_dtl_no
-                
-                WHERE (:P100_FROM_DATE IS NULL
-                       OR i.invoice_date >= TO_DATE(:P100_FROM_DATE, 'MM/DD/YYYY'))
-                  AND (:P100_TO_DATE IS NULL
-                       OR i.invoice_date < TO_DATE(:P100_TO_DATE, 'MM/DD/YYYY') + 1)
-                  AND (:P100_CUSTOMER_NO IS NULL
-                       OR i.customer_no = :P100_CUSTOMER_NO)
-                  AND (:P100_PRODUCT_NO IS NULL
-                       OR d.product_no = :P100_PRODUCT_NO)
-                  AND (:P100_CATEGORY_NO IS NULL
-                       OR p.category_no = :P100_CATEGORY_NO)
-                
-                ORDER BY
-                       i.invoice_date DESC,
-                       i.invoice_no DESC,
-                       d.invoice_dtl_no;
+                       END AS "Delivery"
+                  FROM TRN_SALES_INVOICE_MST I
+                       LEFT JOIN TRN_SALES_INVOICE_DTL D
+                         ON D.INVOICE_NO = I.INVOICE_NO
+                       LEFT JOIN MST_CUSTOMER C
+                         ON C.CUSTOMER_NO = I.CUSTOMER_NO
+                       LEFT JOIN MST_PRODUCT P
+                         ON P.PRODUCT_NO = D.PRODUCT_NO
+                       LEFT JOIN PRODUCT_COST PCST
+                         ON PCST.PRODUCT_NO = D.PRODUCT_NO
+                       LEFT JOIN RETURN_QTY R
+                         ON R.INVOICE_DTL_NO = D.INVOICE_DTL_NO
+                 WHERE (:P100_FROM_DATE IS NULL
+                        OR I.INVOICE_DATE >= TO_DATE(:P100_FROM_DATE,'MM/DD/YYYY'))
+                   AND (:P100_TO_DATE IS NULL
+                        OR I.INVOICE_DATE < TO_DATE(:P100_TO_DATE,'MM/DD/YYYY') + 1)
+                   AND (:P100_CUSTOMER_NO IS NULL
+                        OR I.CUSTOMER_NO = :P100_CUSTOMER_NO)
+                   AND (:P100_PRODUCT_NO IS NULL
+                        OR D.PRODUCT_NO = :P100_PRODUCT_NO)
+                   AND (:P100_CATEGORY_NO IS NULL
+                        OR P.CATEGORY_NO = :P100_CATEGORY_NO)
+                ORDER BY I.INVOICE_DATE DESC,
+                         I.INVOICE_NO DESC,
+                         D.INVOICE_DTL_NO;
                 ```
             pageItemsToSubmit: [
                 P100_CATEGORY_NO
@@ -168,217 +165,87 @@ page 100 (
             savedReportMappingIdentifier: 87045619453565135
         }
 
-        column Category (
+        column "Cost Amount" (
             type: plainText
             heading {
-                heading: Category
-            }
-            layout {
-                sequence: 30
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: BQ
-            }
-        )
-
-        column "Created By" (
-            type: plainText
-            heading {
-                heading: Created By
-            }
-            layout {
-                sequence: 250
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: CS
-            }
-        )
-
-        column "Created Date" (
-            type: plainText
-            heading {
-                heading: Created Date
-            }
-            layout {
-                sequence: 260
-            }
-            source {
-                dataType: DATE
-            }
-            advanced {
-                endUserAlias: CT
-            }
-        )
-
-        column "Customer Code" (
-            type: plainText
-            heading {
-                heading: Customer Code
-            }
-            layout {
-                sequence: 100
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: CD
-            }
-        )
-
-        column "Customer Name" (
-            type: plainText
-            heading {
-                heading: Customer Name
-            }
-            layout {
-                sequence: 110
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: CE
-            }
-        )
-
-        column "Delivered Quantity" (
-            type: plainText
-            heading {
-                heading: Delivered Quantity
+                heading: Cost Amount
                 alignment: end
             }
             layout {
-                sequence: 140
+                sequence: 390
                 columnAlignment: end
             }
             source {
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: CH
+                endUserAlias: DG
             }
         )
 
-        column "Delivery By" (
+        column Customer (
             type: plainText
             heading {
-                heading: Delivery By
+                heading: Customer
             }
             layout {
-                sequence: 230
+                sequence: 340
             }
             source {
                 dataType: STRING
             }
             advanced {
-                endUserAlias: CQ
+                endUserAlias: DB
             }
         )
 
-        column "Delivery Date" (
+        column Date (
             type: plainText
             heading {
-                heading: Delivery Date
+                heading: Date
             }
             layout {
-                sequence: 240
+                sequence: 330
             }
             source {
                 dataType: DATE
             }
             advanced {
-                endUserAlias: CR
+                endUserAlias: DA
             }
         )
 
-        column "Delivery Status" (
+        column Delivery (
             type: plainText
             heading {
-                heading: Delivery Status
+                heading: Delivery
             }
             layout {
-                sequence: 210
+                sequence: 450
             }
             source {
                 dataType: STRING
             }
             advanced {
-                endUserAlias: CO
+                endUserAlias: DM
             }
         )
 
-        column "Due Amount" (
+        column Due (
             type: plainText
             heading {
-                heading: Due Amount
+                heading: Due
                 alignment: end
             }
             layout {
-                sequence: 190
+                sequence: 430
                 columnAlignment: end
             }
             source {
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: CM
-            }
-        )
-
-        column "Invoice Amount" (
-            type: plainText
-            heading {
-                heading: Invoice Amount
-                alignment: end
-            }
-            layout {
-                sequence: 170
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: CK
-            }
-        )
-
-        column "Invoice Code" (
-            type: plainText
-            heading {
-                heading: Invoice Code
-            }
-            layout {
-                sequence: 70
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: CA
-            }
-        )
-
-        column "Invoice Date" (
-            type: plainText
-            heading {
-                heading: Invoice Date
-            }
-            layout {
-                sequence: 80
-            }
-            source {
-                dataType: DATE
-            }
-            advanced {
-                endUserAlias: CB
+                endUserAlias: DK
             }
         )
 
@@ -386,35 +253,15 @@ page 100 (
             type: plainText
             heading {
                 heading: Invoice No
-                alignment: end
             }
             layout {
-                sequence: 60
-                columnAlignment: end
+                sequence: 320
             }
             source {
-                dataType: NUMBER
+                dataType: STRING
             }
             advanced {
-                endUserAlias: BZ
-            }
-        )
-
-        column "Item-wise Total" (
-            type: plainText
-            heading {
-                heading: Item-wise Total
-                alignment: end
-            }
-            layout {
-                sequence: 270
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-            advanced {
-                endUserAlias: CU
+                endUserAlias: CZ
             }
         )
 
@@ -434,157 +281,161 @@ page 100 (
             }
         )
 
-        column "Order No" (
+        column Payment (
             type: plainText
             heading {
-                heading: Order No
+                heading: Payment
             }
             layout {
-                sequence: 90
+                sequence: 440
             }
             source {
                 dataType: STRING
             }
             advanced {
-                endUserAlias: CC
+                endUserAlias: DL
             }
         )
 
-        column "Payment Status" (
+        column Product (
             type: plainText
             heading {
-                heading: Payment Status
+                heading: Product
             }
             layout {
-                sequence: 200
+                sequence: 350
             }
             source {
                 dataType: STRING
             }
             advanced {
-                endUserAlias: CN
+                endUserAlias: DC
             }
         )
 
-        column "Product Code" (
+        column Profit (
             type: plainText
             heading {
-                heading: Product Code
-            }
-            layout {
-                sequence: 10
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: BO
-            }
-        )
-
-        column "Product Name" (
-            type: plainText
-            heading {
-                heading: Product Name
-            }
-            layout {
-                sequence: 20
-            }
-            source {
-                dataType: STRING
-            }
-            advanced {
-                endUserAlias: BP
-            }
-        )
-
-        column "Received Amount" (
-            type: plainText
-            heading {
-                heading: Received Amount
+                heading: Profit
                 alignment: end
             }
             layout {
-                sequence: 180
+                sequence: 400
                 columnAlignment: end
             }
             source {
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: CL
+                endUserAlias: DH
             }
         )
 
-        column "Remaining Quantity" (
+        column "Profit %" (
             type: plainText
             heading {
-                heading: Remaining Quantity
+                heading: Profit %
                 alignment: end
             }
             layout {
-                sequence: 150
+                sequence: 310
                 columnAlignment: end
             }
             source {
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: CI
+                endUserAlias: CY
             }
         )
 
-        column "Returned Quantity" (
+        column Qty (
             type: plainText
             heading {
-                heading: Returned Quantity
+                heading: Qty
                 alignment: end
             }
             layout {
-                sequence: 220
+                sequence: 360
                 columnAlignment: end
             }
             source {
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: CP
+                endUserAlias: DD
             }
         )
 
-        column "Sales Quantity" (
+        column Rate (
             type: plainText
             heading {
-                heading: Sales Quantity
+                heading: Rate
                 alignment: end
             }
             layout {
-                sequence: 130
+                sequence: 370
                 columnAlignment: end
             }
             source {
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: CG
+                endUserAlias: DE
             }
         )
 
-        column "Sales Rate" (
+        column Received (
             type: plainText
             heading {
-                heading: Sales Rate
+                heading: Received
                 alignment: end
             }
             layout {
-                sequence: 50
+                sequence: 420
                 columnAlignment: end
             }
             source {
                 dataType: NUMBER
             }
             advanced {
-                endUserAlias: BS
+                endUserAlias: DJ
+            }
+        )
+
+        column "Return Qty" (
+            type: plainText
+            heading {
+                heading: Return Qty
+                alignment: end
+            }
+            layout {
+                sequence: 410
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: DI
+            }
+        )
+
+        column "Sales Amount" (
+            type: plainText
+            heading {
+                heading: Sales Amount
+                alignment: end
+            }
+            layout {
+                sequence: 380
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: DF
             }
         )
 
@@ -599,64 +450,60 @@ page 100 (
                 rowsPerPage: 50
             }
 
-            displayColumn "Customer Name" (
-                sequence: 3
-            )
-
-            displayColumn "Delivered Quantity" (
-                sequence: 10
-            )
-
-            displayColumn "Delivery Status" (
-                sequence: 14
-            )
-
-            displayColumn "Due Amount" (
-                sequence: 9
-            )
-
-            displayColumn "Invoice Amount" (
-                sequence: 8
-            )
-
-            displayColumn "Invoice Code" (
-                sequence: 1
-            )
-
-            displayColumn "Invoice Date" (
-                sequence: 2
-            )
-
-            displayColumn "Item-wise Total" (
-                sequence: 7
-            )
-
-            displayColumn "Payment Status" (
-                sequence: 15
-            )
-
-            displayColumn "Product Name" (
-                sequence: 4
-            )
-
-            displayColumn "Received Amount" (
-                sequence: 11
-            )
-
-            displayColumn "Remaining Quantity" (
-                sequence: 12
-            )
-
-            displayColumn "Returned Quantity" (
-                sequence: 13
-            )
-
-            displayColumn "Sales Quantity" (
+            displayColumn "Cost Amount" (
                 sequence: 6
             )
 
-            displayColumn "Sales Rate" (
+            displayColumn "Customer" (
+                sequence: 3
+            )
+
+            displayColumn "Date" (
+                sequence: 4
+            )
+
+            displayColumn "Delivery" (
+                sequence: 13
+            )
+
+            displayColumn "Due" (
+                sequence: 11
+            )
+
+            displayColumn "Invoice No" (
+                sequence: 1
+            )
+
+            displayColumn "Payment" (
+                sequence: 14
+            )
+
+            displayColumn "Product" (
+                sequence: 2
+            )
+
+            displayColumn "Profit" (
+                sequence: 8
+            )
+
+            displayColumn "Profit %" (
+                sequence: 9
+            )
+
+            displayColumn "Qty" (
                 sequence: 5
+            )
+
+            displayColumn "Received" (
+                sequence: 10
+            )
+
+            displayColumn "Return Qty" (
+                sequence: 12
+            )
+
+            displayColumn "Sales Amount" (
+                sequence: 7
             )
 
         )
@@ -749,6 +596,10 @@ page 100 (
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
+        }
+        default {
+            type: expression
+            plsqlExpression: sysdate
         }
     )
 
@@ -844,6 +695,10 @@ page 100 (
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
+        }
+        default {
+            type: expression
+            plsqlExpression: sysdate
         }
     )
 

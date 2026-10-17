@@ -223,7 +223,7 @@ page 11 (
             displayColumn (
                 column: @PRODUCT_NAME
                 layout {
-                    width: 263
+                    width: 219
                     sequence: 2
                 }
             )
