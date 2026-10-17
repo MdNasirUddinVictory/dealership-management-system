@@ -143,6 +143,7 @@ page 44 (
             template: @/standard
             templateOptions: [
                 #DEFAULT#
+                t-Region--noPadding
                 t-Region--removeHeader js-removeLandmark
                 t-Region--scrollBody
                 t-Form--slimPadding
@@ -177,7 +178,9 @@ page 44 (
                   from SA_GRANTOBJECT M,SA_ROLE U,SA_SUBMENU SM
                   WHERE M.ROLE_NO = U.ROLE_NO(+)
                   AND M.SUBMENU_NO = SM.SUBMENU_NO(+)
+                  AND  M.ROLE_NO = :P44_ROLE_NO
                 ```
+            pageItemsToSubmit: P44_ROLE_NO
         }
         layout {
             sequence: 40
@@ -192,9 +195,6 @@ page 44 (
                 margin-top-none
                 margin-bottom-none
             ]
-        }
-        masterDetail {
-            masterRegion: @user
         }
         advanced {
             htmlDomId: object
@@ -515,9 +515,6 @@ page 44 (
             source {
                 databaseColumn: ROLE_NO
                 dataType: number
-            }
-            masterDetail {
-                masterColumn: @ROLE_NO
             }
             exportPrinting {
                 includeInExportPrint: false
@@ -1059,6 +1056,9 @@ page 44 (
         advanced {
             htmlDomId: user
         }
+        config {
+            buildOption: @commented-out
+        }
         edit {
             enabled: true
             allowedOperations: [
@@ -1166,13 +1166,41 @@ page 44 (
     )
 
     pageItem P44_ROLE_NO (
-        type: hidden
-        settings {
-            valueProtected: false
+        type: popupLov
+        label {
+            label: Role Name
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select ROLE_NAME,ROLE_NO
+                       
+                  from SA_ROLE
+                ```
+            displayExtraValues: false
         }
         layout {
-            sequence: 20
-            slot: body
+            sequence: 10
+            region: @div-id-userperm-class-fa-fa-pencile-user-wise-menu-permission-div
+            slot: regionBody
+            alignment: left
+            column: 3
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                margin-left-none
+                margin-right-none
+                t-Form-fieldContainer--radioButtonGroup
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
         }
         source {
             used: always
@@ -1460,6 +1488,18 @@ page 44 (
             }
             execution {
                 sequence: 10
+                fireOnInit: false
+            }
+        )
+
+        action native-refresh_1 (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @grand-object
+            }
+            execution {
+                sequence: 20
                 fireOnInit: false
             }
         )

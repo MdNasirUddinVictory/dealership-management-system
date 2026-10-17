@@ -27,11 +27,11 @@
 
  .breadcrumb {
   /* background-color: linear-gradient(90deg,#f8fafc,#eef2f7)  */
- background-color:   #8a38386b;
+ background-color:   hsla(0, 0%, 100%, 0.993);
   /* var(--breadcrumb-bg-color) */
 }
 .t-Breadcrumb-label {
-  color: #000000ff;
+  color: rgb(71, 16, 188);
   f
 }
 

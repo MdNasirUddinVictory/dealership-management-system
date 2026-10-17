@@ -86,12 +86,12 @@ page 14 (
                         OR M.PURCHASE_DATE >= TO_DATE(:P14_FROM_DATE,'MM/DD/YYYY'))
                    AND (:P14_TO_DATE IS NULL
                         OR M.PURCHASE_DATE < TO_DATE(:P14_TO_DATE,'MM/DD/YYYY') + 1)
-                   AND (:P14_SUPPLIER_NO IS NULL
-                        OR M.SUPPLIER_NO = :P14_SUPPLIER_NO)
-                   AND (:P14_PRODUCT_NO IS NULL
-                        OR D.PRODUCT_NO = :P14_PRODUCT_NO)
-                   AND (:P14_CATEGORY_NO IS NULL
-                        OR P.CATEGORY_NO = :P14_CATEGORY_NO)
+                --    AND (:P14_SUPPLIER_NO IS NULL
+                --         OR M.SUPPLIER_NO = :P14_SUPPLIER_NO)
+                --    AND (:P14_PRODUCT_NO IS NULL
+                --         OR D.PRODUCT_NO = :P14_PRODUCT_NO)
+                --    AND (:P14_CATEGORY_NO IS NULL
+                --         OR P.CATEGORY_NO = :P14_CATEGORY_NO)
                 ORDER BY M.PURCHASE_DATE DESC,
                          M.PURCHASE_NO DESC,
                          D.PURCHASE_DTL_NO;
@@ -106,7 +106,7 @@ page 14 (
             ]
         }
         layout {
-            sequence: 70
+            sequence: 80
             slot: body
         }
         appearance {
@@ -423,7 +423,7 @@ page 14 (
             displayExtraValues: false
         }
         layout {
-            sequence: 10
+            sequence: 30
             slot: body
             alignment: left
         }
@@ -436,6 +436,9 @@ page 14 (
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
+        }
+        config {
+            buildOption: @commented-out
         }
     )
 
@@ -446,13 +449,16 @@ page 14 (
             alignment: left
         }
         layout {
-            sequence: 40
+            sequence: 10
             slot: body
             alignment: left
             startNewRow: false
+            column: 3
+            columnSpan: 4
+            labelColumnSpan: 1
         }
         appearance {
-            template: @/optional-above
+            template: @/optional
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
@@ -460,6 +466,10 @@ page 14 (
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
+        }
+        default {
+            type: expression
+            plsqlExpression: "sysdate -30 "
         }
     )
 
@@ -490,7 +500,7 @@ page 14 (
             itemsToSubmit: P14_CATEGORY_NO
         }
         layout {
-            sequence: 20
+            sequence: 40
             slot: body
             alignment: left
             startNewRow: false
@@ -504,6 +514,9 @@ page 14 (
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
+        }
+        config {
+            buildOption: @commented-out
         }
     )
 
@@ -520,7 +533,7 @@ page 14 (
             displayNullValue: false
         }
         layout {
-            sequence: 60
+            sequence: 70
             slot: body
             alignment: left
             startNewRow: false
@@ -534,6 +547,9 @@ page 14 (
                 t-Form-fieldContainer--slimPadding
             ]
             height: 1
+        }
+        config {
+            buildOption: @commented-out
         }
     )
 
@@ -553,30 +569,6 @@ page 14 (
             displayExtraValues: false
         }
         layout {
-            sequence: 30
-            slot: body
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
-        }
-    )
-
-    pageItem P14_TO_DATE (
-        type: datePicker
-        label {
-            label: To Date
-            alignment: left
-        }
-        layout {
             sequence: 50
             slot: body
             alignment: left
@@ -591,6 +583,39 @@ page 14 (
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
+        }
+        config {
+            buildOption: @commented-out
+        }
+    )
+
+    pageItem P14_TO_DATE (
+        type: datePicker
+        label {
+            label: To Date
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            slot: body
+            alignment: left
+            startNewRow: false
+            columnSpan: 4
+            labelColumnSpan: 1
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
+        }
+        default {
+            type: expression
+            plsqlExpression: sysdate
         }
     )
 

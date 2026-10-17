@@ -163,6 +163,7 @@ page 4 (
             template: @/standard
             templateOptions: [
                 #DEFAULT#
+                t-Region--noPadding
                 t-Region--removeHeader js-removeLandmark
                 t-Region--scrollBody
                 t-Form--slimPadding
@@ -197,7 +198,9 @@ page 4 (
                   from SA_GRANTOBJECT M,SA_USER U,SA_SUBMENU SM
                   WHERE M.USER_NO = U.USER_NO(+)
                   AND M.SUBMENU_NO = SM.SUBMENU_NO(+)
+                  AND M.USER_NO  = :P4_P_USER_NO
                 ```
+            pageItemsToSubmit: P4_P_USER_NO
         }
         layout {
             sequence: 40
@@ -212,9 +215,6 @@ page 4 (
                 margin-top-none
                 margin-bottom-none
             ]
-        }
-        masterDetail {
-            masterRegion: @user
         }
         advanced {
             htmlDomId: object
@@ -581,9 +581,6 @@ page 4 (
             source {
                 databaseColumn: USER_NO
                 dataType: number
-            }
-            masterDetail {
-                masterColumn: @USER_NO
             }
             exportPrinting {
                 includeInExportPrint: false
@@ -1078,6 +1075,9 @@ page 4 (
         advanced {
             htmlDomId: user
         }
+        config {
+            buildOption: @commented-out
+        }
         edit {
             enabled: true
             allowedOperations: [
@@ -1246,13 +1246,39 @@ page 4 (
     )
 
     pageItem P4_P_USER_NO (
-        type: hidden
-        settings {
-            valueProtected: false
+        type: popupLov
+        label {
+            label: User Name
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select  USER_ID|| ' - ' || USER_NAME USER_NAME,
+                       USER_NO
+                  from SA_USER
+                ```
+            displayExtraValues: false
         }
         layout {
-            sequence: 20
-            slot: body
+            sequence: 10
+            region: @div-id-userperm-class-fa-fa-pencile-user-wise-menu-permission-div
+            slot: regionBody
+            alignment: left
+            column: 3
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+                t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
+                t-Form-fieldContainer--slimPadding
+            ]
+            width: 30
         }
         source {
             used: always
@@ -1526,6 +1552,18 @@ page 4 (
             }
             execution {
                 sequence: 10
+                fireOnInit: false
+            }
+        )
+
+        action native-refresh_1 (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @grand-object
+            }
+            execution {
+                sequence: 20
                 fireOnInit: false
             }
         )

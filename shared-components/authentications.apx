@@ -7,33 +7,32 @@ authentication database-user-authentication (
     source {
         plsqlCode:
             ```plsql
-            FUNCTION CUSTOM_AUTH(P_USERNAME IN VARCHAR2,
-                                         P_PASSWORD IN VARCHAR2)
-            RETURN BOOLEAN
+            /* Formatted on 10/15/2026 1:16:05 PM (QP5 v5.388) */
+            FUNCTION CUSTOM_AUTH (P_USERNAME IN VARCHAR2, P_PASSWORD IN VARCHAR2)
+                RETURN BOOLEAN
             AS
-            v_user_info NUMBER := 0;
-            V_ISVALIDATE VARCHAR(100);
-            v_user_no number;
+                v_user_info    NUMBER := 0;
+                V_ISVALIDATE   VARCHAR (100);
+                v_user_no      NUMBER;
             BEGIN
-                SELECT F_PASSWORD(P_USERNAME,P_PASSWORD)
-                    INTO V_ISVALIDATE
-                FROM DUAL;
-                SELECT --COUNT(USER_NO),
-                USER_NO,USER_TYPE
-                    INTO --v_user_info, 
-                    :G_USER_NO,:G_USER_TYPE
-                FROM SA_USER
-                    WHERE UPPER(USER_ID) = UPPER(P_USERNAME)
-                    AND USER_PWD = P_PASSWORD --V_ISVALIDATE
-                   -- GROUP BY USER_NO
-                    ;
+                SELECT F_PASSWORD (P_USERNAME, P_PASSWORD) INTO V_ISVALIDATE FROM DUAL;
             
-                    -- APEX_UTIL.SET_SESSION_STATE('G_USER',v_user_no);
-                    -- :G_USER := G_USER_NAME(v_user_no);
-                        RETURN TRUE;
-                    EXCEPTION
-                        WHEN NO_DATA_FOUND THEN
-                RETURN FALSE;
+                SELECT                                                   --COUNT(USER_NO),
+                       USER_NO, USER_TYPE,UPPER(USER_NAME),UPPER(USER_ID)
+                  INTO                                                      --v_user_info,
+                       :G_USER_NO, :G_USER_TYPE,:G_USER_NAME,:G_USER_CODE
+                  FROM SA_USER
+                 WHERE UPPER (USER_ID) = UPPER (P_USERNAME) AND USER_PWD = P_PASSWORD --V_ISVALIDATE
+                                                                                     -- GROUP BY USER_NO
+                                                                                     ;
+            
+                -- APEX_UTIL.SET_SESSION_STATE('G_USER',v_user_no);
+                -- :G_USER := G_USER_NAME(v_user_no);
+                RETURN TRUE;
+            EXCEPTION
+                WHEN NO_DATA_FOUND
+                THEN
+                    RETURN FALSE;
             END;
             ```
     }

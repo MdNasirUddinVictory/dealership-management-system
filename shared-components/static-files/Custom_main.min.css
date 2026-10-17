@@ -1,4 +1,4 @@
-.breadcrumb {background-color:   #8a38386b;}.t-Breadcrumb-label {color: #000000ff;f
+.breadcrumb {background-color:   hsla(0, 0%, 100%, 0.993);}.t-Breadcrumb-label {color: rgb(71, 16, 188);f
 }.t-Breadcrumb-item.is-active {color: #301c8aff;font-size : 15px;}.t-Breadcrumb-item:after {color: #301c8aff;}#pb-new,
 #pb-save,
 #pb-update,

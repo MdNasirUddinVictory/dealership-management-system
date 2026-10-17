@@ -2087,7 +2087,7 @@ page 102 (
                     -------------------------------------------------
                     -- Balance Validation
                     -------------------------------------------------
-                    IF NVL(:RETURN_QTY,0) > NVL(:BALANCE_QTY,0) THEN
+                    IF NVL(to_number(:RETURN_QTY),0) > NVL(TO_NUMBER(:BALANCE_QTY),0) THEN
                         RAISE_APPLICATION_ERROR(
                             -20001,
                             'Return quantity exceeds balance quantity.'

@@ -9,6 +9,513 @@ page 1 (
     navigation {
         cursorFocus: doNotFocusCursor
     }
+    css {
+        inline:
+            ```css
+            
+            /* =================================
+               COMPACT POS DASHBOARD
+               PROFESSIONAL DESIGN
+               ================================= */
+            
+            .pos-dashboard {
+                width: 100%;
+                color: #1e293b;
+                font-family: inherit;
+                box-sizing: border-box;
+            }
+            
+            .pos-dashboard *,
+            .pos-dashboard *::before,
+            .pos-dashboard *::after {
+                box-sizing: border-box;
+            }
+            
+            /* =================================
+               WELCOME HEADER
+               GREETING LEFT | CLOCK CENTER | DATE RIGHT
+               ================================= */
+            
+            .pos-dash-welcome {
+                display: grid !important;
+                grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+                align-items: center !important;
+                gap: 10px;
+                width: 100%;
+                padding: 8px 12px;
+                margin-bottom: 8px;
+                border: 1px solid #e5eaf2;
+                border-radius: 9px;
+                background: linear-gradient(110deg, #ffffff, #f3f7ff);
+                box-shadow: 0 2px 6px rgba(30, 64, 120, .04);
+            }
+            
+            /* GREETING - LEFT */
+            
+            .pos-welcome-left {
+                grid-column: 1;
+                justify-self: start;
+                min-width: 0;
+            }
+            
+            .pos-welcome-title {
+                color: #1e3a5f;
+                font-size: 19px;
+                font-weight: 750;
+                line-height: 1.3;
+            }
+            
+            .pos-wave {
+                display: inline-block;
+                font-size: 17px;
+                margin-left: 3px;
+                transform-origin: 70% 70%;
+                animation: pos-wave-animation 2.5s infinite;
+            }
+            
+            @keyframes pos-wave-animation {
+                0%, 60%, 100% { transform: rotate(0deg); }
+                10%, 30% { transform: rotate(14deg); }
+                20%, 40% { transform: rotate(-8deg); }
+            }
+            
+            .pos-welcome-subtitle {
+                margin-top: 3px;
+                color: #64748b;
+                font-size: 11px;
+                line-height: 1.4;
+            }
+            
+            /* =================================
+               DIGITAL CLOCK - EXACT CENTER
+               ================================= */
+            
+            .pos-digital-clock {
+                grid-column: 2;
+                justify-self: center !important;
+                align-self: center !important;
+            
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 7px;
+            
+                width: max-content;
+                min-width: 160px;
+                margin: 0 !important;
+                padding: 5px 10px;
+            
+                background: linear-gradient(135deg, #f5f3ff, #eef6ff);
+                border: 1px solid #e0e7ff;
+                border-radius: 8px;
+                box-shadow: 0 1px 4px rgba(79, 70, 229, .05);
+            }
+            
+            /* CLOCK ICON */
+            
+            .pos-clock-icon {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            
+                flex: 0 0 29px;
+                width: 29px;
+                height: 29px;
+            
+                color: #6554d9;
+                background: #e5e1ff;
+                border-radius: 7px;
+                font-size: 14px;
+            }
+            
+            /* CLOCK CONTENT */
+            
+            .pos-clock-content {
+                display: grid;
+                grid-template-columns: auto auto;
+                align-items: baseline;
+                column-gap: 4px;
+            }
+            
+            .pos-clock-time {
+                color: #312e81;
+                font-family: Consolas, "Courier New", monospace;
+                font-size: 17px;
+                font-weight: 800;
+                line-height: 20px;
+                letter-spacing: 0;
+                font-variant-numeric: tabular-nums;
+                white-space: nowrap;
+            }
+            
+            .pos-clock-period {
+                color: #7c3aed;
+                font-size: 9px;
+                font-weight: 800;
+            }
+            
+            .pos-clock-day {
+                grid-column: 1 / -1;
+                margin-top: 1px;
+                color: #7b83a6;
+                font-size: 8px;
+                font-weight: 800;
+                letter-spacing: 1px;
+                line-height: 10px;
+            }
+            
+            /* =================================
+               DATE - RIGHT
+               ================================= */
+            
+            .pos-welcome-date {
+                grid-column: 3;
+                justify-self: end !important;
+                align-self: center !important;
+            
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 7px;
+                flex-shrink: 0;
+            
+                margin: 0 !important;
+                padding: 6px 9px;
+            
+                border: 1px solid #e1e9f5;
+                border-radius: 7px;
+                background: #fff;
+                color: #2563eb;
+                font-size: 12px;
+            }
+            
+            .pos-welcome-date .fa {
+                color: #2563eb;
+                font-size: 12px;
+            }
+            
+            .pos-date-value {
+                color: #334155;
+                font-size: 11px;
+                font-weight: 700;
+                white-space: nowrap;
+            }
+            
+            /* =================================
+               KPI GRID - FOUR CARDS PER ROW
+               ================================= */
+            
+            .pos-kpi-grid {
+                display: grid;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                gap: 8px;
+                width: 100%;
+                margin-bottom: 8px;
+            }
+            
+            /* =================================
+               COMPACT KPI CARD
+               ================================= */
+            
+            .pos-kpi {
+                display: flex;
+                align-items: center;
+                gap: 9px;
+            
+                min-width: 0;
+                min-height: 58px;
+                padding: 8px 10px;
+            
+                position: relative;
+                overflow: hidden;
+            
+                border: 1px solid var(--kpi-border, #e8edf4);
+                border-radius: 8px;
+                background: #fff;
+            
+                box-shadow: 0 2px 5px rgba(15, 23, 42, .035);
+                transition: box-shadow .2s ease, transform .2s ease;
+            }
+            
+            .pos-kpi:hover {
+                box-shadow: 0 4px 10px rgba(15, 23, 42, .08);
+                transform: translateY(-1px);
+            }
+            
+            .pos-kpi::after {
+                content: "";
+                position: absolute;
+                top: 0;
+                right: 0;
+                width: 3px;
+                height: 100%;
+                background: var(--kpi-color, #64748b);
+            }
+            
+            /* KPI ICON */
+            
+            .pos-kpi-icon {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            
+                flex: 0 0 32px;
+                width: 32px;
+                height: 32px;
+            
+                border-radius: 7px;
+                background: var(--kpi-bg, #f1f5f9);
+                color: var(--kpi-color, #475569);
+                font-size: 15px;
+            }
+            
+            /* KPI TEXT */
+            
+            .pos-kpi-content {
+                flex: 1;
+                min-width: 0;
+            }
+            
+            .pos-kpi-label {
+                margin-bottom: 3px;
+                color: var(--kpi-color, #64748b);
+                font-size: 10px;
+                font-weight: 700;
+                line-height: 1.35;
+            }
+            
+            .pos-kpi-value {
+                color: var(--kpi-color, #172b4d);
+                font-size: 15px;
+                font-weight: 750;
+                line-height: 1.3;
+                overflow-wrap: anywhere;
+                font-variant-numeric: tabular-nums;
+            }
+            
+            /* =================================
+               KPI THEME COLORS
+               ================================= */
+            
+            .kpi-green {
+                --kpi-color: #13845d;
+                --kpi-bg: #e8f8f0;
+                --kpi-border: #c8efd7;
+            }
+            
+            .kpi-blue {
+                --kpi-color: #245fce;
+                --kpi-bg: #eaf2ff;
+                --kpi-border: #d3e3ff;
+            }
+            
+            .kpi-orange {
+                --kpi-color: #c66a10;
+                --kpi-bg: #fff3e5;
+                --kpi-border: #f9e4b8;
+            }
+            
+            .kpi-purple {
+                --kpi-color: #7950bd;
+                --kpi-bg: #f1eaff;
+                --kpi-border: #e3d4ff;
+            }
+            
+            .kpi-teal {
+                --kpi-color: #0d8379;
+                --kpi-bg: #e2f8f5;
+                --kpi-border: #c4eeea;
+            }
+            
+            .kpi-indigo {
+                --kpi-color: #4f46c8;
+                --kpi-bg: #ecebff;
+                --kpi-border: #d9dcff;
+            }
+            
+            .kpi-red {
+                --kpi-color: #cf3838;
+                --kpi-bg: #ffeded;
+                --kpi-border: #fecaca;
+            }
+            
+            .kpi-return {
+                --kpi-color: #b45309;
+                --kpi-bg: #fff4df;
+                --kpi-border: #f5e4b5;
+            }
+            
+            /* =================================
+               FOOTER NOTE
+               ================================= */
+            
+            .pos-dash-note {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            
+                padding: 6px 9px;
+                margin-top: 2px;
+            
+                border: 1px solid #e5eaf2;
+                border-radius: 7px;
+                background: #f8fafc;
+            
+                color: #64748b;
+                font-size: 10px;
+                line-height: 1.4;
+            }
+            
+            .pos-dash-note .fa {
+                color: #2563eb;
+                font-size: 12px;
+                flex-shrink: 0;
+            }
+            
+            /* =================================
+               TABLET
+               ================================= */
+            
+            @media (max-width: 1100px) {
+                .pos-kpi-grid {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
+            
+                .pos-dash-welcome {
+                    gap: 7px;
+                    padding: 7px 9px;
+                }
+            
+                .pos-welcome-title {
+                    font-size: 17px;
+                }
+            
+                .pos-clock-time {
+                    font-size: 15px;
+                }
+            }
+            
+            /* =================================
+               MOBILE HEADER
+               GREETING + DATE ON TOP
+               CLOCK CENTERED BELOW
+               ================================= */
+            
+            @media (max-width: 600px) {
+                .pos-dash-welcome {
+                    grid-template-columns: minmax(0, 1fr) auto !important;
+                    row-gap: 8px;
+                    column-gap: 6px;
+                    padding: 9px 10px;
+                }
+            
+                .pos-welcome-left {
+                    grid-column: 1;
+                    grid-row: 1;
+                    justify-self: start;
+                }
+            
+                .pos-welcome-title {
+                    font-size: 16px;
+                }
+            
+                .pos-welcome-subtitle {
+                    font-size: 10px;
+                }
+            
+                .pos-welcome-date {
+                    grid-column: 2;
+                    grid-row: 1;
+                    justify-self: end !important;
+                    padding: 5px 7px;
+                }
+            
+                .pos-date-value {
+                    font-size: 10px;
+                }
+            
+                .pos-digital-clock {
+                    grid-column: 1 / -1;
+                    grid-row: 2;
+                    justify-self: center !important;
+                }
+            
+                .pos-kpi-grid {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    gap: 7px;
+                }
+            
+                .pos-kpi {
+                    min-height: 53px;
+                    gap: 7px;
+                    padding: 7px 8px;
+                }
+            
+                .pos-kpi-icon {
+                    flex-basis: 28px;
+                    width: 28px;
+                    height: 28px;
+                    font-size: 13px;
+                }
+            
+                .pos-kpi-label {
+                    font-size: 9px;
+                }
+            
+                .pos-kpi-value {
+                    font-size: 12px;
+                }
+            }
+            
+            /* =================================
+               SMALL MOBILE
+               ================================= */
+            
+            @media (max-width: 380px) {
+                .pos-dash-welcome {
+                    grid-template-columns: minmax(0, 1fr) !important;
+                }
+            
+                .pos-welcome-left {
+                    grid-column: 1;
+                    grid-row: 1;
+                }
+            
+                .pos-welcome-date {
+                    grid-column: 1;
+                    grid-row: 2;
+                    justify-self: start !important;
+                }
+            
+                .pos-digital-clock {
+                    grid-column: 1;
+                    grid-row: 3;
+                    justify-self: center !important;
+                }
+            
+                .pos-kpi-grid {
+                    gap: 6px;
+                }
+            
+                .pos-kpi {
+                    gap: 5px;
+                    padding: 6px;
+                }
+            
+                .pos-kpi-icon {
+                    flex-basis: 25px;
+                    width: 25px;
+                    height: 25px;
+                    font-size: 12px;
+                }
+            
+                .pos-kpi-value {
+                    font-size: 11px;
+                }
+            }
+            
+            ```
+    }
     security {
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
@@ -33,6 +540,1756 @@ page 1 (
         image {
             fileUrl: #APP_FILES#icons/app-icon-512.png
         }
+        config {
+            buildOption: @commented-out
+        }
+    )
+
+    region new (
+        name: New
+        type: dynamicContent
+        source {
+            plsqlFunctionBody:
+                ```plsql
+                
+                DECLARE
+                    L_HTML                    CLOB;
+                
+                    L_TOTAL_INVOICE_MTD       NUMBER := 0;
+                    L_TOTAL_INVOICE_COUNT_MTD NUMBER := 0;
+                    L_OVERDUE_INVOICE_MTD     NUMBER := 0;
+                    L_PAYMENT_RECEIVED_MTD    NUMBER := 0;
+                    L_TO_PAY_MTD              NUMBER := 0;
+                    L_CASH_IN_HAND            NUMBER := 0;
+                
+                    ---------------------------------------------------------
+                    -- FORMAT AMOUNT
+                    ---------------------------------------------------------
+                    FUNCTION FMT_AMOUNT(P_AMOUNT NUMBER)
+                        RETURN VARCHAR2
+                    IS
+                    BEGIN
+                        RETURN TO_CHAR(
+                            NVL(P_AMOUNT, 0),
+                            'FM999G999G999G990D00',
+                            'NLS_NUMERIC_CHARACTERS=''.,'''
+                        );
+                    END FMT_AMOUNT;
+                
+                BEGIN
+                    ---------------------------------------------------------
+                    -- 1. TOTAL INVOICE MTD + INVOICE COUNT
+                    ---------------------------------------------------------
+                    SELECT COUNT(*),
+                           NVL(SUM(NVL(TOTAL_AMOUNT, 0)), 0)
+                      INTO L_TOTAL_INVOICE_COUNT_MTD,
+                           L_TOTAL_INVOICE_MTD
+                      FROM TRN_SALES_INVOICE_MST
+                     WHERE INVOICE_DATE >= TRUNC(SYSDATE, 'MM')
+                       AND INVOICE_DATE < ADD_MONTHS(TRUNC(SYSDATE, 'MM'), 1);
+                
+                    ---------------------------------------------------------
+                    -- 2. TOTAL INVOICE OVERDUE MTD
+                    ---------------------------------------------------------
+                    SELECT NVL(SUM(NVL(DUE_AMOUNT, 0)), 0)
+                      INTO L_OVERDUE_INVOICE_MTD
+                      FROM TRN_SALES_INVOICE_MST
+                     WHERE INVOICE_DATE >= TRUNC(SYSDATE, 'MM')
+                       AND INVOICE_DATE < ADD_MONTHS(TRUNC(SYSDATE, 'MM'), 1)
+                       AND NVL(DUE_AMOUNT, 0) > 0;
+                
+                    ---------------------------------------------------------
+                    -- 3. PAYMENT RECEIVED MTD
+                    ---------------------------------------------------------
+                    SELECT NVL(SUM(NVL(TOTAL_AMOUNT, 0)), 0)
+                      INTO L_PAYMENT_RECEIVED_MTD
+                      FROM TRN_TRANSACTION_MST
+                     WHERE TRANSACTION_DATE >= TRUNC(SYSDATE, 'MM')
+                       AND TRANSACTION_DATE < ADD_MONTHS(TRUNC(SYSDATE, 'MM'), 1)
+                       AND TRANSACTION_TYPE = 'R'
+                       AND APPROVAL_STATUS = 'A';
+                
+                    ---------------------------------------------------------
+                    -- 4. TO PAY MTD
+                    ---------------------------------------------------------
+                    SELECT NVL(SUM(NVL(TOTAL_AMOUNT, 0)), 0)
+                      INTO L_TO_PAY_MTD
+                      FROM TRN_TRANSACTION_MST
+                     WHERE TRANSACTION_DATE >= TRUNC(SYSDATE, 'MM')
+                       AND TRANSACTION_DATE < ADD_MONTHS(TRUNC(SYSDATE, 'MM'), 1)
+                       AND TRANSACTION_TYPE = 'P'
+                       AND APPROVAL_STATUS = 'A';
+                
+                    ---------------------------------------------------------
+                    -- 5. CASH IN HAND
+                    -- Same accounting logic as your Balance Sheet:
+                    -- Opening Debit + Voucher Debit
+                    -- minus Opening Credit + Voucher Credit
+                    ---------------------------------------------------------
+                    SELECT NVL(
+                               SUM(
+                                   CASE
+                                       WHEN H.ACCOUNT_TYPE = 'A'
+                                        AND UPPER(TRIM(H.ACCOUNT_NAME)) = 'CASH IN HAND'
+                                       THEN
+                                           (
+                                               NVL((
+                                                   SELECT SUM(O.OPENING_DEBIT)
+                                                     FROM ACC_OPENING_BALANCE O
+                                                    WHERE O.ACCOUNT_NO = H.ACCOUNT_NO
+                                                      AND O.APPROVAL_STATUS = 'A'
+                                               ), 0)
+                                               +
+                                               NVL((
+                                                   SELECT SUM(D.DEBIT_AMOUNT)
+                                                     FROM ACC_VOUCHER_DTL D
+                                                     JOIN ACC_VOUCHER_MST M
+                                                       ON M.VOUCHER_NO = D.VOUCHER_NO
+                                                    WHERE D.ACCOUNT_NO = H.ACCOUNT_NO
+                                                      AND M.APPROVAL_STATUS = 'A'
+                                               ), 0)
+                                           )
+                                           -
+                                           (
+                                               NVL((
+                                                   SELECT SUM(O.OPENING_CREDIT)
+                                                     FROM ACC_OPENING_BALANCE O
+                                                    WHERE O.ACCOUNT_NO = H.ACCOUNT_NO
+                                                      AND O.APPROVAL_STATUS = 'A'
+                                               ), 0)
+                                               +
+                                               NVL((
+                                                   SELECT SUM(D.CREDIT_AMOUNT)
+                                                     FROM ACC_VOUCHER_DTL D
+                                                     JOIN ACC_VOUCHER_MST M
+                                                       ON M.VOUCHER_NO = D.VOUCHER_NO
+                                                    WHERE D.ACCOUNT_NO = H.ACCOUNT_NO
+                                                      AND M.APPROVAL_STATUS = 'A'
+                                               ), 0)
+                                           )
+                                       ELSE 0
+                                   END
+                               ),
+                               0
+                           )
+                      INTO L_CASH_IN_HAND
+                      FROM MST_ACCOUNT_HEAD H
+                     WHERE H.IS_POSTING = 'Y'
+                       AND H.ACTIVE_STATUS = 'Y';
+                
+                    ---------------------------------------------------------
+                    -- HTML + COMPACT CSS
+                    ---------------------------------------------------------
+                    L_HTML := '
+                    <style>
+                        .mtd-summary {
+                            display:flex;
+                            flex-direction:column;
+                            gap:5px;
+                            width:100%;
+                            margin:0;
+                            padding:0;
+                            font-family:Arial,sans-serif;
+                            box-sizing:border-box;
+                        }
+                
+                        .mtd-card {
+                            display:flex;
+                            align-items:center;
+                            justify-content:space-between;
+                            gap:7px;
+                            min-height:47px;
+                            width:100%;
+                            margin:0;
+                            padding:6px 9px;
+                            border:1px solid #e2e8f0;
+                            border-radius:6px;
+                            box-sizing:border-box;
+                            background:#fff;
+                            box-shadow:none;
+                        }
+                
+                        .mtd-left {
+                            display:flex;
+                            align-items:center;
+                            gap:7px;
+                            min-width:0;
+                            flex:1 1 auto;
+                        }
+                
+                        .mtd-icon {
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                            flex:0 0 25px;
+                            width:25px;
+                            height:25px;
+                            border-radius:5px;
+                            font-size:11px;
+                        }
+                
+                        .mtd-text {
+                            min-width:0;
+                        }
+                
+                        .mtd-label {
+                            color:#475569;
+                            font-size:10px;
+                            font-weight:600;
+                            line-height:13px;
+                            margin:0;
+                        }
+                
+                        .mtd-subtitle {
+                            margin-top:1px;
+                            color:#94a3b8;
+                            font-size:8px;
+                            line-height:10px;
+                        }
+                
+                        .mtd-value {
+                            flex:0 0 auto;
+                            color:#1e293b;
+                            font-size:13px;
+                            font-weight:700;
+                            line-height:16px;
+                            white-space:nowrap;
+                            text-align:right;
+                        }
+                
+                        /* TOTAL INVOICE */
+                        .mtd-invoice {
+                            background:#f8fbff;
+                            border-color:#dbeafe;
+                        }
+                
+                        .mtd-invoice .mtd-icon {
+                            background:#dbeafe;
+                            color:#2563eb;
+                        }
+                
+                        .mtd-invoice .mtd-value {
+                            color:#2563eb;
+                        }
+                
+                        /* OVERDUE */
+                        .mtd-overdue {
+                            background:#fffafa;
+                            border-color:#fecaca;
+                        }
+                
+                        .mtd-overdue .mtd-icon {
+                            background:#fee2e2;
+                            color:#dc2626;
+                        }
+                
+                        .mtd-overdue .mtd-value {
+                            color:#dc2626;
+                        }
+                
+                        /* PAYMENT RECEIVED */
+                        .mtd-received {
+                            background:#f7fdf9;
+                            border-color:#bbf7d0;
+                        }
+                
+                        .mtd-received .mtd-icon {
+                            background:#dcfce7;
+                            color:#16a34a;
+                        }
+                
+                        .mtd-received .mtd-value {
+                            color:#16a34a;
+                        }
+                
+                        /* TO PAY */
+                        .mtd-pay {
+                            background:#fffcf5;
+                            border-color:#fde68a;
+                        }
+                
+                        .mtd-pay .mtd-icon {
+                            background:#fef3c7;
+                            color:#b45309;
+                        }
+                
+                        .mtd-pay .mtd-value {
+                            color:#b45309;
+                        }
+                
+                        /* CASH IN HAND */
+                        .mtd-cash {
+                            background:#f8faff;
+                            border-color:#c7d2fe;
+                        }
+                
+                        .mtd-cash .mtd-icon {
+                            background:#e0e7ff;
+                            color:#4338ca;
+                        }
+                
+                        .mtd-cash .mtd-value {
+                            color:#4338ca;
+                        }
+                
+                        .mtd-card,
+                        .mtd-card:hover,
+                        .mtd-icon,
+                        .mtd-icon:hover {
+                            transform:none !important;
+                            animation:none !important;
+                            transition:none !important;
+                        }
+                
+                        @media (max-width:480px) {
+                            .mtd-summary {
+                                gap:4px;
+                            }
+                
+                            .mtd-card {
+                                min-height:43px;
+                                padding:5px 7px;
+                                gap:4px;
+                            }
+                
+                            .mtd-left {
+                                gap:6px;
+                            }
+                
+                            .mtd-icon {
+                                flex-basis:23px;
+                                width:23px;
+                                height:23px;
+                                font-size:10px;
+                            }
+                
+                            .mtd-label {
+                                font-size:9px;
+                                line-height:12px;
+                            }
+                
+                            .mtd-subtitle {
+                                font-size:7px;
+                                line-height:9px;
+                            }
+                
+                            .mtd-value {
+                                font-size:11px;
+                                line-height:14px;
+                            }
+                        }
+                    </style>
+                
+                    <div class="mtd-summary">
+                
+                        <!-- 1. TOTAL INVOICE MTD -->
+                        <div class="mtd-card mtd-invoice">
+                            <div class="mtd-left">
+                                <div class="mtd-icon">
+                                    <span class="fa fa-file-text-o"></span>
+                                </div>
+                                <div class="mtd-text">
+                                    <div class="mtd-label">Total Invoice MTD</div>
+                                    <div class="mtd-subtitle">'
+                                    || TO_CHAR(L_TOTAL_INVOICE_COUNT_MTD)
+                                    || ' Invoices This Month</div>
+                                </div>
+                            </div>
+                            <div class="mtd-value">৳ '
+                                || FMT_AMOUNT(L_TOTAL_INVOICE_MTD)
+                                || '</div>
+                        </div>
+                
+                        <!-- 2. TOTAL INVOICE OVERDUE MTD -->
+                        <div class="mtd-card mtd-overdue">
+                            <div class="mtd-left">
+                                <div class="mtd-icon">
+                                    <span class="fa fa-exclamation-circle"></span>
+                                </div>
+                                <div class="mtd-text">
+                                    <div class="mtd-label">Total Invoice Overdue MTD</div>
+                                    <div class="mtd-subtitle">Outstanding on this month invoices</div>
+                                </div>
+                            </div>
+                            <div class="mtd-value">৳ '
+                                || FMT_AMOUNT(L_OVERDUE_INVOICE_MTD)
+                                || '</div>
+                        </div>
+                
+                        <!-- 3. PAYMENT RECEIVED MTD -->
+                        <div class="mtd-card mtd-received">
+                            <div class="mtd-left">
+                                <div class="mtd-icon">
+                                    <span class="fa fa-arrow-down"></span>
+                                </div>
+                                <div class="mtd-text">
+                                    <div class="mtd-label">Payment Received MTD</div>
+                                    <div class="mtd-subtitle">Approved customer receipts</div>
+                                </div>
+                            </div>
+                            <div class="mtd-value">৳ '
+                                || FMT_AMOUNT(L_PAYMENT_RECEIVED_MTD)
+                                || '</div>
+                        </div>
+                
+                        <!-- 4. TO PAY MTD -->
+                        <div class="mtd-card mtd-pay">
+                            <div class="mtd-left">
+                                <div class="mtd-icon">
+                                    <span class="fa fa-arrow-up"></span>
+                                </div>
+                                <div class="mtd-text">
+                                    <div class="mtd-label">To Pay MTD</div>
+                                    <div class="mtd-subtitle">Approved supplier payments</div>
+                                </div>
+                            </div>
+                            <div class="mtd-value">৳ '
+                                || FMT_AMOUNT(L_TO_PAY_MTD)
+                                || '</div>
+                        </div>
+                
+                        <!-- 5. CASH IN HAND -->
+                        <div class="mtd-card mtd-cash">
+                            <div class="mtd-left">
+                                <div class="mtd-icon">
+                                    <span class="fa fa-money"></span>
+                                </div>
+                                <div class="mtd-text">
+                                    <div class="mtd-label">Cash in Hand</div>
+                                    <div class="mtd-subtitle">Opening balance + approved vouchers</div>
+                                </div>
+                            </div>
+                            <div class="mtd-value">৳ '
+                                || FMT_AMOUNT(L_CASH_IN_HAND)
+                                || '</div>
+                        </div>
+                
+                    </div>';
+                
+                    RETURN L_HTML;
+                
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        RETURN
+                            '<div style="padding:10px;border:1px solid #fecaca;'
+                            || 'border-radius:6px;background:#fffafa;color:#dc2626;'
+                            || 'font-size:11px;">'
+                            || '<b>Dashboard Error:</b> '
+                            || APEX_ESCAPE.HTML(SQLERRM)
+                            || '</div>';
+                END;
+                
+                ```
+        }
+        layout {
+            sequence: 50
+            slot: body
+            startNewRow: false
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--noPadding
+                t-Region--removeHeader js-removeLandmark
+                t-Region--scrollBody
+            ]
+        }
+    )
+
+    region pos-dashboard (
+        name: POS Dashboard
+        type: dynamicContent
+        source {
+            plsqlFunctionBody:
+                ```plsql
+                
+                DECLARE
+                    l_today_sales      NUMBER := 0;
+                    l_month_sales      NUMBER := 0;
+                    l_today_purchase   NUMBER := 0;
+                    l_customer_due     NUMBER := 0;
+                    l_supplier_due     NUMBER := 0;
+                    l_product_count    NUMBER := 0;
+                    l_low_stock_count  NUMBER := 0;
+                    l_today_return     NUMBER := 0;
+                    l_greeting         VARCHAR2(30);
+                
+                    /* =========================================
+                       FORMAT AMOUNT
+                       ========================================= */
+                    FUNCTION fmt_amount(p_amount NUMBER)
+                        RETURN VARCHAR2
+                    IS
+                    BEGIN
+                        RETURN TO_CHAR(
+                            NVL(p_amount, 0),
+                            'FM999G999G999G990D00',
+                            'NLS_NUMERIC_CHARACTERS=''.,'''
+                        );
+                    END fmt_amount;
+                
+                
+                    /* =========================================
+                       KPI CARD
+                       ========================================= */
+                    PROCEDURE card(
+                        p_icon  VARCHAR2,
+                        p_label VARCHAR2,
+                        p_value VARCHAR2,
+                        p_class VARCHAR2
+                    )
+                    IS
+                    BEGIN
+                        HTP.P(
+                            '<div class="pos-kpi ' || p_class || '">' ||
+                                '<div class="pos-kpi-icon">' ||
+                                    '<span class="fa ' || p_icon || '"></span>' ||
+                                '</div>' ||
+                                '<div class="pos-kpi-content">' ||
+                                    '<div class="pos-kpi-label">' ||
+                                        APEX_ESCAPE.HTML(p_label) ||
+                                    '</div>' ||
+                                    '<div class="pos-kpi-value">' ||
+                                        APEX_ESCAPE.HTML(p_value) ||
+                                    '</div>' ||
+                                '</div>' ||
+                            '</div>'
+                        );
+                    END card;
+                
+                
+                BEGIN
+                
+                    /* =========================================
+                       1. DYNAMIC GREETING
+                       ========================================= */
+                    l_greeting :=
+                        CASE
+                            WHEN TO_NUMBER(TO_CHAR(SYSDATE, 'HH24')) < 12
+                                THEN 'Good Morning'
+                            WHEN TO_NUMBER(TO_CHAR(SYSDATE, 'HH24')) < 17
+                                THEN 'Good Afternoon'
+                            ELSE 'Good Evening'
+                        END;
+                
+                
+                    /* =========================================
+                       2. TODAY'S SALES
+                       ========================================= */
+                    SELECT NVL(SUM(total_amount), 0)
+                      INTO l_today_sales
+                      FROM trn_sales_invoice_mst
+                     WHERE invoice_date >= TRUNC(SYSDATE)
+                       AND invoice_date < TRUNC(SYSDATE) + 1;
+                
+                
+                    /* =========================================
+                       3. MONTHLY SALES
+                       ========================================= */
+                    SELECT NVL(SUM(total_amount), 0)
+                      INTO l_month_sales
+                      FROM trn_sales_invoice_mst
+                     WHERE invoice_date >= TRUNC(SYSDATE, 'MM')
+                       AND invoice_date < ADD_MONTHS(TRUNC(SYSDATE, 'MM'), 1);
+                
+                
+                    /* =========================================
+                       4. TODAY'S APPROVED PURCHASE
+                       ========================================= */
+                    SELECT NVL(SUM(total_amount), 0)
+                      INTO l_today_purchase
+                      FROM trn_purchase_mst
+                     WHERE purchase_date >= TRUNC(SYSDATE)
+                       AND purchase_date < TRUNC(SYSDATE) + 1
+                       AND approval_status = 'A';
+                
+                
+                    /* =========================================
+                       5. CUSTOMER DUE
+                       ========================================= */
+                    SELECT NVL(SUM(due_amount), 0)
+                      INTO l_customer_due
+                      FROM trn_sales_invoice_mst;
+                
+                
+                    /* =========================================
+                       6. SUPPLIER DUE
+                       ========================================= */
+                    SELECT NVL(SUM(due_amount), 0)
+                      INTO l_supplier_due
+                      FROM trn_purchase_mst
+                     WHERE approval_status = 'A';
+                
+                
+                    /* =========================================
+                       7. ACTIVE PRODUCTS
+                       ========================================= */
+                    SELECT COUNT(*)
+                      INTO l_product_count
+                      FROM mst_product
+                     WHERE active_flag = 1;
+                
+                
+                    /* =========================================
+                       8. LOW STOCK ITEMS
+                       ========================================= */
+                    SELECT COUNT(*)
+                      INTO l_low_stock_count
+                      FROM mst_product p
+                      LEFT JOIN (
+                          SELECT product_no,
+                                 SUM(NVL(qty_in, 0) - NVL(qty_out, 0)) AS stock_qty
+                            FROM trn_stock_ledger
+                           GROUP BY product_no
+                      ) s
+                        ON s.product_no = p.product_no
+                     WHERE p.active_flag = 1
+                       AND NVL(p.min_stock_qty, 0) > 0
+                       AND NVL(s.stock_qty, 0) <= p.min_stock_qty;
+                
+                
+                    /* =========================================
+                       9. TODAY'S APPROVED CUSTOMER RETURN
+                       ========================================= */
+                    SELECT NVL(SUM(d.total_amount), 0)
+                      INTO l_today_return
+                      FROM trn_customer_return_mst m
+                      JOIN trn_customer_return_dtl d
+                        ON d.return_no = m.return_no
+                     WHERE m.approval_status = 'A'
+                       AND m.return_date >= TRUNC(SYSDATE)
+                       AND m.return_date < TRUNC(SYSDATE) + 1;
+                
+                
+                    /* =========================================
+                       10. DASHBOARD CONTAINER
+                       ========================================= */
+                    HTP.P('<div class="pos-dashboard">');
+                
+                
+                    /* =========================================
+                       11. HEADER: GREETING | CLOCK | DATE
+                       ========================================= */
+                    HTP.P(
+                        '<div class="pos-dash-welcome">' ||
+                
+                            /* LEFT: GREETING */
+                            '<div class="pos-welcome-left">' ||
+                                '<div class="pos-welcome-title">' ||
+                                    APEX_ESCAPE.HTML(l_greeting) ||
+                                    ', Admin ' ||
+                                    '<span class="pos-wave">&#128075;</span>' ||
+                                '</div>' ||
+                                '<div class="pos-welcome-subtitle">' ||
+                                    'Here''s what''s happening with your business today.' ||
+                                '</div>' ||
+                            '</div>' ||
+                
+                            /* MIDDLE: DIGITAL CLOCK */
+                            '<div class="pos-digital-clock">' ||
+                                '<div class="pos-clock-icon">' ||
+                                    '<span class="fa fa-clock-o"></span>' ||
+                                '</div>' ||
+                                '<div class="pos-clock-content">' ||
+                                    '<div id="posClockTime" class="pos-clock-time">' ||
+                                        TO_CHAR(SYSDATE, 'HH12:MI:SS') ||
+                                    '</div>' ||
+                                    '<div id="posClockPeriod" class="pos-clock-period">' ||
+                                        TO_CHAR(
+                                            SYSDATE,
+                                            'AM',
+                                            'NLS_DATE_LANGUAGE=ENGLISH'
+                                        ) ||
+                                    '</div>' ||
+                                    '<div id="posClockDay" class="pos-clock-day">' ||
+                                        TRIM(
+                                            TO_CHAR(
+                                                SYSDATE,
+                                                'DAY',
+                                                'NLS_DATE_LANGUAGE=ENGLISH'
+                                            )
+                                        ) ||
+                                    '</div>' ||
+                                '</div>' ||
+                            '</div>' ||
+                
+                            /* RIGHT: DATE */
+                            '<div class="pos-welcome-date">' ||
+                                '<span class="fa fa-calendar"></span>' ||
+                                '<span class="pos-date-value">' ||
+                                    TO_CHAR(SYSDATE, 'DD Mon YYYY') ||
+                                '</span>' ||
+                            '</div>' ||
+                
+                        '</div>'
+                    );
+                
+                
+                    /* =========================================
+                       12. KPI CARDS
+                       ========================================= */
+                    HTP.P('<div class="pos-kpi-grid">');
+                
+                    card(
+                        'fa-line-chart',
+                        'Today''s Sales',
+                        '৳ ' || fmt_amount(l_today_sales),
+                        'kpi-green'
+                    );
+                
+                    card(
+                        'fa-calendar',
+                        'Monthly Sales',
+                        '৳ ' || fmt_amount(l_month_sales),
+                        'kpi-blue'
+                    );
+                
+                    card(
+                        'fa-shopping-bag',
+                        'Today''s Purchase',
+                        '৳ ' || fmt_amount(l_today_purchase),
+                        'kpi-orange'
+                    );
+                
+                    card(
+                        'fa-users',
+                        'Customer Due',
+                        '৳ ' || fmt_amount(l_customer_due),
+                        'kpi-purple'
+                    );
+                
+                    card(
+                        'fa-truck',
+                        'Supplier Due',
+                        '৳ ' || fmt_amount(l_supplier_due),
+                        'kpi-teal'
+                    );
+                
+                    card(
+                        'fa-cubes',
+                        'Active Products',
+                        TO_CHAR(l_product_count, 'FM999G999G990'),
+                        'kpi-indigo'
+                    );
+                
+                    card(
+                        'fa-exclamation-triangle',
+                        'Low Stock Items',
+                        TO_CHAR(l_low_stock_count, 'FM999G999G990'),
+                        'kpi-red'
+                    );
+                
+                    card(
+                        'fa-undo',
+                        'Today''s Return',
+                        '৳ ' || fmt_amount(l_today_return),
+                        'kpi-return'
+                    );
+                
+                    HTP.P('</div>');
+                
+                
+                    /* =========================================
+                       13. FOOTER NOTE
+                       ========================================= */
+                    HTP.P(
+                        '<div class="pos-dash-note">' ||
+                            '<span class="fa fa-info-circle"></span>' ||
+                            ' Stock is calculated from the stock ledger. ' ||
+                            'Return figures include approved customer returns only.' ||
+                        '</div>'
+                    );
+                
+                    HTP.P('</div>');
+                
+                
+                    /* =========================================
+                       14. COMPACT PROFESSIONAL CSS
+                       ========================================= */
+                    HTP.P(q'~
+                <style>
+                
+                /* DASHBOARD */
+                .pos-dashboard {
+                    width: 100%;
+                    color: #1e293b;
+                    font-family: inherit;
+                    box-sizing: border-box;
+                }
+                
+                .pos-dashboard *,
+                .pos-dashboard *::before,
+                .pos-dashboard *::after {
+                    box-sizing: border-box;
+                }
+                
+                /* HEADER: GREETING | CLOCK | DATE */
+                .pos-dash-welcome {
+                    display: grid;
+                    grid-template-columns: minmax(0, 1fr) auto auto;
+                    align-items: center;
+                    gap: 10px;
+                    margin-bottom: 8px;
+                    padding: 6px 10px;
+                    border: 1px solid #e5eaf2;
+                    border-radius: 8px;
+                    background: linear-gradient(110deg, #fff, #f3f7ff);
+                    box-shadow: 0 1px 4px rgba(30, 64, 120, .035);
+                }
+                
+                .pos-welcome-left {
+                    min-width: 0;
+                }
+                
+                .pos-welcome-title {
+                    font-size: 17px;
+                    font-weight: 800;
+                    line-height: 1.2;
+                    letter-spacing: -.3px;
+                    color: #172033;
+                }
+                
+                .pos-wave {
+                    display: inline-block;
+                    font-size: 16px;
+                    margin-left: 2px;
+                    animation: pos-wave-animation 2.5s infinite;
+                    transform-origin: 70% 70%;
+                }
+                
+                @keyframes pos-wave-animation {
+                    0%, 60%, 100% { transform: rotate(0deg); }
+                    10%, 30% { transform: rotate(14deg); }
+                    20%, 40% { transform: rotate(-8deg); }
+                }
+                
+                .pos-welcome-subtitle {
+                    margin-top: 2px;
+                    color: #8490a3;
+                    font-size: 10px;
+                    line-height: 1.3;
+                }
+                
+                /* DIGITAL CLOCK - CENTER */
+                .pos-digital-clock {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 7px;
+                    min-width: 160px;
+                    padding: 5px 9px;
+                    background: linear-gradient(135deg, #f5f3ff, #eef6ff);
+                    border: 1px solid #e0e7ff;
+                    border-radius: 8px;
+                    box-shadow: 0 1px 4px rgba(79, 70, 229, .04);
+                }
+                
+                .pos-clock-icon {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 29px;
+                    height: 29px;
+                    flex-shrink: 0;
+                    color: #6554d9;
+                    background: #e5e1ff;
+                    border-radius: 7px;
+                    font-size: 14px;
+                }
+                
+                .pos-clock-content {
+                    display: grid;
+                    grid-template-columns: auto auto;
+                    align-items: baseline;
+                    column-gap: 4px;
+                }
+                
+                .pos-clock-time {
+                    color: #312e81;
+                    font-family: Consolas, "Courier New", monospace;
+                    font-size: 17px;
+                    font-weight: 800;
+                    line-height: 20px;
+                    letter-spacing: 0;
+                    font-variant-numeric: tabular-nums;
+                    white-space: nowrap;
+                }
+                
+                .pos-clock-period {
+                    color: #7c3aed;
+                    font-size: 9px;
+                    font-weight: 800;
+                }
+                
+                .pos-clock-day {
+                    grid-column: 1 / -1;
+                    margin-top: 1px;
+                    color: #7b83a6;
+                    font-size: 8px;
+                    font-weight: 800;
+                    letter-spacing: 1px;
+                    line-height: 10px;
+                }
+                
+                /* DATE */
+                .pos-welcome-date {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                    padding: 6px 8px;
+                    color: #64748b;
+                    background: #fff;
+                    border: 1px solid #e8edf4;
+                    border-radius: 7px;
+                    font-size: 10px;
+                    font-weight: 600;
+                    white-space: nowrap;
+                }
+                
+                .pos-welcome-date .fa {
+                    color: #6474dc;
+                    font-size: 12px;
+                }
+                
+                .pos-date-value {
+                    color: #334155;
+                    font-size: 10px;
+                    font-weight: 700;
+                }
+                
+                /* KPI GRID - FOUR PER ROW */
+                .pos-kpi-grid {
+                    display: grid;
+                    grid-template-columns: repeat(4, minmax(0, 1fr));
+                    gap: 7px;
+                    width: 100%;
+                    margin-bottom: 7px;
+                }
+                
+                /* SLIM KPI CARDS */
+                .pos-kpi {
+                    display: flex;
+                    align-items: center;
+                    gap: 7px;
+                    min-width: 0;
+                    min-height: 55px;
+                    padding: 6px 8px;
+                    position: relative;
+                    overflow: hidden;
+                    background: #fff;
+                    border: 1px solid var(--kpi-border, #e8edf4);
+                    border-radius: 7px;
+                    box-shadow: 0 1px 4px rgba(15, 23, 42, .025);
+                    transition: box-shadow .18s ease;
+                }
+                
+                .pos-kpi:hover {
+                    box-shadow: 0 3px 8px rgba(15, 23, 42, .07);
+                }
+                
+                .pos-kpi::after {
+                    content: "";
+                    position: absolute;
+                    top: 0;
+                    right: 0;
+                    width: 3px;
+                    height: 100%;
+                    background: var(--kpi-color, #64748b);
+                }
+                
+                /* KPI ICON */
+                .pos-kpi-icon {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex: 0 0 28px;
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 6px;
+                    background: var(--kpi-bg, #f1f5f9);
+                    color: var(--kpi-color, #475569);
+                    font-size: 13px;
+                }
+                
+                /* KPI TEXT */
+                .pos-kpi-content {
+                    flex: 1;
+                    min-width: 0;
+                }
+                
+                .pos-kpi-label {
+                    margin-bottom: 2px;
+                    color: var(--kpi-color, #64748b);
+                    font-size: 9px;
+                    font-weight: 700;
+                    line-height: 1.25;
+                }
+                
+                .pos-kpi-value {
+                    color: var(--kpi-color, #172b4d);
+                    font-size: 13px;
+                    font-weight: 800;
+                    line-height: 1.25;
+                    overflow-wrap: anywhere;
+                    font-variant-numeric: tabular-nums;
+                }
+                
+                /* COLOR THEMES */
+                .kpi-green {
+                    --kpi-color: #13845d;
+                    --kpi-bg: #e8f8f0;
+                    --kpi-border: #c8efd7;
+                }
+                
+                .kpi-blue {
+                    --kpi-color: #245fce;
+                    --kpi-bg: #eaf2ff;
+                    --kpi-border: #d3e3ff;
+                }
+                
+                .kpi-orange {
+                    --kpi-color: #c66a10;
+                    --kpi-bg: #fff3e5;
+                    --kpi-border: #f9e4b8;
+                }
+                
+                .kpi-purple {
+                    --kpi-color: #7950bd;
+                    --kpi-bg: #f1eaff;
+                    --kpi-border: #e3d4ff;
+                }
+                
+                .kpi-teal {
+                    --kpi-color: #0d8379;
+                    --kpi-bg: #e2f8f5;
+                    --kpi-border: #c4eeea;
+                }
+                
+                .kpi-indigo {
+                    --kpi-color: #4f46c8;
+                    --kpi-bg: #ecebff;
+                    --kpi-border: #d9dcff;
+                }
+                
+                .kpi-red {
+                    --kpi-color: #cf3838;
+                    --kpi-bg: #ffeded;
+                    --kpi-border: #fecaca;
+                }
+                
+                .kpi-return {
+                    --kpi-color: #b45309;
+                    --kpi-bg: #fff4df;
+                    --kpi-border: #f5e4b5;
+                }
+                
+                /* FOOTER NOTE */
+                .pos-dash-note {
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                    margin-top: 2px;
+                    padding: 5px 8px;
+                    border: 1px solid #edf1f6;
+                    border-radius: 6px;
+                    background: #f8fafc;
+                    color: #8490a3;
+                    font-size: 9px;
+                    line-height: 1.3;
+                }
+                
+                .pos-dash-note .fa {
+                    color: #6474dc;
+                    font-size: 11px;
+                    flex-shrink: 0;
+                }
+                
+                /* TABLET */
+                @media (max-width: 1100px) {
+                    .pos-kpi-grid {
+                        grid-template-columns: repeat(2, minmax(0, 1fr));
+                    }
+                
+                    .pos-dash-welcome {
+                        gap: 8px;
+                    }
+                
+                    .pos-welcome-title {
+                        font-size: 16px;
+                    }
+                }
+                
+                /* MOBILE */
+                @media (max-width: 760px) {
+                    .pos-dash-welcome {
+                        grid-template-columns: minmax(0, 1fr) auto;
+                        gap: 8px;
+                        padding: 7px 8px;
+                    }
+                
+                    .pos-welcome-left {
+                        grid-column: 1;
+                        grid-row: 1;
+                    }
+                
+                    .pos-welcome-title {
+                        font-size: 15px;
+                    }
+                
+                    .pos-welcome-subtitle {
+                        font-size: 9px;
+                    }
+                
+                    .pos-digital-clock {
+                        grid-column: 1 / -1;
+                        grid-row: 2;
+                        justify-self: center;
+                    }
+                
+                    .pos-welcome-date {
+                        grid-column: 2;
+                        grid-row: 1;
+                        padding: 5px 6px;
+                        font-size: 9px;
+                    }
+                }
+                
+                /* SMALL MOBILE */
+                @media (max-width: 420px) {
+                    .pos-kpi-grid {
+                        grid-template-columns: repeat(2, minmax(0, 1fr));
+                        gap: 6px;
+                    }
+                
+                    .pos-kpi {
+                        min-height: 51px;
+                        gap: 5px;
+                        padding: 5px 6px;
+                    }
+                
+                    .pos-kpi-icon {
+                        flex-basis: 25px;
+                        width: 25px;
+                        height: 25px;
+                        font-size: 12px;
+                    }
+                
+                    .pos-kpi-value {
+                        font-size: 12px;
+                    }
+                
+                    .pos-kpi-label {
+                        font-size: 9px;
+                    }
+                
+                    .pos-digital-clock {
+                        min-width: 150px;
+                    }
+                }
+                
+                </style>
+                ~');
+                
+                
+                    /* =========================================
+                       15. LIVE DIGITAL CLOCK
+                       ========================================= */
+                    HTP.P(q'~
+                <script>
+                (function () {
+                    function updatePOSClock() {
+                        var timeEl = document.getElementById('posClockTime');
+                        var periodEl = document.getElementById('posClockPeriod');
+                        var dayEl = document.getElementById('posClockDay');
+                
+                        if (!timeEl || !periodEl || !dayEl) {
+                            return;
+                        }
+                
+                        var now = new Date();
+                        var hours = now.getHours();
+                        var minutes = String(now.getMinutes()).padStart(2, '0');
+                        var seconds = String(now.getSeconds()).padStart(2, '0');
+                
+                        var period = hours >= 12 ? 'PM' : 'AM';
+                        var displayHours = hours % 12 || 12;
+                
+                        timeEl.textContent =
+                            String(displayHours).padStart(2, '0') + ':' +
+                            minutes + ':' + seconds;
+                
+                        periodEl.textContent = period;
+                
+                        var days = [
+                            'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY',
+                            'THURSDAY', 'FRIDAY', 'SATURDAY'
+                        ];
+                
+                        dayEl.textContent = days[now.getDay()];
+                    }
+                
+                    updatePOSClock();
+                
+                    if (window.posClockTimer) {
+                        clearInterval(window.posClockTimer);
+                    }
+                
+                    window.posClockTimer = setInterval(updatePOSClock, 1000);
+                })();
+                </script>
+                ~');
+                
+                
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        HTP.P(
+                            '<div class="t-Alert t-Alert--danger">' ||
+                                '<div class="t-Alert-title">Dashboard Error</div>' ||
+                                '<div class="t-Alert-body">' ||
+                                    APEX_ESCAPE.HTML(SQLERRM) ||
+                                '</div>' ||
+                            '</div>'
+                        );
+                
+                END;
+                
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--noPadding
+                t-Region--removeHeader js-removeLandmark
+                t-Region--scrollBody
+                margin-bottom-none
+            ]
+        }
+    )
+
+    region quick-action (
+        name: Quick Action
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                <div class="quick-actions">
+                
+                    <div class="qa-header">
+                        <div>
+                            <h3>Quick Actions</h3>
+                            <p>Jump to common tasks</p>
+                        </div>
+                        <span class="fa fa-bolt qa-bolt"></span>
+                    </div>
+                
+                    <div class="qa-grid">
+                
+                        <!-- New Sale -->
+                        <a class="qa-card qa-purple"
+                           href="f?p=&APP_ID.:17:&SESSION.::&DEBUG.:::">
+                
+                            <div class="qa-icon">
+                                <span class="fa fa-shopping-cart"></span>
+                            </div>
+                
+                            <div class="qa-title">New Sale</div>
+                            <div class="qa-desc">Create new sale invoice</div>
+                        </a>
+                
+                        <!-- Add Item -->
+                        <a class="qa-card qa-violet"
+                           href="f?p=&APP_ID.:6:&SESSION.::&DEBUG.:::">
+                
+                            <div class="qa-icon">
+                                <span class="fa fa-cube"></span>
+                            </div>
+                
+                            <div class="qa-title">Add Item</div>
+                            <div class="qa-desc">Add new item to inventory</div>
+                        </a>
+                
+                        <!-- Add Party -->
+                        <a class="qa-card qa-purple"
+                           href="f?p=&APP_ID.:8:&SESSION.::&DEBUG.:::">
+                
+                            <div class="qa-icon">
+                                <span class="fa fa-users"></span>
+                            </div>
+                
+                            <div class="qa-title">Add Party</div>
+                            <div class="qa-desc">Add customer or supplier</div>
+                        </a>
+                
+                        <!-- Sales Invoice -->
+                        <a class="qa-card qa-green"
+                           href="f?p=&APP_ID.:207:&SESSION.::&DEBUG.:::">
+                
+                            <div class="qa-icon">
+                                <span class="fa fa-file-text-o"></span>
+                            </div>
+                
+                            <div class="qa-title">Sales Invoice</div>
+                            <div class="qa-desc">View all sale invoices</div>
+                        </a>
+                
+                        <!-- Purchase Bill -->
+                        <a class="qa-card qa-orange"
+                           href="f?p=&APP_ID.:27:&SESSION.::&DEBUG.:::">
+                
+                            <div class="qa-icon">
+                                <span class="fa fa-file-text"></span>
+                            </div>
+                
+                            <div class="qa-title">Purchase Bill</div>
+                            <div class="qa-desc">View all purchase bills</div>
+                        </a>
+                
+                    </div>
+                </div>
+                
+                <style>
+                /* =================================
+                   QUICK ACTIONS - COMPACT POS STYLE
+                   ================================= */
+                
+                /* Region Body */
+                #quick_actions .t-Region-body {
+                    padding: 6px 8px !important;
+                }
+                
+                /* Main Container */
+                .quick-actions {
+                    width: 100%;
+                    font-family: inherit;
+                    box-sizing: border-box;
+                }
+                
+                /* Header */
+                .qa-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin: 0 0 8px;
+                }
+                
+                .qa-header h3 {
+                    margin: 0;
+                    font-size: 16px;
+                    font-weight: 750;
+                    color: #172033;
+                    letter-spacing: -.3px;
+                    line-height: 20px;
+                }
+                
+                .qa-header p {
+                    margin: 2px 0 0;
+                    font-size: 10px;
+                    line-height: 14px;
+                    color: #8490a3;
+                }
+                
+                .qa-bolt {
+                    font-size: 17px;
+                    color: #8b5cf6;
+                    padding: 3px;
+                }
+                
+                /* Grid */
+                .qa-grid {
+                    display: grid;
+                    grid-template-columns: repeat(5, minmax(0, 1fr));
+                    gap: 8px;
+                    align-items: stretch;
+                }
+                
+                /* Cards */
+                .qa-card {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                
+                    width: 100%;
+                    min-width: 0;
+                    min-height: 88px;
+                
+                    padding: 7px 5px;
+                    box-sizing: border-box;
+                
+                    text-align: center;
+                    text-decoration: none !important;
+                
+                    background: #ffffff;
+                    border: 1px solid #edf0f5;
+                    border-radius: 10px;
+                
+                    box-shadow: 0 2px 6px rgba(15, 23, 42, .035);
+                
+                    transition:
+                        transform .18s ease,
+                        box-shadow .18s ease,
+                        border-color .18s ease;
+                }
+                
+                /* Hover */
+                .qa-card:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 5px 12px rgba(15, 23, 42, .08);
+                    border-color: #d8d7fe;
+                    text-decoration: none !important;
+                }
+                
+                /* Keyboard Focus */
+                .qa-card:focus-visible {
+                    outline: 2px solid #818cf6;
+                    outline-offset: 2px;
+                }
+                
+                /* Icon Box */
+                .qa-icon {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                
+                    width: 32px;
+                    height: 32px;
+                    min-height: 32px;
+                
+                    margin: 0 0 5px;
+                    border-radius: 9px;
+                
+                    font-size: 15px;
+                    flex-shrink: 0;
+                }
+                
+                /* Purple Icons */
+                .qa-purple .qa-icon,
+                .qa-violet .qa-icon {
+                    background: #f0eaff;
+                    color: #7950d8;
+                }
+                
+                /* Green Icon */
+                .qa-green .qa-icon {
+                    background: #e3f9ed;
+                    color: #16a36a;
+                }
+                
+                /* Orange Icon */
+                .qa-orange .qa-icon {
+                    background: #fff0dd;
+                    color: #df8b22;
+                }
+                
+                /* Card Title */
+                .qa-title {
+                    margin: 0 0 2px;
+                    font-size: 11px;
+                    font-weight: 750;
+                    line-height: 14px;
+                    color: #202b3c;
+                }
+                
+                /* Card Description */
+                .qa-desc {
+                    margin: 0;
+                    font-size: 9px;
+                    font-weight: 400;
+                    line-height: 12px;
+                    color: #8490a3;
+                }
+                
+                /* Remove unwanted link styling */
+                .qa-card:visited,
+                .qa-card:active {
+                    text-decoration: none !important;
+                }
+                
+                /* Tablet */
+                @media (max-width: 900px) {
+                    .qa-grid {
+                        grid-template-columns: repeat(3, minmax(0, 1fr));
+                        gap: 8px;
+                    }
+                }
+                
+                /* Mobile */
+                @media (max-width: 520px) {
+                    #quick_actions .t-Region-body {
+                        padding: 6px !important;
+                    }
+                
+                    .qa-header {
+                        margin-bottom: 7px;
+                    }
+                
+                    .qa-grid {
+                        grid-template-columns: repeat(2, minmax(0, 1fr));
+                        gap: 7px;
+                    }
+                
+                    .qa-card {
+                        min-height: 84px;
+                        padding: 6px 4px;
+                    }
+                
+                    .qa-icon {
+                        width: 30px;
+                        height: 30px;
+                        min-height: 30px;
+                        font-size: 14px;
+                        margin-bottom: 4px;
+                    }
+                
+                    .qa-title {
+                        font-size: 11px;
+                    }
+                
+                    .qa-desc {
+                        font-size: 9px;
+                    }
+                }
+                </style>
+                
+                ```
+        }
+        layout {
+            sequence: 60
+            slot: body
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--noPadding
+                t-Region--removeHeader js-removeLandmark
+                t-Region--scrollBody
+            ]
+        }
+    )
+
+    region today-sales-return-trend (
+        name: Today Sales & Return Trend
+        type: chart
+        layout {
+            sequence: 30
+            slot: body
+            columnSpan: 4
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--noPadding
+                t-Region--removeHeader js-removeLandmark
+                t-Region--scrollBody
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        chart {
+            type: pie
+        }
+        title {
+            title: Today Sales & Return Trend
+        }
+        chartLayout {
+            height: 300
+        }
+        value {
+            format: decimal
+            decimalPlaces: 0
+            formatScaling: none
+        }
+
+        series new_1 (
+            name: New
+            execution {
+                sequence: 10
+            }
+            source {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    WITH CHART_DATA AS
+                    (
+                        SELECT
+                            'Sales' AS LABEL,
+                            NVL(SUM(TOTAL_AMOUNT), 0) AS VALUE
+                        FROM WKSP_WSPOS.TRN_SALES_INVOICE_MST
+                        WHERE INVOICE_DATE >= TRUNC(SYSDATE)
+                          AND INVOICE_DATE < TRUNC(SYSDATE) + 1
+                    
+                        UNION ALL
+                    
+                        SELECT
+                            'Purchase' AS LABEL,
+                            NVL(SUM(TOTAL_AMOUNT), 0) AS VALUE
+                        FROM WKSP_WSPOS.TRN_PURCHASE_MST
+                        WHERE PURCHASE_DATE >= TRUNC(SYSDATE)
+                          AND PURCHASE_DATE < TRUNC(SYSDATE) + 1
+                          AND APPROVAL_STATUS = 'A'
+                    
+                        UNION ALL
+                    
+                        SELECT
+                            'Return' AS LABEL,
+                            NVL(SUM(D.TOTAL_AMOUNT), 0) AS VALUE
+                        FROM WKSP_WSPOS.TRN_CUSTOMER_RETURN_MST M
+                        JOIN WKSP_WSPOS.TRN_CUSTOMER_RETURN_DTL D
+                          ON D.RETURN_NO = M.RETURN_NO
+                        WHERE M.RETURN_DATE >= TRUNC(SYSDATE)
+                          AND M.RETURN_DATE < TRUNC(SYSDATE) + 1
+                          AND M.APPROVAL_STATUS = 'A'
+                    )
+                    SELECT LABEL, VALUE
+                    FROM CHART_DATA
+                    ORDER BY VALUE DESC;
+                    ```
+            }
+            columnMapping {
+                label: LABEL
+                value: VALUE
+            }
+            label {
+                show: true
+            }
+        )
+
+    )
+
+    region weekly-sales-overview (
+        name: Weekly Sales & Return Trend
+        type: chart
+        layout {
+            sequence: 40
+            slot: body
+            startNewRow: false
+            columnSpan: 5
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--noPadding
+                t-Region--removeHeader js-removeLandmark
+                t-Region--scrollBody
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        security {
+            escapeSpecialChars: false
+        }
+        title {
+            title: Weekly Sales & Return Trend
+        }
+        chartLayout {
+            height: 300
+        }
+
+        series last-7-days-sales (
+            name: New
+            execution {
+                sequence: 10
+            }
+            source {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    
+                    WITH DATE_LIST AS (
+                        SELECT TRUNC(SYSDATE) - (LEVEL - 1) AS TRAN_DATE
+                        FROM DUAL
+                        CONNECT BY LEVEL <= 7
+                    ),
+                    SALES_DATA AS (
+                        SELECT TRUNC(INVOICE_DATE) AS TRAN_DATE,
+                               SUM(NVL(TOTAL_AMOUNT, 0)) AS AMOUNT
+                        FROM WKSP_WSPOS.TRN_SALES_INVOICE_MST
+                        WHERE INVOICE_DATE >= TRUNC(SYSDATE) - 6
+                          AND INVOICE_DATE < TRUNC(SYSDATE) + 1
+                        GROUP BY TRUNC(INVOICE_DATE)
+                    ),
+                    PURCHASE_DATA AS (
+                        SELECT TRUNC(PURCHASE_DATE) AS TRAN_DATE,
+                               SUM(NVL(TOTAL_AMOUNT, 0)) AS AMOUNT
+                        FROM WKSP_WSPOS.TRN_PURCHASE_MST
+                        WHERE PURCHASE_DATE >= TRUNC(SYSDATE) - 6
+                          AND PURCHASE_DATE < TRUNC(SYSDATE) + 1
+                          AND APPROVAL_STATUS = 'A'
+                        GROUP BY TRUNC(PURCHASE_DATE)
+                    ),
+                    RETURN_DATA AS (
+                        SELECT TRUNC(R.RETURN_DATE) AS TRAN_DATE,
+                               SUM(NVL(D.TOTAL_AMOUNT, 0)) AS AMOUNT
+                        FROM WKSP_WSPOS.TRN_CUSTOMER_RETURN_MST R
+                        JOIN WKSP_WSPOS.TRN_CUSTOMER_RETURN_DTL D
+                          ON D.RETURN_NO = R.RETURN_NO
+                        WHERE R.RETURN_DATE >= TRUNC(SYSDATE) - 6
+                          AND R.RETURN_DATE < TRUNC(SYSDATE) + 1
+                          AND R.APPROVAL_STATUS = 'A'
+                        GROUP BY TRUNC(R.RETURN_DATE)
+                    )
+                    SELECT TO_CHAR(D.TRAN_DATE, 'DD Mon') AS LABEL,
+                           'Sales' AS SERIES_NAME,
+                           NVL(S.AMOUNT, 0) AS VALUE
+                    FROM DATE_LIST D
+                    LEFT JOIN SALES_DATA S
+                           ON S.TRAN_DATE = D.TRAN_DATE
+                    
+                    UNION ALL
+                    
+                    SELECT TO_CHAR(D.TRAN_DATE, 'DD Mon') AS LABEL,
+                           'Purchase' AS SERIES_NAME,
+                           NVL(P.AMOUNT, 0) AS VALUE
+                    FROM DATE_LIST D
+                    LEFT JOIN PURCHASE_DATA P
+                           ON P.TRAN_DATE = D.TRAN_DATE
+                    
+                    UNION ALL
+                    
+                    SELECT TO_CHAR(D.TRAN_DATE, 'DD Mon') AS LABEL,
+                           'Return' AS SERIES_NAME,
+                           NVL(R.AMOUNT, 0) AS VALUE
+                    FROM DATE_LIST D
+                    LEFT JOIN RETURN_DATA R
+                           ON R.TRAN_DATE = D.TRAN_DATE
+                    
+                    ORDER BY 1, 2
+                    
+                    ```
+            }
+            columnMapping {
+                seriesName: SERIES_NAME
+                label: LABEL
+                value: VALUE
+            }
+            label {
+                show: true
+            }
+        )
+
+        axis x (
+            name: x
+        )
+
+        axis y (
+            name: y
+            value {
+                format: decimal
+                decimalPlaces: 0
+                formatScaling: none
+            }
+        )
+
     )
 
 )

@@ -167,7 +167,7 @@ page 2 (
             displayColumn (
                 column: @APEX_PAGE_NO
                 layout {
-                    width: 100.594
+                    width: 100
                     sequence: 7
                 }
             )
@@ -183,7 +183,7 @@ page 2 (
                 column: @SUBMENU_NO
                 layout {
                     width: 62
-                    sequence: 3
+                    sequence: 2
                 }
             )
 
@@ -191,29 +191,29 @@ page 2 (
                 column: @SUBMENU_ID
                 layout {
                     width: 85
-                    sequence: 5
+                    sequence: 4
                 }
             )
 
             displayColumn (
                 column: @MENU_NO
                 layout {
-                    sequence: 4
+                    sequence: 3
                 }
             )
 
             displayColumn (
                 column: @SUBMENU_NAME
                 layout {
-                    width: 134.219
-                    sequence: 6
+                    width: 134
+                    sequence: 5
                 }
             )
 
             displayColumn (
                 column: @SUBMENU_TYPE
                 layout {
-                    width: 103.4844
+                    width: 103
                     sequence: 9
                 }
             )
@@ -221,7 +221,7 @@ page 2 (
             displayColumn (
                 column: @ACTIVE_FLAG
                 layout {
-                    width: 97.99719999999999
+                    width: 97
                     sequence: 10
                 }
             )
@@ -229,7 +229,7 @@ page 2 (
             displayColumn (
                 column: @HIDE_FROM_MENU
                 layout {
-                    width: 81.125
+                    width: 81
                     sequence: 11
                 }
             )
@@ -244,8 +244,8 @@ page 2 (
             displayColumn (
                 column: @SUBMENU_ICON
                 layout {
-                    show: false
-                    sequence: 2
+                    width: 125.5521
+                    sequence: 6
                 }
             )
 
@@ -622,7 +622,8 @@ page 2 (
                        SL_NO,
                        ACTIVE_FLAG,
                        COMPANY_NO,
-                       APP_ID
+                       APP_ID,
+                       MENU_ICON
                   from SA_MENU
                 ```
         }
@@ -679,12 +680,10 @@ page 2 (
             displayNullValue: false
         }
         layout {
-            sequence: 80
+            sequence: 50
             region: @div-id-headtext-msater-menu-entry-div
             slot: regionBody
             alignment: left
-            startNewRow: false
-            column: 11
             columnSpan: 2
         }
         appearance {
@@ -692,7 +691,7 @@ page 2 (
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
                 t-Form-fieldContainer--slimPadding
             ]
         }
@@ -716,7 +715,7 @@ page 2 (
             valueProtected: false
         }
         layout {
-            sequence: 120
+            sequence: 100
             region: @div-id-headtext-msater-menu-entry-div
             slot: regionBody
         }
@@ -750,13 +749,42 @@ page 2 (
             valueProtected: false
         }
         layout {
-            sequence: 130
+            sequence: 110
             region: @div-id-headtext-msater-menu-entry-div
             slot: regionBody
         }
         source {
             formRegion: @div-id-headtext-msater-menu-entry-div
             column: DESCRIPTION
+            dataType: varchar2
+        }
+    )
+
+    pageItem P2_MENU_ICON (
+        type: textField
+        label {
+            label: Menu Icon
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @div-id-headtext-msater-menu-entry-div
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        validation {
+            valueRequired: true
+            maxLength: 1000
+        }
+        source {
+            formRegion: @div-id-headtext-msater-menu-entry-div
+            column: MENU_ICON
             dataType: varchar2
         }
     )
@@ -772,14 +800,14 @@ page 2 (
             region: @div-id-headtext-msater-menu-entry-div
             slot: regionBody
             alignment: left
-            columnSpan: 1
+            columnSpan: 2
         }
         appearance {
             template: @/optional-above
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
@@ -806,14 +834,14 @@ page 2 (
             slot: regionBody
             alignment: left
             startNewRow: false
-            columnSpan: 4
+            columnSpan: 5
         }
         appearance {
             template: @/optional-above
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
@@ -865,14 +893,13 @@ page 2 (
             slot: regionBody
             alignment: left
             startNewRow: false
-            columnSpan: 3
         }
         appearance {
             template: @/optional-above
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
@@ -891,7 +918,7 @@ page 2 (
             alignment: left
         }
         layout {
-            sequence: 70
+            sequence: 60
             region: @div-id-headtext-msater-menu-entry-div
             slot: regionBody
             alignment: left
@@ -902,7 +929,7 @@ page 2 (
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
@@ -999,7 +1026,6 @@ page 2 (
         }
         advanced {
             htmlDomId: pb-save
-            customAttributes: disabled
         }
     )
 
@@ -1059,6 +1085,7 @@ page 2 (
                                                     PARENT_MENU_NO,
                                                     SL_NO,
                                                     APP_ID,
+                                                    MENU_ICON,
                                                     SS_CREATOR,
                                                     SS_CREATED_ON)
                              VALUES ( S_SA_MENU.NEXTVAL,
@@ -1068,6 +1095,7 @@ page 2 (
                                      :P2_PARENT_MENU_NO,
                                      :P2_SL_NO,
                                      :P2_APP_ID,
+                                     :P2_MENU_ICON,
                                      :G_USER_NO,
                                      --to_date(TO_CHAR (SYSDATE, 'DD-MON-YYYY HH24:MI:SS'))
                                      SYSDATE
@@ -1081,6 +1109,7 @@ page 2 (
                                DESCRIPTION = :P2_DESCRIPTION,
                                PARENT_MENU_NO =:P2_PARENT_MENU_NO,
                                SL_NO =:P2_SL_NO,
+                               MENU_ICON = :P2_MENU_ICON,
                                SS_MODIFIER = :G_USER_NO
                                WHERE MENU_NO =:P2_MENU_NO;
                               -- SS_UPLOADED_ON = TO_CHAR (SYSDATE, 'DD-MON-YYYY HH24:MI:SS');
@@ -1096,6 +1125,9 @@ page 2 (
         }
         advanced {
             executionMappingIdentifier: 8034953009540538123
+        }
+        serverSideCondition {
+            whenButtonPressed: @save-2
         }
     )
 

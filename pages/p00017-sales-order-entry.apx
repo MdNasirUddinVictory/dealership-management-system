@@ -3350,6 +3350,130 @@ page 17 (
 
     )
 
+    dynamicAction new_10 (
+        name: New
+        execution {
+            sequence: 150
+        }
+        when {
+            event: ready
+        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                    
+                    (function () {
+                        var $received = $("#P17_RECEIVED_AMOUNT");
+                        var $save = $("#pb-save");
+                    
+                        if (window.posPaymentValidationBound) {
+                            return;
+                        }
+                        window.posPaymentValidationBound = true;
+                    
+                        var paymentConfirmed = false;
+                        var confirming = false;
+                    
+                        function validatePayment() {
+                            var netPay = parseFloat(
+                                String($v("P17_PAYABLE_AMOUNT") || "0").replace(/,/g, "")
+                            ) || 0;
+                    
+                            var receivedAmnt = parseFloat(
+                                String($v("P17_RECEIVED_AMOUNT") || "0").replace(/,/g, "")
+                            ) || 0;
+                    
+                            var $return = $("#P17_RETURN_AMOUNT");
+                    
+                            $received.removeClass("received-error received-ok");
+                            $return.removeClass("change-ok change-zero");
+                    
+                            if (receivedAmnt < netPay) {
+                                $received.addClass("received-error");
+                                $s("P17_RETURN_AMOUNT", "0.00");
+                                $return.addClass("change-zero");
+                    
+                                apex.message.alert(
+                                    "Received Amount cannot be less than Payable Amount.",
+                                    function () {
+                                        $received.focus().select();
+                                    }
+                                );
+                                return;
+                            }
+                    
+                            $received.addClass("received-ok");
+                    
+                            var change = receivedAmnt - netPay;
+                            $s("P17_RETURN_AMOUNT", change.toFixed(2));
+                    
+                            $return.addClass(change > 0 ? "change-ok" : "change-zero");
+                    
+                            confirming = true;
+                    
+                            apex.message.confirm(
+                                "💰 PAYMENT CONFIRMATION\n\n" +
+                                "Payable Amount  : " + netPay.toFixed(2) + "\n" +
+                                "Received Amount : " + receivedAmnt.toFixed(2) + "\n" +
+                                "Change Amount   : " + change.toFixed(2) + "\n\n" +
+                                "Confirm Payment?",
+                                function (ok) {
+                                    confirming = false;
+                    
+                                    if (ok) {
+                                        paymentConfirmed = true;
+                    
+                                        /*
+                                         * Submit the existing APEX Save button
+                                         * only after confirmation.
+                                         */
+                                        $save[0].click();
+                                    } else {
+                                        $received.focus().select();
+                                    }
+                                }
+                            );
+                        }
+                    
+                        /* Enter key: validate without submitting the page */
+                        $received.on("keydown.posPayment", function (event) {
+                            if (event.key === "Enter") {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                validatePayment();
+                            }
+                        });
+                    
+                        /*
+                         * Capture Save click before APEX's normal submit handler.
+                         */
+                        $save[0].addEventListener("click", function (event) {
+                            if (paymentConfirmed) {
+                                paymentConfirmed = false;
+                                return; // Allow normal APEX submit
+                            }
+                    
+                            event.preventDefault();
+                            event.stopImmediatePropagation();
+                    
+                            if (!confirming) {
+                                validatePayment();
+                            }
+                        }, true);
+                    })();
+                    
+                    ```
+            }
+            execution {
+                sequence: 10
+            }
+        )
+
+    )
+
     dynamicAction new_2 (
         name: New
         execution {
@@ -3531,6 +3655,9 @@ page 17 (
             execution {
                 sequence: 10
                 fireOnInit: false
+            }
+            config {
+                buildOption: @commented-out
             }
         )
 

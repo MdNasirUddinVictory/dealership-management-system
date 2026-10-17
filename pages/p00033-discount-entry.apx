@@ -8,7 +8,7 @@ page 33 (
         templateOptions: #DEFAULT#
     }
     dialog {
-        width: 70%
+        width: 50%
     }
     navigation {
         cursorFocus: doNotFocusCursor
@@ -106,18 +106,19 @@ page 33 (
             displayNullValue: false
         }
         layout {
-            sequence: 110
+            sequence: 100
             region: @product-entrey
             slot: regionBody
             alignment: left
-            startNewRow: false
+            labelColumnSpan: 3
         }
         appearance {
-            template: @/optional-above
+            template: @/optional
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
                 t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
                 t-Form-fieldContainer--slimPadding
             ]
         }
@@ -138,7 +139,7 @@ page 33 (
     pageItem P33_CATEGORY_NO (
         type: popupLov
         label {
-            label: Category Wise Discount
+            label: "Category "
             alignment: left
         }
         lov {
@@ -158,13 +159,15 @@ page 33 (
             slot: regionBody
             alignment: left
             startNewRow: false
+            labelColumnSpan: 3
         }
         appearance {
-            template: @/optional-above
+            template: @/optional
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
                 t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
@@ -173,6 +176,11 @@ page 33 (
             formRegion: @product-entrey
             column: CATEGORY_NO
             dataType: number
+        }
+        serverSideCondition {
+            type: item=value
+            item: P33_HIDE_CATEGORY
+            value: C
         }
     )
 
@@ -213,7 +221,7 @@ page 33 (
     pageItem P33_CUSTOMER_NO (
         type: popupLov
         label {
-            label: Customer Wise Discount
+            label: "Customer "
             alignment: left
         }
         settings {
@@ -225,17 +233,20 @@ page 33 (
             displayExtraValues: false
         }
         layout {
-            sequence: 50
+            sequence: 40
             region: @product-entrey
             slot: regionBody
             alignment: left
+            startNewRow: false
+            newColumn: false
         }
         appearance {
-            template: @/optional-above
+            template: @/optional
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
                 t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
@@ -244,6 +255,11 @@ page 33 (
             formRegion: @product-entrey
             column: CUSTOMER_NO
             dataType: number
+        }
+        serverSideCondition {
+            type: item=value
+            item: P33_HIDE_CUSTOMER
+            value: CU
         }
     )
 
@@ -279,14 +295,15 @@ page 33 (
             region: @product-entrey
             slot: regionBody
             alignment: left
-            startNewRow: false
+            labelColumnSpan: 3
         }
         appearance {
-            template: @/optional-above
+            template: @/optional
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
                 t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
@@ -308,17 +325,19 @@ page 33 (
             alignment: left
         }
         layout {
-            sequence: 80
+            sequence: 70
             region: @product-entrey
             slot: regionBody
             alignment: left
+            labelColumnSpan: 3
         }
         appearance {
-            template: @/optional-above
+            template: @/optional
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
                 t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
@@ -340,18 +359,19 @@ page 33 (
             alignment: left
         }
         layout {
-            sequence: 90
+            sequence: 80
             region: @product-entrey
             slot: regionBody
             alignment: left
-            startNewRow: false
+            labelColumnSpan: 3
         }
         appearance {
-            template: @/optional-above
+            template: @/optional
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
                 t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
@@ -363,6 +383,42 @@ page 33 (
         }
     )
 
+    pageItem P33_HIDE_CATEGORY (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 130
+            region: @product-entrey
+            slot: regionBody
+        }
+    )
+
+    pageItem P33_HIDE_CUSTOMER (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 110
+            region: @product-entrey
+            slot: regionBody
+        }
+    )
+
+    pageItem P33_HIDE_PRODUCT (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 120
+            region: @product-entrey
+            slot: regionBody
+        }
+    )
+
     pageItem P33_PRIORITY (
         type: numberField
         label {
@@ -370,17 +426,19 @@ page 33 (
             alignment: left
         }
         layout {
-            sequence: 100
+            sequence: 90
             region: @product-entrey
             slot: regionBody
             alignment: left
+            labelColumnSpan: 3
         }
         appearance {
-            template: @/optional-above
+            template: @/optional
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
                 t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
@@ -398,7 +456,7 @@ page 33 (
     pageItem P33_PRODUCT_NO (
         type: popupLov
         label {
-            label: Product Wise Discount
+            label: "Product "
             alignment: left
         }
         settings {
@@ -430,13 +488,15 @@ page 33 (
             slot: regionBody
             alignment: left
             startNewRow: false
+            newColumn: false
         }
         appearance {
-            template: @/optional-above
+            template: @/optional
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
                 t-Form-fieldContainer--large
+                t-Form-fieldContainer--radioButtonGroup
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
@@ -445,6 +505,11 @@ page 33 (
             formRegion: @product-entrey
             column: PRODUCT_NO
             dataType: number
+        }
+        serverSideCondition {
+            type: item=value
+            item: P33_HIDE_PRODUCT
+            value: P
         }
     )
 

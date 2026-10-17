@@ -106,10 +106,13 @@ page 31 (
             template: @/standard
             templateOptions: [
                 #DEFAULT#
+                t-Region--noPadding
                 t-Region--removeHeader js-removeLandmark
                 t-Region--scrollBody
                 t-Form--slimPadding
                 t-Form--large
+                margin-top-none
+                margin-bottom-none
             ]
         }
         edit {

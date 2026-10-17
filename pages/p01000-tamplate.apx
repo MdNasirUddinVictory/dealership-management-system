@@ -1,7 +1,7 @@
 page 1000 (
-    name: Cash and Bank Book
-    alias: CASH-AND-BANK-BOOK
-    title: Cash and Bank Book
+    name: Tamplate
+    alias: TAMPLATE
+    title: Tamplate
     appearance {
         pageTemplate: @/standard
         templateOptions: #DEFAULT#
@@ -43,130 +43,46 @@ page 1000 (
         }
     )
 
-    region book-register (
-        name: Cash and Bank Book Report
-        type: interactiveReport
+    region entry (
+        name: ENTRY
+        type: form
         source {
             location: localDatabase
-            type: sqlQuery
-            sqlQuery:
-                ```sql
-                WITH BOOK_ACCOUNT AS
-                (
-                    SELECT S.ACCOUNT_KEY,
-                           S.ACCOUNT_NO,
-                           NVL(H.ACCOUNT_CODE, TO_CHAR(S.ACCOUNT_NO)) ACCOUNT_CODE,
-                           NVL(H.ACCOUNT_NAME, S.REMARKS) ACCOUNT_NAME
-                    FROM ACC_SYSTEM_ACCOUNT S
-                    LEFT JOIN MST_ACCOUNT_HEAD H
-                      ON H.ACCOUNT_NO = S.ACCOUNT_NO
-                    WHERE S.ACTIVE_STATUS = 'Y'
-                                            AND S.ACCOUNT_KEY IN ('CASH', 'BANK')
-                      AND (:P1000_BOOK_TYPE = 'ALL' OR S.ACCOUNT_KEY = :P1000_BOOK_TYPE)
-                ),
-                OPENING AS
-                (
-                    SELECT B.ACCOUNT_KEY,
-                           B.ACCOUNT_NO,
-                           B.ACCOUNT_CODE,
-                           B.ACCOUNT_NAME,
-                           NVL((
-                               SELECT SUM(NVL(O.OPENING_DEBIT, 0) - NVL(O.OPENING_CREDIT, 0))
-                               FROM ACC_OPENING_BALANCE O
-                               WHERE O.ACCOUNT_NO = B.ACCOUNT_NO
-                                 AND O.APPROVAL_STATUS = 'A'
-                           ), 0)
-                           + NVL((
-                               SELECT SUM(NVL(D.DEBIT_AMOUNT, 0) - NVL(D.CREDIT_AMOUNT, 0))
-                               FROM ACC_VOUCHER_MST M
-                               JOIN ACC_VOUCHER_DTL D ON D.VOUCHER_NO = M.VOUCHER_NO
-                               WHERE D.ACCOUNT_NO = B.ACCOUNT_NO
-                                 AND M.APPROVAL_STATUS = 'A'
-                                 AND :P1000_FROM_DATE IS NOT NULL
-                                 AND M.VOUCHER_DATE < TRUNC(:P1000_FROM_DATE)
-                           ), 0) OPENING_BALANCE
-                    FROM BOOK_ACCOUNT B
-                ),
-                TRANSACTIONS AS
-                (
-                    SELECT O.ACCOUNT_KEY,
-                           O.ACCOUNT_NO,
-                              O.ACCOUNT_CODE,
-                              O.ACCOUNT_NAME,
-                           M.VOUCHER_DATE,
-                           M.VOUCHER_NO,
-                           M.VOUCHER_CODE,
-                           M.VOUCHER_TYPE,
-                           M.NARRATION,
-                           D.VOUCHER_DTL_NO,
-                           D.PARTICULARS,
-                           NVL(D.DEBIT_AMOUNT, 0) DEBIT_AMOUNT,
-                           NVL(D.CREDIT_AMOUNT, 0) CREDIT_AMOUNT,
-                           O.OPENING_BALANCE
-                    FROM OPENING O
-                    JOIN ACC_VOUCHER_DTL D ON D.ACCOUNT_NO = O.ACCOUNT_NO
-                    JOIN ACC_VOUCHER_MST M ON M.VOUCHER_NO = D.VOUCHER_NO
-                    WHERE M.APPROVAL_STATUS = 'A'
-                      AND (:P1000_FROM_DATE IS NULL OR M.VOUCHER_DATE >= TRUNC(:P1000_FROM_DATE))
-                      AND (:P1000_TO_DATE IS NULL OR M.VOUCHER_DATE < TRUNC(:P1000_TO_DATE) + 1)
-                ),
-                BOOK_ROWS AS
-                (
-                    SELECT O.ACCOUNT_KEY,
-                           O.ACCOUNT_NO,
-                           O.ACCOUNT_CODE,
-                           O.ACCOUNT_NAME,
-                           CAST(NULL AS DATE) VOUCHER_DATE,
-                           CAST(NULL AS VARCHAR2(100)) VOUCHER_CODE,
-                           CAST(NULL AS VARCHAR2(30)) VOUCHER_TYPE,
-                           'Opening Balance' PARTICULARS,
-                           0 DEBIT_AMOUNT,
-                           0 CREDIT_AMOUNT,
-                           O.OPENING_BALANCE,
-                           0 ROW_ORDER,
-                           0 VOUCHER_NO,
-                           0 VOUCHER_DTL_NO
-                    FROM OPENING O
-                    UNION ALL
-                    SELECT T.ACCOUNT_KEY,
-                           T.ACCOUNT_NO,
-                              T.ACCOUNT_CODE,
-                              T.ACCOUNT_NAME,
-                           T.VOUCHER_DATE,
-                           T.VOUCHER_CODE,
-                           T.VOUCHER_TYPE,
-                           NVL(T.PARTICULARS, T.NARRATION) PARTICULARS,
-                           T.DEBIT_AMOUNT,
-                           T.CREDIT_AMOUNT,
-                           T.OPENING_BALANCE,
-                           1 ROW_ORDER,
-                           T.VOUCHER_NO,
-                           T.VOUCHER_DTL_NO
-                    FROM TRANSACTIONS T
-                )
-                SELECT ACCOUNT_KEY,
-                       ACCOUNT_CODE,
-                       ACCOUNT_NAME,
-                       VOUCHER_DATE,
-                       VOUCHER_CODE,
-                       VOUCHER_TYPE,
-                       PARTICULARS,
-                       DEBIT_AMOUNT,
-                       CREDIT_AMOUNT,
-                       OPENING_BALANCE
-                         + SUM(DEBIT_AMOUNT - CREDIT_AMOUNT) OVER (
-                               PARTITION BY ACCOUNT_NO
-                               ORDER BY ROW_ORDER, VOUCHER_DATE, VOUCHER_NO, VOUCHER_DTL_NO
-                               ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-                           ) RUNNING_BALANCE
-                FROM BOOK_ROWS
-                ORDER BY ACCOUNT_KEY, ACCOUNT_NO, ROW_ORDER, VOUCHER_DATE, VOUCHER_NO, VOUCHER_DTL_NO
-                ```
-            pageItemsToSubmit: [
-                P1000_BOOK_TYPE
-                P1000_FROM_DATE
-                P1000_TO_DATE
+            tableName: MST_PRODUCT_CATEGORY
+        }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--removeHeader js-removeLandmark
+                t-Region--scrollBody
+                t-Form--slimPadding
+                t-Form--large
+                t-Form--stretchInputs
+                margin-top-none
+                margin-bottom-none
             ]
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+    )
+
+    region register (
+        name: REGISTER
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            tableName: MST_PRODUCT_CATEGORY
         }
         layout {
             sequence: 20
@@ -176,260 +92,600 @@ page 1000 (
             template: @/interactive-report
             templateOptions: [
                 #DEFAULT#
-                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+                t-IRR-region--removeHeader js-removeLandmark
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
             ]
         }
-        pagination {
-            type: rowRangesXToY
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
         }
         advanced {
-            savedReportMappingIdentifier: 72610425023819735010
+            savedReportMappingIdentifier: 8268557286642693438
         }
 
-        column ACCOUNT_KEY (
-            type: plainText
-            heading {
-                heading: Book
+        savedReport primary (
+            visibility: primary
+            view {
+                default: grid
             }
-            layout {
-                sequence: 10
+            singleRowView {
+                displayedColumns: true
             }
-            source {
-                dataType: STRING
-            }
+
+            displayColumn (
+                column: @CATEGORY_NO
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @CATEGORY_CODE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @CATEGORY_NAME
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @ACTIVE_FLAG
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_BY
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_DATE
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @UPDATED_BY
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @UPDATED_DATE
+                layout {
+                    sequence: 8
+                }
+            )
+
         )
 
-        column ACCOUNT_CODE (
-            type: plainText
+        column ACTIVE_FLAG (
+            type: textField
             heading {
-                heading: Account Code
-            }
-            layout {
-                sequence: 20
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column ACCOUNT_NAME (
-            type: plainText
-            heading {
-                heading: Account Name
-            }
-            layout {
-                sequence: 30
-            }
-            source {
-                dataType: STRING
-            }
-        )
-
-        column VOUCHER_DATE (
-            type: plainText
-            heading {
-                heading: Date
+                heading: Active Flag
             }
             layout {
                 sequence: 40
             }
+            validation {
+                maxLength: 1
+            }
             source {
-                dataType: DATE
+                databaseColumn: ACTIVE_FLAG
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
             }
         )
 
-        column VOUCHER_CODE (
-            type: plainText
+        column CATEGORY_CODE (
+            type: textField
             heading {
-                heading: Voucher No
+                heading: Category Code
+            }
+            layout {
+                sequence: 20
+            }
+            validation {
+                valueRequired: true
+                maxLength: 20
+            }
+            source {
+                databaseColumn: CATEGORY_CODE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CATEGORY_NAME (
+            type: textField
+            heading {
+                heading: Category Name
+            }
+            layout {
+                sequence: 30
+            }
+            validation {
+                valueRequired: true
+                maxLength: 200
+            }
+            source {
+                databaseColumn: CATEGORY_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CATEGORY_NO (
+            type: hidden
+            layout {
+                sequence: 10
+            }
+            source {
+                databaseColumn: CATEGORY_NO
+                dataType: number
+                primaryKey: true
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column CREATED_BY (
+            type: textField
+            heading {
+                heading: Created By
             }
             layout {
                 sequence: 50
             }
+            validation {
+                maxLength: 30
+            }
             source {
-                dataType: STRING
+                databaseColumn: CREATED_BY
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
             }
         )
 
-        column VOUCHER_TYPE (
-            type: plainText
+        column CREATED_DATE (
+            type: datePicker
             heading {
-                heading: Voucher Type
+                heading: Created Date
             }
             layout {
                 sequence: 60
             }
             source {
-                dataType: STRING
+                databaseColumn: CREATED_DATE
+                dataType: date
             }
         )
 
-        column PARTICULARS (
-            type: plainText
+        column UPDATED_BY (
+            type: textField
             heading {
-                heading: Particulars
+                heading: Updated By
             }
             layout {
                 sequence: 70
             }
+            validation {
+                maxLength: 30
+            }
             source {
-                dataType: STRING
+                databaseColumn: UPDATED_BY
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
             }
         )
 
-        column DEBIT_AMOUNT (
-            type: plainText
+        column UPDATED_DATE (
+            type: datePicker
             heading {
-                heading: Debit
-                alignment: end
+                heading: Updated Date
             }
             layout {
                 sequence: 80
-                columnAlignment: end
             }
             source {
-                dataType: NUMBER
+                databaseColumn: UPDATED_DATE
+                dataType: date
             }
         )
 
-        column CREDIT_AMOUNT (
-            type: plainText
-            heading {
-                heading: Credit
-                alignment: end
-            }
-            layout {
-                sequence: 90
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-        )
-
-        column RUNNING_BALANCE (
-            type: plainText
-            heading {
-                heading: Running Balance
-                alignment: end
-            }
-            layout {
-                sequence: 100
-                columnAlignment: end
-            }
-            source {
-                dataType: NUMBER
-            }
-        )
-
-        savedReport primary (
-            visibility: primaryDefault
-            view {
-                rowsPerPage: 50
-            }
-
-            displayColumn ACCOUNT_KEY (
-                sequence: 1
-            )
-
-            displayColumn ACCOUNT_CODE (
-                sequence: 2
-            )
-
-            displayColumn ACCOUNT_NAME (
-                sequence: 3
-            )
-
-            displayColumn VOUCHER_DATE (
-                sequence: 4
-            )
-
-            displayColumn VOUCHER_CODE (
-                sequence: 5
-            )
-
-            displayColumn VOUCHER_TYPE (
-                sequence: 6
-            )
-
-            displayColumn PARTICULARS (
-                sequence: 7
-            )
-
-            displayColumn DEBIT_AMOUNT (
-                sequence: 8
-            )
-
-            displayColumn CREDIT_AMOUNT (
-                sequence: 9
-            )
-
-            displayColumn RUNNING_BALANCE (
-                sequence: 10
-            )
-        )
-    )
-
-    pageItem P1000_BOOK_TYPE (
-        type: selectList
-        label {
-            label: Book Type
-            alignment: left
-        }
-        lov {
-            type: staticValues
-            staticValues: STATIC3:All Books;ALL,Cash Book;CASH,Bank Book;BANK
-            displayExtraValues: false
-            displayNullValue: false
-        }
-        layout {
-            sequence: 10
-            slot: body
-            alignment: left
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
         }
     )
 
-    pageItem P1000_FROM_DATE (
-        type: datePicker
-        label {
-            label: From Date
-            alignment: left
-        }
-        layout {
-            sequence: 20
-            slot: body
-            alignment: left
-            startNewRow: false
-        }
-        appearance {
-            template: @/optional-above
-            templateOptions: [
-                #DEFAULT#
-                t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--slimPadding
-            ]
-            width: 30
-        }
-    )
-
-    pageItem P1000_TO_DATE (
-        type: datePicker
-        label {
-            label: To Date
-            alignment: left
+    region register_1 (
+        name: REGISTER
+        type: interactiveGrid
+        source {
+            location: localDatabase
+            tableName: MST_PRODUCT_CATEGORY
         }
         layout {
             sequence: 30
             slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--removeHeader js-removeLandmark
+                t-Form--slimPadding
+                margin-top-none
+                margin-bottom-none
+            ]
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+        toolbar {
+            controls: [
+                searchCol
+                searchField
+                actionsMenu
+                resetButton
+                saveButton
+            ]
+        }
+        download {
+            formats: [
+                csv
+                html
+                excel
+                pdf
+            ]
+        }
+        advanced {
+            savedReportMappingIdentifier: 8268557286642693438
+        }
+
+        savedReport primary (
+            visibility: primary
+            view {
+                default: grid
+            }
+            singleRowView {
+                displayedColumns: true
+            }
+
+            displayColumn (
+                column: @CATEGORY_NO
+                layout {
+                    sequence: 1
+                }
+            )
+
+            displayColumn (
+                column: @CATEGORY_CODE
+                layout {
+                    sequence: 2
+                }
+            )
+
+            displayColumn (
+                column: @CATEGORY_NAME
+                layout {
+                    sequence: 3
+                }
+            )
+
+            displayColumn (
+                column: @ACTIVE_FLAG
+                layout {
+                    sequence: 4
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_BY
+                layout {
+                    sequence: 5
+                }
+            )
+
+            displayColumn (
+                column: @CREATED_DATE
+                layout {
+                    sequence: 6
+                }
+            )
+
+            displayColumn (
+                column: @UPDATED_BY
+                layout {
+                    sequence: 7
+                }
+            )
+
+            displayColumn (
+                column: @UPDATED_DATE
+                layout {
+                    sequence: 8
+                }
+            )
+
+            displayColumn (
+                column: @APEX$ROW_ACTION
+                layout {
+                    sequence: 0
+                }
+            )
+
+        )
+
+        column ACTIVE_FLAG (
+            type: textField
+            heading {
+                heading: Active Flag
+            }
+            layout {
+                sequence: 60
+            }
+            validation {
+                maxLength: 1
+            }
+            source {
+                databaseColumn: ACTIVE_FLAG
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column APEX$ROW_ACTION (
+            type: actionsMenu
+            layout {
+                sequence: 20
+            }
+        )
+
+        column APEX$ROW_SELECTOR (
+            type: rowSelector
+            layout {
+                sequence: 10
+            }
+        )
+
+        column CATEGORY_CODE (
+            type: textField
+            heading {
+                heading: Category Code
+            }
+            layout {
+                sequence: 40
+            }
+            validation {
+                valueRequired: true
+                maxLength: 20
+            }
+            source {
+                databaseColumn: CATEGORY_CODE
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CATEGORY_NAME (
+            type: textField
+            heading {
+                heading: Category Name
+            }
+            layout {
+                sequence: 50
+            }
+            validation {
+                valueRequired: true
+                maxLength: 200
+            }
+            source {
+                databaseColumn: CATEGORY_NAME
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CATEGORY_NO (
+            type: hidden
+            layout {
+                sequence: 30
+            }
+            source {
+                databaseColumn: CATEGORY_NO
+                dataType: number
+                primaryKey: true
+            }
+            exportPrinting {
+                includeInExportPrint: false
+            }
+        )
+
+        column CREATED_BY (
+            type: textField
+            heading {
+                heading: Created By
+            }
+            layout {
+                sequence: 70
+            }
+            validation {
+                maxLength: 30
+            }
+            source {
+                databaseColumn: CREATED_BY
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column CREATED_DATE (
+            type: datePicker
+            heading {
+                heading: Created Date
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                databaseColumn: CREATED_DATE
+                dataType: date
+            }
+        )
+
+        column UPDATED_BY (
+            type: textField
+            heading {
+                heading: Updated By
+            }
+            layout {
+                sequence: 90
+            }
+            validation {
+                maxLength: 30
+            }
+            source {
+                databaseColumn: UPDATED_BY
+                dataType: varchar2
+            }
+            columnFilter {
+                performanceImpactingOperators: [
+                    contains
+                    startsWith
+                    caseInsensitive
+                    regexp
+                ]
+            }
+        )
+
+        column UPDATED_DATE (
+            type: datePicker
+            heading {
+                heading: Updated Date
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                databaseColumn: UPDATED_DATE
+                dataType: date
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+    )
+
+    pageItem P1000_ACTIVE_FLAG (
+        type: textField
+        label {
+            label: Active Flag
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
             alignment: left
             startNewRow: false
         }
@@ -438,36 +694,501 @@ page 1000 (
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
-                t-Form-fieldContainer--slimPadding
             ]
             width: 30
         }
+        validation {
+            maxLength: 1
+        }
+        source {
+            formRegion: @entry
+            column: ACTIVE_FLAG
+            dataType: varchar2
+        }
     )
 
-    dynamicAction refresh-book-report (
-        name: Refresh Book Report
+    pageItem P1000_CATEGORY_CODE (
+        type: textField
+        label {
+            label: Category Code
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+            maxLength: 20
+        }
+        source {
+            formRegion: @entry
+            column: CATEGORY_CODE
+            dataType: varchar2
+        }
+    )
+
+    pageItem P1000_CATEGORY_NAME (
+        type: textField
+        label {
+            label: Category Name
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        validation {
+            valueRequired: true
+            maxLength: 200
+        }
+        source {
+            formRegion: @entry
+            column: CATEGORY_NAME
+            dataType: varchar2
+        }
+    )
+
+    pageItem P1000_CATEGORY_NO (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+        }
+        source {
+            formRegion: @entry
+            column: CATEGORY_NO
+            dataType: number
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P1000_CREATED_BY (
+        type: textField
+        label {
+            label: Created By
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 30
+        }
+        source {
+            formRegion: @entry
+            column: CREATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P1000_CREATED_DATE (
+        type: datePicker
+        label {
+            label: Created Date
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+            columnSpan: 3
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        source {
+            formRegion: @entry
+            column: CREATED_DATE
+            dataType: date
+        }
+    )
+
+    pageItem P1000_UPDATED_BY (
+        type: textField
+        label {
+            label: Updated By
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 3
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        validation {
+            maxLength: 30
+        }
+        source {
+            formRegion: @entry
+            column: UPDATED_BY
+            dataType: varchar2
+        }
+    )
+
+    pageItem P1000_UPDATED_DATE (
+        type: datePicker
+        label {
+            label: Updated Date
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            region: @entry
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+            columnSpan: 3
+        }
+        appearance {
+            template: @/optional-above
+            templateOptions: [
+                #DEFAULT#
+                t-Form-fieldContainer--stretchInputs
+            ]
+            width: 30
+        }
+        source {
+            formRegion: @entry
+            column: UPDATED_DATE
+            dataType: date
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Delete
+        layout {
+            sequence: 40
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-trash-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+            requiresConfirmation: true
+        }
+        confirmation {
+            message: Are you sure you want to delete this record?
+            style: warning
+        }
+        advanced {
+            htmlDomId: pb-delete
+        }
+    )
+
+    button new (
+        buttonName: New
+        label: New
+        layout {
+            sequence: 10
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-reset
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Save
+        layout {
+            sequence: 20
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-save
+        }
+    )
+
+    button update (
+        buttonName: UPDATE
+        label: Update
+        layout {
+            sequence: 30
+            region: @breadcrumb
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-save-as
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: pb-update
+        }
+    )
+
+    process delete (
+        name: DELETE
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                    DELETE FROM TRN_PURCHASE_MST
+                     WHERE PURCHASE_NO = :P12_PURCHASE_NO;
+                
+                    apex_application.g_print_success_message :=
+                        'Purchase information deleted successfully.';
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 30
+        }
+        advanced {
+            executionMappingIdentifier: 8293113768372552031
+        }
+        serverSideCondition {
+            whenButtonPressed: @delete
+        }
+    )
+
+    process initialize-form-tamplate (
+        name: Initialize form Tamplate
+        type: formInitialization
+        formRegion: @entry
         execution {
             sequence: 10
+            point: beforeHeader
         }
-        when {
-            selectionType: items
-            items: [
-                P1000_BOOK_TYPE
-                P1000_FROM_DATE
-                P1000_TO_DATE
-            ]
+        advanced {
+            executionMappingIdentifier: 8268556261211693428
         }
-
-        action refresh-book-region (
-            action: refresh
-            affectedElements {
-                selectionType: region
-                region: @book-register
-            }
-            execution {
-                sequence: 10
-                fireOnInit: false
-            }
-        )
     )
+
+    process process-form-entry (
+        name: Process form ENTRY
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                    IF :P12_PURCHASE_NO IS NULL THEN
+                
+                        INSERT INTO TRN_PURCHASE_MST
+                        (
+                            PURCHASE_NO,
+                            PURCHASE_CODE,
+                            PURCHASE_DATE,
+                            SUPPLIER_NO,
+                            REMARKS,
+                            ACTIVE_FLAG,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES
+                        (
+                            SEQ_PURCHASE_NO.NEXTVAL,
+                           'PUR-'||LPAD(SEQ_PURCHASE_NO.NEXTVAL,4,'0'),
+                            :P12_PURCHASE_DATE,
+                            :P12_SUPPLIER_NO,
+                            :P12_REMARKS,
+                            :P12_ACTIVE_FLAG,
+                            :APP_USER,
+                            SYSDATE
+                        );
+                
+                        apex_application.g_print_success_message :=
+                            'Purchase information saved successfully.';
+                
+                    ELSE
+                
+                        UPDATE TRN_PURCHASE_MST
+                           SET
+                               PURCHASE_DATE = :P12_PURCHASE_DATE,
+                               SUPPLIER_NO   = :P12_SUPPLIER_NO,
+                               REMARKS       = :P12_REMARKS,
+                               ACTIVE_FLAG   = :P12_ACTIVE_FLAG,
+                               UPDATED_BY    = :APP_USER,
+                               UPDATED_DATE  = SYSDATE
+                         WHERE PURCHASE_NO = :P12_PURCHASE_NO;
+                
+                        apex_application.g_print_success_message :=
+                            'Purchase information updated successfully.';
+                
+                    END IF;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 20
+        }
+        advanced {
+            executionMappingIdentifier: 8293113625135552030
+        }
+        serverSideCondition {
+            whenButtonPressed: @save
+        }
+    )
+
+    process register-save-interactive-grid-data (
+        name: REGISTER - Save Interactive Grid Data
+        type: executeCode
+        editableRegion: @register_1
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                
+                    IF :APEX$ROW_STATUS = 'C' THEN
+                
+                        INSERT INTO TRN_PURCHASE_DTL
+                        (
+                            PURCHASE_DTL_NO,
+                            PURCHASE_NO,
+                            PRODUCT_NO,
+                            PURCHASE_QTY,
+                            PURCHASE_RATE,
+                            TOTAL_AMOUNT,
+                            CREATED_BY,
+                            CREATED_DATE
+                        )
+                        VALUES
+                        (
+                            SEQ_PURCHASE_DTL_NO.NEXTVAL,
+                            :P12_PURCHASE_NO,
+                            :PRODUCT_NO,
+                            :PURCHASE_QTY,
+                            :PURCHASE_RATE,
+                            NVL(:PURCHASE_QTY,0) * NVL(:PURCHASE_RATE,0),
+                            :APP_USER,
+                            SYSDATE
+                        );
+                
+                        apex_application.g_print_success_message :=
+                            'Purchase detail saved successfully.';
+                
+                    ELSIF :APEX$ROW_STATUS = 'U' THEN
+                
+                        UPDATE TRN_PURCHASE_DTL
+                           SET PRODUCT_NO    = :PRODUCT_NO,
+                               PURCHASE_QTY  = :PURCHASE_QTY,
+                               PURCHASE_RATE = :PURCHASE_RATE,
+                               TOTAL_AMOUNT  = NVL(:PURCHASE_QTY,0) * NVL(:PURCHASE_RATE,0)--,
+                               --UPDATED_BY    = :APP_USER,
+                           --    UPDATED_DATE  = SYSDATE
+                         WHERE PURCHASE_DTL_NO = :PURCHASE_DTL_NO;
+                
+                        apex_application.g_print_success_message :=
+                            'Purchase detail updated successfully.';
+                
+                    ELSIF :APEX$ROW_STATUS = 'D' THEN
+                
+                        DELETE
+                          FROM TRN_PURCHASE_DTL
+                         WHERE PURCHASE_DTL_NO = :PURCHASE_DTL_NO;
+                
+                        apex_application.g_print_success_message :=
+                            'Purchase detail deleted successfully.';
+                
+                    END IF;
+                
+                END;
+                ```
+        }
+        execution {
+            sequence: 40
+        }
+        advanced {
+            executionMappingIdentifier: 8293113448145552028
+        }
+    )
+
 )
+

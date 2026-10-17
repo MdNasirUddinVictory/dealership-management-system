@@ -36,14 +36,17 @@ page 32 (
             ]
             cssClasses: breadcrumb
         }
+        config {
+            buildOption: @commented-out
+        }
         componentAppearance {
             breadcrumbTemplate: @/breadcrumb
             templateOptions: #DEFAULT#
         }
     )
 
-    region product-entrey (
-        name: DISCOUNT SETUP
+    region category-wise-discount (
+        name: Category Wise Discount
         type: interactiveReport
         source {
             location: localDatabase
@@ -66,12 +69,866 @@ page 32 (
                          LEFT JOIN MST_PRODUCT P ON P.PRODUCT_NO = D.PRODUCT_NO
                          LEFT JOIN MST_PRODUCT_CATEGORY C ON C.CATEGORY_NO = D.CATEGORY_NO
                          LEFT JOIN MST_CUSTOMER CU ON CU.CUSTOMER_NO = D.CUSTOMER_NO
+                         WHERE CATEGORY_NAME IS NOT NULL
+                ORDER BY D.PRIORITY DESC, D.CONFIG_NAME
+                ```
+        }
+        layout {
+            sequence: 60
+            parentRegion: @tab-container
+            slot: tabs
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 14663805102080240
+        }
+
+        column ACTIVE_FLAG (
+            type: plainText
+            heading {
+                heading: Active Flag
+                alignment: end
+            }
+            layout {
+                sequence: 90
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: H
+            }
+        )
+
+        column CATEGORY_NAME (
+            type: plainText
+            heading {
+                heading: Category Name
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: J
+            }
+        )
+
+        column CONFIG_CODE (
+            type: link
+            heading {
+                heading: Config Code
+            }
+            layout {
+                sequence: 20
+            }
+            link {
+                target: {
+                    page: 33
+                    items: {
+                        P33_DISCOUNT_CONFIG_NO: #DISCOUNT_CONFIG_NO#
+                        P33_HIDE_CATEGORY: C
+                    }
+                    clearCache: 33
+                    action: clearRegions
+                }
+                linkText: #CONFIG_CODE#
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: B
+            }
+        )
+
+        column CONFIG_NAME (
+            type: link
+            heading {
+                heading: Config Name
+            }
+            layout {
+                sequence: 30
+            }
+            link {
+                target: {
+                    page: 33
+                    items: {
+                        P33_DISCOUNT_CONFIG_NO: #DISCOUNT_CONFIG_NO#
+                        P33_HIDE_CATEGORY: C
+                    }
+                    clearCache: 33
+                    action: clearRegions
+                }
+                linkText: #CONFIG_NAME#
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: C
+            }
+        )
+
+        column CUSTOMER_NAME (
+            type: hidden
+            heading {
+                heading: Customer Name
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: K
+            }
+        )
+
+        column DISCOUNT_CONFIG_NO (
+            type: hidden
+            heading {
+                heading: Discount Config No
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: A
+            }
+        )
+
+        column DISCOUNT_PERCENT (
+            type: plainText
+            heading {
+                heading: Discount Percent
+                alignment: end
+            }
+            layout {
+                sequence: 40
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: D
+            }
+        )
+
+        column EFFECTIVE_FROM (
+            type: plainText
+            heading {
+                heading: Effective From
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: F
+            }
+        )
+
+        column EFFECTIVE_TO (
+            type: plainText
+            heading {
+                heading: Effective To
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: G
+            }
+        )
+
+        column PRIORITY (
+            type: plainText
+            heading {
+                heading: Priority
+                alignment: end
+            }
+            layout {
+                sequence: 60
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: E
+            }
+        )
+
+        column PRODUCT_NAME (
+            type: hidden
+            heading {
+                heading: Product Name
+            }
+            layout {
+                sequence: 100
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: I
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn ACTIVE_FLAG (
+                sequence: 8
+            )
+
+            displayColumn CATEGORY_NAME (
+                sequence: 3
+            )
+
+            displayColumn CONFIG_CODE (
+                sequence: 1
+            )
+
+            displayColumn CONFIG_NAME (
+                sequence: 2
+            )
+
+            displayColumn DISCOUNT_PERCENT (
+                sequence: 4
+            )
+
+            displayColumn EFFECTIVE_FROM (
+                sequence: 6
+            )
+
+            displayColumn EFFECTIVE_TO (
+                sequence: 7
+            )
+
+            displayColumn PRIORITY (
+                sequence: 5
+            )
+
+        )
+
+    )
+
+    region customer-wise-discount (
+        name: Customer Wise Discount
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                /* Formatted on 9/7/2026 1:27:02 PM (QP5 v5.388) */
+                  SELECT D.DISCOUNT_CONFIG_NO,
+                         D.CONFIG_CODE,
+                         D.CONFIG_NAME,
+                         P.PRODUCT_CODE || ' - ' || P.PRODUCT_NAME         AS PRODUCT_NAME,
+                         C.CATEGORY_CODE || ' - ' || C.CATEGORY_NAME       AS CATEGORY_NAME,
+                         CU.CUSTOMER_CODE || ' - ' || CU.CUSTOMER_NAME     AS CUSTOMER_NAME,
+                         D.DISCOUNT_PERCENT,
+                         D.PRIORITY,
+                         D.EFFECTIVE_FROM,
+                         D.EFFECTIVE_TO,
+                         D.ACTIVE_FLAG
+                    FROM MST_DISCOUNT_CONFIG D
+                         LEFT JOIN MST_PRODUCT P ON P.PRODUCT_NO = D.PRODUCT_NO
+                         LEFT JOIN MST_PRODUCT_CATEGORY C ON C.CATEGORY_NO = D.CATEGORY_NO
+                         LEFT JOIN MST_CUSTOMER CU ON CU.CUSTOMER_NO = D.CUSTOMER_NO
+                         WHERE  CUSTOMER_NAME IS NOT NULL
+                ORDER BY D.PRIORITY DESC, D.CONFIG_NAME
+                ```
+        }
+        layout {
+            sequence: 50
+            parentRegion: @tab-container
+            slot: tabs
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc
+            ]
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        advanced {
+            savedReportMappingIdentifier: 14663805102080240
+        }
+
+        column ACTIVE_FLAG (
+            type: plainText
+            heading {
+                heading: Active Flag
+                alignment: end
+            }
+            layout {
+                sequence: 100
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: H
+            }
+        )
+
+        column CATEGORY_NAME (
+            type: hidden
+            heading {
+                heading: Category Name
+            }
+            layout {
+                sequence: 120
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: J
+            }
+        )
+
+        column CONFIG_CODE (
+            type: link
+            heading {
+                heading: Config Code
+            }
+            layout {
+                sequence: 20
+            }
+            link {
+                target: {
+                    page: 33
+                    items: {
+                        P33_DISCOUNT_CONFIG_NO: #DISCOUNT_CONFIG_NO#
+                        P33_HIDE_CUSTOMER: CU
+                    }
+                    clearCache: 33
+                    action: clearRegions
+                }
+                linkText: #CONFIG_CODE#
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: B
+            }
+        )
+
+        column CONFIG_NAME (
+            type: link
+            heading {
+                heading: Config Name
+            }
+            layout {
+                sequence: 40
+            }
+            link {
+                target: {
+                    page: 33
+                    items: {
+                        P33_DISCOUNT_CONFIG_NO: #DISCOUNT_CONFIG_NO#
+                        P33_HIDE_CUSTOMER: CU
+                    }
+                    clearCache: 33
+                    action: clearRegions
+                }
+                linkText: #CONFIG_NAME#
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: C
+            }
+        )
+
+        column CUSTOMER_NAME (
+            type: plainText
+            heading {
+                heading: Customer Name
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: K
+            }
+        )
+
+        column DISCOUNT_CONFIG_NO (
+            type: hidden
+            heading {
+                heading: Discount Config No
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: A
+            }
+        )
+
+        column DISCOUNT_PERCENT (
+            type: plainText
+            heading {
+                heading: Discount Percent
+                alignment: end
+            }
+            layout {
+                sequence: 60
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: D
+            }
+        )
+
+        column EFFECTIVE_FROM (
+            type: plainText
+            heading {
+                heading: Effective From
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: F
+            }
+        )
+
+        column EFFECTIVE_TO (
+            type: plainText
+            heading {
+                heading: Effective To
+            }
+            layout {
+                sequence: 90
+            }
+            source {
+                dataType: DATE
+            }
+            advanced {
+                endUserAlias: G
+            }
+        )
+
+        column PRIORITY (
+            type: plainText
+            heading {
+                heading: Priority
+                alignment: end
+            }
+            layout {
+                sequence: 70
+                columnAlignment: end
+            }
+            source {
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: E
+            }
+        )
+
+        column PRODUCT_NAME (
+            type: hidden
+            heading {
+                heading: Product Name
+            }
+            layout {
+                sequence: 110
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: I
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn ACTIVE_FLAG (
+                sequence: 8
+            )
+
+            displayColumn CONFIG_CODE (
+                sequence: 1
+            )
+
+            displayColumn CONFIG_NAME (
+                sequence: 2
+            )
+
+            displayColumn CUSTOMER_NAME (
+                sequence: 3
+            )
+
+            displayColumn DISCOUNT_PERCENT (
+                sequence: 4
+            )
+
+            displayColumn EFFECTIVE_FROM (
+                sequence: 6
+            )
+
+            displayColumn EFFECTIVE_TO (
+                sequence: 7
+            )
+
+            displayColumn PRIORITY (
+                sequence: 5
+            )
+
+        )
+
+    )
+
+    region heading (
+        name: HEADING
+        type: staticContent
+        source {
+            htmlCode:
+                ```html
+                
+                <div class="discount-header">
+                    <div class="discount-title">
+                        <span class="discount-icon fa fa-tags"></span>
+                
+                        <h1>Discount Register</h1>
+                
+                        <span class="discount-badge">
+                            DISCOUNT SETUP
+                        </span>
+                    </div>
+                
+                    <div class="discount-subtitle">
+                        <span>
+                            <i class="fa fa-plus-circle"></i>
+                            Discount Entry
+                        </span>
+                
+                        <b>•</b>
+                
+                        <span>
+                            <i class="fa fa-cube"></i>
+                            Product Wise Discount
+                        </span>
+                
+                        <b>•</b>
+                
+                        <span>
+                            <i class="fa fa-users"></i>
+                            Customer Wise Discount
+                        </span>
+                
+                        <b>•</b>
+                
+                        <span>
+                            <i class="fa fa-tags"></i>
+                            Category Wise Discount
+                        </span>
+                
+                        <b>---</b>
+                
+                        <span>
+                            <i class="fa fa-list-alt"></i>
+                            Discount Configuration &amp; Register
+                        </span>
+                    </div>
+                </div>
+                
+                <style>
+                /* ===============================
+                   DISCOUNT REGISTER HEADER
+                ================================ */
+                
+                .discount-header {
+                    padding: 9px 12px 10px;
+                    margin-bottom: 8px;
+                
+                    background: linear-gradient(
+                        100deg,
+                        #eef2ff 0%,
+                        #f8fafc 60%,
+                        #eff6ff 100%
+                    );
+                
+                    border-left: 4px solid #6366f1;
+                    border-radius: 5px;
+                
+                    box-shadow: 0 2px 7px rgba(51, 65, 85, 0.08);
+                    box-sizing: border-box;
+                }
+                
+                /* ===============================
+                   TITLE & ICON
+                ================================ */
+                
+                .discount-title {
+                    display: flex;
+                    align-items: center;
+                    gap: 9px;
+                    flex-wrap: wrap;
+                }
+                
+                .discount-icon {
+                    width: 35px;
+                    height: 35px;
+                
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                
+                    flex-shrink: 0;
+                
+                    border-radius: 8px;
+                
+                    color: #ffffff;
+                
+                    background: linear-gradient(
+                        135deg,
+                        #4f46e5,
+                        #7c3aed
+                    );
+                
+                    font-size: 18px;
+                
+                    box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+                }
+                
+                .discount-title h1 {
+                    margin: 0;
+                
+                    font-size: 22px;
+                    line-height: 1.2;
+                    font-weight: 700;
+                
+                    color: #1e293b;
+                }
+                
+                /* ===============================
+                   BADGE
+                ================================ */
+                
+                .discount-badge {
+                    display: inline-block;
+                
+                    padding: 4px 9px;
+                
+                    border-radius: 12px;
+                
+                    background: #e0e7ff;
+                    border: 1px solid #c7d2fe;
+                
+                    color: #4338ca;
+                
+                    font-size: 9px;
+                    font-weight: 700;
+                    letter-spacing: 0.6px;
+                }
+                
+                /* ===============================
+                   SUBTITLE
+                ================================ */
+                
+                .discount-subtitle {
+                    margin: 5px 0 0 44px;
+                
+                    display: flex;
+                    align-items: center;
+                    flex-wrap: wrap;
+                
+                    gap: 5px;
+                
+                    font-size: 11px;
+                    line-height: 1.5;
+                
+                    color: #64748b;
+                }
+                
+                .discount-subtitle span {
+                    color: #475569;
+                    font-weight: 500;
+                }
+                
+                .discount-subtitle span:first-child {
+                    color: #4f46e5;
+                    font-weight: 700;
+                }
+                
+                .discount-subtitle i {
+                    margin-right: 3px;
+                    color: #6366f1;
+                    font-size: 11px;
+                }
+                
+                .discount-subtitle b {
+                    margin: 0 2px;
+                
+                    color: #c4b5fd;
+                    font-weight: 400;
+                }
+                
+                /* ===============================
+                   HOVER EFFECT
+                ================================ */
+                
+                .discount-subtitle span:hover {
+                    color: #4338ca;
+                    transition: color 0.2s ease;
+                }
+                
+                /* ===============================
+                   MOBILE RESPONSIVE
+                ================================ */
+                
+                @media (max-width: 600px) {
+                
+                    .discount-header {
+                        padding: 8px;
+                        margin-bottom: 6px;
+                    }
+                
+                    .discount-title {
+                        gap: 7px;
+                    }
+                
+                    .discount-title h1 {
+                        font-size: 19px;
+                    }
+                
+                    .discount-icon {
+                        width: 30px;
+                        height: 30px;
+                        font-size: 15px;
+                    }
+                
+                    .discount-badge {
+                        padding: 3px 7px;
+                        font-size: 8px;
+                    }
+                
+                    .discount-subtitle {
+                        margin: 5px 0 0 37px;
+                        gap: 4px;
+                        font-size: 10px;
+                    }
+                
+                    .discount-subtitle i {
+                        font-size: 10px;
+                    }
+                }
+                </style>
+                ```
+        }
+        layout {
+            sequence: 1
+            slot: body
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--removeHeader js-removeLandmark
+                t-Region--scrollBody
+            ]
+        }
+    )
+
+    region product-entrey (
+        name: Product Wise Discount
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                /* Formatted on 9/7/2026 1:27:02 PM (QP5 v5.388) */
+                  SELECT D.DISCOUNT_CONFIG_NO,
+                         D.CONFIG_CODE,
+                         D.CONFIG_NAME,
+                         P.PRODUCT_CODE || ' - ' || P.PRODUCT_NAME         AS PRODUCT_NAME,
+                         C.CATEGORY_CODE || ' - ' || C.CATEGORY_NAME       AS CATEGORY_NAME,
+                         CU.CUSTOMER_CODE || ' - ' || CU.CUSTOMER_NAME     AS CUSTOMER_NAME,
+                         D.DISCOUNT_PERCENT,
+                         D.PRIORITY,
+                         D.EFFECTIVE_FROM,
+                         D.EFFECTIVE_TO,
+                         D.ACTIVE_FLAG
+                    FROM MST_DISCOUNT_CONFIG D
+                         LEFT JOIN MST_PRODUCT P ON P.PRODUCT_NO = D.PRODUCT_NO
+                         LEFT JOIN MST_PRODUCT_CATEGORY C ON C.CATEGORY_NO = D.CATEGORY_NO
+                         LEFT JOIN MST_CUSTOMER CU ON CU.CUSTOMER_NO = D.CUSTOMER_NO
+                         WHERE PRODUCT_NAME IS NOT NULL
                 ORDER BY D.PRIORITY DESC, D.CONFIG_NAME
                 ```
         }
         layout {
             sequence: 40
-            slot: body
+            parentRegion: @tab-container
+            slot: tabs
         }
         appearance {
             template: @/interactive-report
@@ -106,7 +963,7 @@ page 32 (
         )
 
         column CATEGORY_NAME (
-            type: plainText
+            type: hidden
             heading {
                 heading: Category Name
             }
@@ -134,7 +991,10 @@ page 32 (
                     page: 33
                     items: {
                         P33_DISCOUNT_CONFIG_NO: #DISCOUNT_CONFIG_NO#
+                        P33_HIDE_PRODUCT: P
                     }
+                    clearCache: 33
+                    action: clearRegions
                 }
                 linkText: #CONFIG_CODE#
             }
@@ -147,12 +1007,24 @@ page 32 (
         )
 
         column CONFIG_NAME (
-            type: plainText
+            type: link
             heading {
                 heading: Config Name
             }
             layout {
                 sequence: 30
+            }
+            link {
+                target: {
+                    page: 33
+                    items: {
+                        P33_DISCOUNT_CONFIG_NO: #DISCOUNT_CONFIG_NO#
+                        P33_HIDE_PRODUCT: P
+                    }
+                    clearCache: 33
+                    action: clearRegions
+                }
+                linkText: #CONFIG_NAME#
             }
             source {
                 dataType: STRING
@@ -163,7 +1035,7 @@ page 32 (
         )
 
         column CUSTOMER_NAME (
-            type: plainText
+            type: hidden
             heading {
                 heading: Customer Name
             }
@@ -335,6 +1207,30 @@ page 32 (
 
     )
 
+    region tab-container (
+        name: Tab Container
+        type: regionDisplaySelector
+        layout {
+            sequence: 50
+            parentRegion: @heading
+            slot: subRegions
+        }
+        appearance {
+            template: @/tabs-container
+            templateOptions: [
+                #DEFAULT#
+                t-TabsRegion-mod--fillLabels
+                t-TabsRegion-mod--small
+                t-TabsRegion-mod--pill
+                t-Form--slimPadding
+                t-Form--stretchInputs
+            ]
+        }
+        settings {
+            mode: scrollWindow
+        }
+    )
+
     button delete (
         buttonName: DELETE
         label: Delete
@@ -375,6 +1271,7 @@ page 32 (
         }
         appearance {
             buttonTemplate: @/text-with-icon
+            hot: true
             templateOptions: [
                 #DEFAULT#
                 t-Button--iconLeft
@@ -385,12 +1282,72 @@ page 32 (
             action: redirectThisApp
             target: {
                 page: 33
+                items: {
+                    P33_HIDE_PRODUCT: P
+                }
                 clearCache: 33
                 action: clearRegions
             }
         }
-        advanced {
-            htmlDomId: pb-reset
+    )
+
+    button new-3_1 (
+        buttonName: New_1
+        label: Add Discount
+        layout {
+            sequence: 20
+            region: @customer-wise-discount
+            slot: rightOfInteractiveReportSearchBar
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 33
+                items: {
+                    P33_HIDE_CUSTOMER: CU
+                }
+                clearCache: 33
+                action: clearRegions
+            }
+        }
+    )
+
+    button new-3_1_1 (
+        buttonName: New_1_1
+        label: Add Discount
+        layout {
+            sequence: 30
+            region: @category-wise-discount
+            slot: rightOfInteractiveReportSearchBar
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-plus-square-o
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 33
+                items: {
+                    P33_HIDE_CATEGORY: C
+                }
+                clearCache: 33
+                action: clearRegions
+            }
         }
     )
 

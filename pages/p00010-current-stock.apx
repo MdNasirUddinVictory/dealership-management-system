@@ -70,21 +70,26 @@ page 10 (
                            ) AS STOCK_UOM,
                 
                            /* Conversion */
-                           CASE
-                               WHEN UC.CONVERSION_FACTOR IS NOT NULL
-                               THEN
-                                   '1 ' ||
-                                   BASE_UOM.UOM_NAME ||
-                                   ' = ' ||
-                                   TO_CHAR(UC.CONVERSION_FACTOR) ||
-                                   ' ' ||
-                                   STOCK_UOM.UOM_NAME
-                               ELSE
-                                   '1 ' ||
-                                   BASE_UOM.UOM_NAME ||
-                                   ' = 1 ' ||
-                                   BASE_UOM.UOM_NAME
-                           END AS UOM_CONVERSION,
+                
+                /* Correct UOM Conversion */
+                CASE
+                    WHEN UC.CONVERSION_FACTOR IS NOT NULL
+                         AND UC.CONVERSION_FACTOR > 0
+                    THEN
+                        '1 ' ||
+                        STOCK_UOM.UOM_NAME ||
+                        ' = ' ||
+                        TO_CHAR(UC.CONVERSION_FACTOR) ||
+                        ' ' ||
+                        BASE_UOM.UOM_NAME
+                    ELSE
+                        '1 ' ||
+                        BASE_UOM.UOM_NAME ||
+                        ' = 1 ' ||
+                        BASE_UOM.UOM_NAME
+                END AS UOM_CONVERSION,
+                
+                
                 
                            /* Purchase Rate per Base UOM */
                            NVL(P.PURCHASE_RATE,0) AS PURCHASE_RATE,

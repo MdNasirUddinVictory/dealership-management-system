@@ -387,6 +387,10 @@ page 206 (
             ]
             width: 30
         }
+        default {
+            type: expression
+            plsqlExpression: sysdate -30
+        }
     )
 
     pageItem P206_SUPPLIER (
@@ -439,6 +443,10 @@ page 206 (
                 t-Form-fieldContainer--slimPadding
             ]
             width: 30
+        }
+        default {
+            type: expression
+            plsqlExpression: sysdate
         }
     )
 

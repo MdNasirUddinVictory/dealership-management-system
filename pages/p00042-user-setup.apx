@@ -340,7 +340,7 @@ page 42 (
             }
 
             displayColumn ACTIVE_STAT (
-                sequence: 8
+                sequence: 7
             )
 
             displayColumn DOB (
@@ -355,10 +355,6 @@ page 42 (
                 sequence: 4
             )
 
-            displayColumn PHOTO (
-                sequence: 6
-            )
-
             displayColumn USER_ID (
                 sequence: 1
             )
@@ -368,7 +364,7 @@ page 42 (
             )
 
             displayColumn USER_TYPE (
-                sequence: 7
+                sequence: 6
             )
 
         )

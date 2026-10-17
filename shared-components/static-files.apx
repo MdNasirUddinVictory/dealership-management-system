@@ -29,7 +29,7 @@ file "icons/app-icon-256-rounded.png" (
 )
 
 file "icons/app-icon-32.png" (
-    mimeType: image/png
+    mimeType: image/jpeg
     charSet: utf-8
 )
 

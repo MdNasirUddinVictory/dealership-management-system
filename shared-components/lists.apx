@@ -4,7 +4,10 @@ list database-menu-access (
         type: sqlQuery
         sqlQuery:
             ```sql
-            WITH ROLE_ACCESS AS (
+            /* Dynamic Menu with Role-Based Access and Individual Icons */
+            
+            WITH ROLE_ACCESS AS
+            (
                 SELECT S.SUBMENU_NO,
                        S.SUBMENU_ID,
                        S.MENU_NO,
@@ -12,74 +15,85 @@ list database-menu-access (
                        S.APEX_PAGE_NO,
                        S.SUBMENU_TYPE,
                        S.HIDE_FROM_MENU,
-                       S.SL_NO
-                FROM SA_USER U
-                JOIN SA_GRANTOBJECT G
-                  ON G.ROLE_NO = U.ROLE_NO
-                 AND G.CAN_VIEW = 1
-                 AND G.ACTIVE_FLAG = 1
-                JOIN SA_SUBMENU S
-                  ON S.SUBMENU_NO = G.SUBMENU_NO
-                WHERE U.USER_NO = :G_USER_NO
-                  AND S.HIDE_FROM_MENU = 0
-                  AND S.ACTIVE_FLAG = 1
-                  AND S.SUBMENU_TYPE IN ('F', 'R')
+                       S.SL_NO,
+                       S.SUBMENU_ICON
+                  FROM SA_USER U
+                       JOIN SA_GRANTOBJECT G
+                         ON G.ROLE_NO = U.ROLE_NO
+                        AND G.CAN_VIEW = 1
+                        AND G.ACTIVE_FLAG = 1
+                       JOIN SA_SUBMENU S
+                         ON S.SUBMENU_NO = G.SUBMENU_NO
+                 WHERE U.USER_NO = :G_USER_NO
+                   AND S.HIDE_FROM_MENU = 0
+                   AND S.ACTIVE_FLAG = 1
+                   AND S.SUBMENU_TYPE IN ('F', 'R')
             )
-            SELECT LEVEL,
+            SELECT LEVEL AS LEVEL_NO,
                    OBJECT_NAME AS LABEL,
+            
                    CASE
-                       WHEN CONNECT_BY_ISLEAF = 1 THEN
-                              'f?p=&APP_ID.:'
-                           || RAW_PAGE_NO
-                           || ':&APP_SESSION.:::'
-                           || RAW_CHILD_ITEM
+                       WHEN CONNECT_BY_ISLEAF = 1
+                       THEN 'f?p=&APP_ID.:'
+                            || RAW_PAGE_NO
+                            || ':&APP_SESSION.:::'
+                            || RAW_CHILD_ITEM
                    END AS TARGET,
+            
                    CASE
                        WHEN LEVEL = 1
                        THEN DECODE(PARENT_ITEM, '0', CHILD_ITEM, PARENT_ITEM)
                        ELSE CHILD_ITEM
                    END AS VALUE,
-                   'fa fa-cube' AS IMAGE,
+            
+                   /* Individual menu icon */
+                   SUBMENU_ICON AS IMAGE,
+            
                    OBJECT_ID,
                    PARENT_ITEM,
                    CHILD_ITEM
-            FROM (
-                /* Role allowed submenu/page */
-                SELECT TO_CHAR(R.MENU_NO) AS PARENT_ITEM,
-                       'P_' || TO_CHAR(R.APEX_PAGE_NO) AS CHILD_ITEM,
-                       TO_CHAR(R.APEX_PAGE_NO) AS RAW_PAGE_NO,
-                       'P_' || TO_CHAR(R.APEX_PAGE_NO) AS RAW_CHILD_ITEM,
-                       R.SUBMENU_NAME AS OBJECT_NAME,
-                       F_MODULE_SL(R.MENU_NO)
-                         + (NVL(R.SL_NO, 0.01) / 100) AS DISPLAY_ORDER,
-                       R.SUBMENU_ID AS OBJECT_ID,
-                       R.SL_NO
-                FROM ROLE_ACCESS R
             
-                UNION ALL
+              FROM
+                   (
+                       /* Submenu / Page */
+                       SELECT TO_CHAR(R.MENU_NO) AS PARENT_ITEM,
+                              'P_' || TO_CHAR(R.APEX_PAGE_NO) AS CHILD_ITEM,
+                              TO_CHAR(R.APEX_PAGE_NO) AS RAW_PAGE_NO,
+                              'P_' || TO_CHAR(R.APEX_PAGE_NO) AS RAW_CHILD_ITEM,
+                              R.SUBMENU_NAME AS OBJECT_NAME,
+                              F_MODULE_SL(R.MENU_NO)
+                                  + (NVL(R.SL_NO, 0.01) / 100) AS DISPLAY_ORDER,
+                              R.SUBMENU_ID AS OBJECT_ID,
+                              R.SL_NO,
+                              R.SUBMENU_ICON AS SUBMENU_ICON
+                         FROM ROLE_ACCESS R
             
-                /* Parent menu যার অধীনে role allowed page আছে */
-                SELECT TO_CHAR(
-                           DECODE(M.PARENT_MENU_NO, NULL, 0, M.PARENT_MENU_NO)
-                       ) AS PARENT_ITEM,
-                       TO_CHAR(M.MENU_NO) AS CHILD_ITEM,
-                       NULL AS RAW_PAGE_NO,
-                       TO_CHAR(M.MENU_NO) AS RAW_CHILD_ITEM,
-                       M.MENU_NAME AS OBJECT_NAME,
-                       F_MODULE_SL(M.MENU_NO) AS DISPLAY_ORDER,
-                       M.MENU_ID AS OBJECT_ID,
-                       M.SL_NO
-                FROM SA_MENU M
-                WHERE M.ACTIVE_FLAG = 1
-                  AND EXISTS (
-                      SELECT 1
-                      FROM ROLE_ACCESS R
-                      WHERE R.MENU_NO = M.MENU_NO
-                  )
-            )
-            START WITH PARENT_ITEM = '0'
+                       UNION ALL
+            
+                       /* Parent Menu */
+                       SELECT TO_CHAR(
+                                  DECODE(M.PARENT_MENU_NO, NULL, 0, M.PARENT_MENU_NO)
+                              ) AS PARENT_ITEM,
+                              TO_CHAR(M.MENU_NO) AS CHILD_ITEM,
+                              NULL AS RAW_PAGE_NO,
+                              TO_CHAR(M.MENU_NO) AS RAW_CHILD_ITEM,
+                              M.MENU_NAME AS OBJECT_NAME,
+                              F_MODULE_SL(M.MENU_NO) AS DISPLAY_ORDER,
+                              M.MENU_ID AS OBJECT_ID,
+                              M.SL_NO,
+                              M.MENU_ICON AS SUBMENU_ICON
+                         FROM SA_MENU M
+                        WHERE M.ACTIVE_FLAG = 1
+                          AND EXISTS
+                              (
+                                  SELECT 1
+                                    FROM ROLE_ACCESS R
+                                   WHERE R.MENU_NO = M.MENU_NO
+                              )
+                   )
+             START WITH PARENT_ITEM = '0'
             CONNECT BY PRIOR CHILD_ITEM = PARENT_ITEM
-            ORDER SIBLINGS BY SL_NO;
+             ORDER SIBLINGS BY SL_NO;
             ```
     }
 
@@ -108,7 +122,7 @@ list navigation-bar (
     name: Navigation Bar
 
     entry app-user (
-        label: &APP_USER.
+        label: &G_USER_NAME. (&G_USER_CODE.)
         icon {
             imageIconCssClasses: fa-user
         }

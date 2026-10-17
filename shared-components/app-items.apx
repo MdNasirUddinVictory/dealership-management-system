@@ -1,3 +1,12 @@
+appItem G_USER_CODE (
+    security {
+        escapeSpecialChars: false
+    }
+)
+
+appItem G_USER_NAME (
+)
+
 appItem G_USER_NO (
     scope: global
     security {

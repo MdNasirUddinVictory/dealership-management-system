@@ -128,12 +128,12 @@ page 100 (
                         OR I.INVOICE_DATE >= TO_DATE(:P100_FROM_DATE,'MM/DD/YYYY'))
                    AND (:P100_TO_DATE IS NULL
                         OR I.INVOICE_DATE < TO_DATE(:P100_TO_DATE,'MM/DD/YYYY') + 1)
-                   AND (:P100_CUSTOMER_NO IS NULL
-                        OR I.CUSTOMER_NO = :P100_CUSTOMER_NO)
-                   AND (:P100_PRODUCT_NO IS NULL
-                        OR D.PRODUCT_NO = :P100_PRODUCT_NO)
-                   AND (:P100_CATEGORY_NO IS NULL
-                        OR P.CATEGORY_NO = :P100_CATEGORY_NO)
+                --    AND (:P100_CUSTOMER_NO IS NULL
+                --         OR I.CUSTOMER_NO = :P100_CUSTOMER_NO)
+                --    AND (:P100_PRODUCT_NO IS NULL
+                --         OR D.PRODUCT_NO = :P100_PRODUCT_NO)
+                --    AND (:P100_CATEGORY_NO IS NULL
+                --         OR P.CATEGORY_NO = :P100_CATEGORY_NO)
                 ORDER BY I.INVOICE_DATE DESC,
                          I.INVOICE_NO DESC,
                          D.INVOICE_DTL_NO;
@@ -148,7 +148,7 @@ page 100 (
             ]
         }
         layout {
-            sequence: 70
+            sequence: 80
             slot: body
         }
         appearance {
@@ -530,7 +530,7 @@ page 100 (
             displayExtraValues: false
         }
         layout {
-            sequence: 10
+            sequence: 30
             slot: body
             alignment: left
         }
@@ -543,6 +543,9 @@ page 100 (
                 t-Form-fieldContainer--slimPadding
             ]
             height: 1
+        }
+        config {
+            buildOption: @commented-out
         }
     )
 
@@ -558,7 +561,7 @@ page 100 (
             displayExtraValues: false
         }
         layout {
-            sequence: 30
+            sequence: 50
             slot: body
             alignment: left
             startNewRow: false
@@ -573,6 +576,9 @@ page 100 (
             ]
             height: 1
         }
+        config {
+            buildOption: @commented-out
+        }
     )
 
     pageItem P100_FROM_DATE (
@@ -582,13 +588,16 @@ page 100 (
             alignment: left
         }
         layout {
-            sequence: 40
+            sequence: 10
             slot: body
             alignment: left
             startNewRow: false
+            column: 3
+            columnSpan: 4
+            labelColumnSpan: 1
         }
         appearance {
-            template: @/optional-above
+            template: @/optional
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
@@ -627,7 +636,7 @@ page 100 (
             itemsToSubmit: P100_CATEGORY_NO
         }
         layout {
-            sequence: 20
+            sequence: 40
             slot: body
             alignment: left
             startNewRow: false
@@ -641,6 +650,9 @@ page 100 (
                 t-Form-fieldContainer--slimPadding
             ]
             height: 1
+        }
+        config {
+            buildOption: @commented-out
         }
     )
 
@@ -657,7 +669,7 @@ page 100 (
             displayNullValue: false
         }
         layout {
-            sequence: 60
+            sequence: 70
             slot: body
             alignment: left
             startNewRow: false
@@ -672,6 +684,9 @@ page 100 (
             ]
             height: 1
         }
+        config {
+            buildOption: @commented-out
+        }
     )
 
     pageItem P100_TO_DATE (
@@ -681,13 +696,15 @@ page 100 (
             alignment: left
         }
         layout {
-            sequence: 50
+            sequence: 20
             slot: body
             alignment: left
             startNewRow: false
+            columnSpan: 4
+            labelColumnSpan: 1
         }
         appearance {
-            template: @/optional-above
+            template: @/optional
             templateOptions: [
                 #DEFAULT#
                 t-Form-fieldContainer--stretchInputs
